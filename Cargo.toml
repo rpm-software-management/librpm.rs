@@ -12,7 +12,9 @@ homepage    = "https://rpmlib.rs/librpm/"
 [dependencies]
 failure = "0.1"
 failure_derive = "0.1"
+lazy_static = "1"
 librpm-sys = { version = "0", path = "librpm-sys" }
+streaming-iterator = "0.1"
 
 [workspace]
 members = [
@@ -20,4 +22,3 @@ members = [
     "librpmbuild-sys",
     "librpmsign-sys"
 ]
-

@@ -76,15 +76,9 @@ pub enum ErrorKind {
     /// Configuration errors
     #[fail(display = "configuration error")]
     ConfigError,
-
-    /// Input/output errors
-    #[fail(display = "I/O error")]
-    IoError,
 }
 
 /// Create a new error (of a given enum variant) with a formatted message
-// TODO: use all the macros
-#[allow(unused_macros)]
 macro_rules! err {
     ($variant:ident, $msg:expr) => {
         ::error::Error::with_description(::error::ErrorKind::$variant, $msg.to_owned())
@@ -95,8 +89,6 @@ macro_rules! err {
 }
 
 /// Create and return an error enum variant with a formatted message
-// TODO: use all the macros
-#[allow(unused_macros)]
 macro_rules! fail {
     ($variant:ident, $msg:expr) => {
         return Err(err!($variant, $msg));
