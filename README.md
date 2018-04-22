@@ -43,4 +43,4 @@ This library is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 PARTICULAR PURPOSE. See the [GNU Lesser General Public License] for more details.
 
-[GNU Lesser General Public License][COPYING]
+[GNU Lesser General Public License]: https://github.com/tarcieri/librpm-rs/blob/master/COPYING
