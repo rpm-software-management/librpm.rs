@@ -1,0 +1,18 @@
+[package]
+name        = "librpmsign-sys"
+description = "rpmsign library FFI bindings (librpmsign.so)"
+version     = "0.0.0"
+license     = "LGPL-2.1-or-later"
+authors     = ["Tony Arcieri <tony@iqlusion.io>"]
+categories  = ["external-ffi-bindings", "os"]
+keywords    = ["rpm", "linux", "redhat", "fedora", "centos"]
+readme      = "README.md"
+homepage    = "https://librpm.rs/librpmsign-sys/"
+repository  = "https://github.com/tarcieri/librpm-rs/tree/master/librpmsign-sys"
+
+[badges]
+circle-ci = { repository = "tarcieri/librpm-rs" }
+
+[build-dependencies]
+bindgen = "0.35"
+
