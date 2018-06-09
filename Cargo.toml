@@ -1,0 +1,24 @@
+[package]
+name        = "librpm"
+version     = "0.0.0"
+description = "RPM Package Manager library binding with an idiomatic Rust API"
+license     = "LGPL-2.1-or-later"
+authors     = ["Tony Arcieri <tony@iqlusion.io>"]
+categories  = ["api-bindings", "os", "parsing"]
+keywords    = ["rpm", "linux", "redhat", "fedora", "centos"]
+readme      = "README.md"
+homepage    = "https://rpmlib.rs/librpm/"
+
+[dependencies]
+failure = "0.1"
+failure_derive = "0.1"
+lazy_static = "1"
+librpm-sys = { version = "0", path = "librpm-sys" }
+streaming-iterator = "0.1"
+
+[workspace]
+members = [
+    "librpm-sys",
+    "librpmbuild-sys",
+    "librpmsign-sys"
+]

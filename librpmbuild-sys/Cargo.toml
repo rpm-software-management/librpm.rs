@@ -1,0 +1,18 @@
+[package]
+name        = "librpmbuild-sys"
+description = "rpmbuild library FFI bindings (librpmbuild.so)"
+version     = "0.0.0"
+license     = "LGPL-2.1-or-later"
+authors     = ["Tony Arcieri <tony@iqlusion.io>"]
+categories  = ["external-ffi-bindings", "os"]
+keywords    = ["rpm", "linux", "redhat", "fedora", "centos"]
+readme      = "README.md"
+homepage    = "https://librpm.rs/librpm-sys/"
+repository  = "https://github.com/rustrpm/librpm-rs/tree/master/librpmbuild-sys"
+
+[badges]
+circle-ci = { repository = "rustrpm/librpm-rs" }
+
+[build-dependencies]
+bindgen = "0.35"
+
