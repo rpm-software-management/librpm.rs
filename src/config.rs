@@ -6,8 +6,8 @@ use std::os::unix::ffi::OsStrExt;
 use std::path::Path;
 use std::ptr;
 
-use {Error, MacroContext};
 use internal::GlobalState;
+use {Error, MacroContext};
 
 /// Name of the macro which defines the path to the database
 const DB_PATH_MACRO: &str = "_dbpath";

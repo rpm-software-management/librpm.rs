@@ -1,8 +1,8 @@
 //! Transaction sets: librpm's transaction API
 
 use librpm_sys;
-use std::sync::MutexGuard;
 use std::sync::atomic::AtomicPtr;
+use std::sync::MutexGuard;
 
 use internal::GlobalState;
 
