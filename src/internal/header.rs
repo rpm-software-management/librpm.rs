@@ -3,8 +3,8 @@
 use librpm_sys;
 use std::mem;
 
-use {License, Package, Version};
 use internal::{tag::Tag, td::TagData};
+use {License, Package, Version};
 
 /// RPM package header
 pub(crate) struct Header(*mut librpm_sys::headerToken_s);
