@@ -1,6 +1,6 @@
 # Rust CI Dockerfile (librpm-rs project)
 #
-# Resulting image is published as rustrpm/librpm-ci on Docker Hub
+# Resulting image is published as rustrpm/ci on Docker Hub
 
 FROM centos:7.4.1708
 
@@ -24,7 +24,7 @@ WORKDIR /root
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 
 # Rust nightly version to install
-ENV RUST_NIGHTLY_VERSION "nightly-2018-04-05"
+ENV RUST_NIGHTLY_VERSION "nightly-2018-06-02"
 
 # Install Rust nightly
 RUN rustup install $RUST_NIGHTLY_VERSION
@@ -34,10 +34,11 @@ RUN bash -l -c "echo $(rustc --print sysroot)/lib >> /etc/ld.so.conf"
 RUN ldconfig
 
 # Install rustfmt
-ENV RUSTFMT_NIGHTLY_VERSION "0.4.1"
-RUN rustup run $RUST_NIGHTLY_VERSION cargo install rustfmt-nightly --vers $RUSTFMT_NIGHTLY_VERSION --force
+RUN rustup component add rustfmt-preview --toolchain $RUST_NIGHTLY_VERSION
 
 # Install clippy
-ENV CLIPPY_VERSION "0.0.192"
-RUN rustup run $RUST_NIGHTLY_VERSION cargo install clippy --vers $CLIPPY_VERSION --force
+ENV CLIPPY_VERSION "0.0.206"
+RUN cargo +$RUST_NIGHTLY_VERSION install clippy --vers $CLIPPY_VERSION
 
+# Configure Rust environment variables
+ENV RUST_BACKTRACE full
