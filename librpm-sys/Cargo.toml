@@ -1,8 +1,8 @@
 [package]
 name        = "librpm-sys"
 description = "RPM Package Manager library FFI bindings (librpm.so)"
-version     = "0.0.0"
-license     = "LGPL-2.1-or-later"
+version     = "0.1.0"
+license     = "LGPL-2.1+"
 authors     = ["Tony Arcieri <tony@iqlusion.io>"]
 categories  = ["external-ffi-bindings", "os"]
 keywords    = ["rpm", "linux", "redhat", "fedora", "centos"]

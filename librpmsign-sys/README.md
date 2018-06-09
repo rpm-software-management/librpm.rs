@@ -1,4 +1,4 @@
-# librpmsign-sys: bindgen wrapper for librpmsign C library
+# librpmsign-sys: bindgen wrapper for rpmsign C library
 
 [![Crate][crate-image]][crate-link]
 [![Build Status][build-image]][build-link]
@@ -12,22 +12,16 @@
 [license-link]: https://github.com/iqlusion-io/crates/blob/master/LICENSE
 
 This crate uses bindgen to generate an unsafe FFI wrapper for the
-[librpmsign C library], which provides a low-level API for signing
+[rpmsign C library], which provides a low-level API for signing
 **.rpm** files.
 
 This crate isn't intended to be used directly, but instead provides an unsafe,
 low-level binding used by the higher level **librpm** crate, which aims to
 provide a safe, idiomatic, high-level binding to the C library:
 
-https://docs.rs/crate/librpm/
+https://librpm.rs/
 
-If you're intending to add a feature to the **librpm** crate however, you have
-come to the right place. You can find documentation here:
-
-[Documentation]: https://librpm.rs/librpmsign-sys/
-
-[librpmsign C library]: http://ftp.rpm.org/api/4.14.0/group__rpmsign.html
-[RPM Package Manager]: http://rpm.org/
+[rpmsign C library]: http://ftp.rpm.org/api/4.14.0/group__rpmsign.html
 
 ## License
 

@@ -19,7 +19,7 @@ This crate isn't intended to be used directly, but instead provides an unsafe,
 low-level binding used by the higher level **librpm** crate, which aims to
 provide a safe, idiomatic, high-level binding to the C library:
 
-https://docs.rs/crate/librpm/
+https://librpm.rs/
 
 If you're intending to add a feature to the **librpm** crate however, you have
 come to the right place. You can find documentation here:

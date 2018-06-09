@@ -1,8 +1,8 @@
 [package]
 name        = "librpmbuild-sys"
 description = "rpmbuild library FFI bindings (librpmbuild.so)"
-version     = "0.0.0"
-license     = "LGPL-2.1-or-later"
+version     = "0.1.0"
+license     = "LGPL-2.1+"
 authors     = ["Tony Arcieri <tony@iqlusion.io>"]
 categories  = ["external-ffi-bindings", "os"]
 keywords    = ["rpm", "linux", "redhat", "fedora", "centos"]

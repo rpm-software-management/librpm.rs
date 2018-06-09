@@ -12,21 +12,16 @@
 [license-link]: https://github.com/iqlusion-io/crates/blob/master/LICENSE
 
 This crate uses bindgen to generate an unsafe FFI wrapper for the
-[librpmbuild C library], which provides a low-level API for building **.rpm**
+[rpmbuild C library], which provides a low-level API for building **.rpm**
 files for use with the [RPM Package Manager].
 
 This crate isn't intended to be used directly, but instead provides an unsafe,
 low-level binding used by the higher level **librpm** crate, which aims to
 provide a safe, idiomatic, high-level binding to the C library:
 
-https://docs.rs/crate/librpm/
+https://librpm.rs/
 
-If you're intending to add a feature to the **librpm** crate however, you have
-come to the right place. You can find documentation here:
-
-[Documentation]: https://librpm.rs/librpmbuild-sys/
-
-[librpmbuild C library]: http://ftp.rpm.org/api/4.14.0/group__rpmbuild.html
+[rpmbuild C library]: http://ftp.rpm.org/api/4.14.0/group__rpmbuild.html
 [RPM Package Manager]: http://rpm.org/
 
 ## License
