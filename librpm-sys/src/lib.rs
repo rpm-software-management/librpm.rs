@@ -8,7 +8,7 @@
 #![crate_type = "rlib"]
 #![allow(unknown_lints, clippy)]
 #![allow(non_upper_case_globals, non_camel_case_types, non_snake_case)]
-#![doc(html_root_url = "https://librpm.rs/librpm-sys/")]
+#![doc(html_root_url = "https://rustrpm.org/librpm_sys/")]
 
 /// Bindings to librpm.so and librpmio.so
 include!(concat!(env!("OUT_DIR"), "/binding.rs"));

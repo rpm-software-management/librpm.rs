@@ -7,7 +7,7 @@ authors     = ["Tony Arcieri <tony@iqlusion.io>"]
 categories  = ["external-ffi-bindings", "os"]
 keywords    = ["rpm", "linux", "redhat", "fedora", "centos"]
 readme      = "README.md"
-homepage    = "https://librpm.rs/librpm-sys/"
+homepage    = "https://rustrpm.org/librpm-sys/"
 repository  = "https://github.com/rustrpm/librpm-rs/tree/master/librpmbuild-sys"
 
 [badges]

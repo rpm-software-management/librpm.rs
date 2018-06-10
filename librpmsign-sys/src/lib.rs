@@ -9,7 +9,7 @@
 #![crate_type = "rlib"]
 #![allow(unknown_lints, clippy)]
 #![allow(non_upper_case_globals, non_camel_case_types, non_snake_case)]
-#![doc(html_root_url = "https://librpm.rs/librpmsign-sys/")]
+#![doc(html_root_url = "https://rustrpm.org/librpmsign_sys/")]
 
 /// Bindings to librpmsign.so
 include!(concat!(env!("OUT_DIR"), "/binding.rs"));

@@ -1,4 +1,4 @@
-// rpmlib.hpp: Wrapper for rpmlib header files to be passed to bindgen
+// librpm.hpp: Wrapper for librpm header files to be passed to bindgen
 //
 // See "Using the RPM Library" section of "Chapter 15. Programming RPM with C"
 // of the Fedora RPM Guide (Draft 0.1):
@@ -11,11 +11,11 @@
 // ## Why does this file have a `.hpp` extension (i.e. why a C++ binding?)
 //
 // This file has a `.hpp` extension to signal to bindgen to treat it (and
-// the rest of the rpmlib header files) as C++. Though that may seem a little
+// the rest of the librpm header files) as C++. Though that may seem a little
 // crazy, there's actually a good reason for it.
 //
 // Some of RPM's header files (namely `/usr/include/popt.h`, which is included
-// by several important rpmlib headers including `rpmbuild.h`, `rpmsign.h`, and
+// by several important librpm headers including `rpmbuild.h`, `rpmsign.h`, and
 // `rpmspec.h) define pointer typedefs for structs with the same name as the
 // structs they point to, which is valid in C but not valid in C++, and
 // likewise also not valid in bindgen's generated bindings for the same reason:
@@ -25,10 +25,10 @@
 //
 // By naming this file with a .hpp extension we instruct bindgen to produce a
 // C++ binding instead of a C one, which triggers macro-based gating (i.e.
-// `#ifdef __cplusplus`) througout rpmlib's headers.
+// `#ifdef __cplusplus`) throughout librpm's headers.
 //
 // Treating the headers as C++ prevents them from defining these sorts of type
-// aliases and allows us to bind to more of rpmlib than we can using C.
+// aliases and allows us to bind to more of librpm than we can using C.
 //
 // Additionally it resolved bindgen-generated test failures for memory
 // alignment, allowing us to generate a low-level binding for all parts of
