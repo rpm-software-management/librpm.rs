@@ -1,6 +1,6 @@
 [package]
 name          = "librpm"
-version       = "0.1.0"
+version       = "0.1.1"
 description   = "RPM Package Manager library binding with an idiomatic Rust API"
 license       = "LGPL-2.1+"
 authors       = ["Tony Arcieri <tony@iqlusion.io>"]
