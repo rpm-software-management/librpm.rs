@@ -19,12 +19,12 @@ This crate isn't intended to be used directly, but instead provides an unsafe,
 low-level binding used by the higher level **librpm** crate, which aims to
 provide a safe, idiomatic, high-level binding to the C library:
 
-https://librpm.rs/
+https://rustrpm.org/
 
 If you're intending to add a feature to the **librpm** crate however, you have
 come to the right place. You can find documentation here:
 
-[Documentation]: https://librpm.rs/librpm-sys/
+[Documentation]: https://rustrpm.org/librpm-sys/
 
 [librpm C library]: http://ftp.rpm.org/api/4.14.0/
 [RPM Package Manager]: http://rpm.org/

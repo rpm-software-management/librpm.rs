@@ -7,7 +7,7 @@ authors     = ["Tony Arcieri <tony@iqlusion.io>"]
 categories  = ["api-bindings", "os", "parsing"]
 keywords    = ["rpm", "linux", "redhat", "fedora", "centos"]
 readme      = "README.md"
-homepage    = "https://rpmlib.rs/librpm/"
+homepage    = "https://rustrpm.org/librpm/"
 
 [dependencies]
 failure = "0.1"

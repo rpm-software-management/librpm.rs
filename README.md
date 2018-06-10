@@ -15,7 +15,7 @@ The [librpm] C library (available in the `rpm-devel` RPM package) exposes a
 programmatic interface to the [RPM Package Manager], and this crate aims to
 provide a safe, idiomatic Rust wrapper.
 
-[Documentation](https://librpm.rs/librpm/)
+[Documentation](https://rustrpm.org/librpm/)
 
 [librpm]: http://ftp.rpm.org/api/4.14.0/
 [RPM Package Manager]: http://rpm.org/

@@ -6,7 +6,7 @@ use std::sync::MutexGuard;
 
 use internal::GlobalState;
 
-/// librpm transactions, a.k.a. "transaction sets" (or "rpmts" in rpmlib)
+/// librpm transactions, a.k.a. "transaction sets" (or `rpmts` librpm type)
 ///
 /// Nearly all access to librpm, including actions which don't necessarily
 /// involve operations on the RPM database, require a transaction set.

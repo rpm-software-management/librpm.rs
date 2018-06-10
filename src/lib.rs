@@ -9,13 +9,13 @@
 //! See the `librpm::db::Database` type for examples of how to interact with
 //! the RPM database.
 //!
-//! [librpm-sys]: https://rpmlib.rs/rpmlib-sys/
+//! [librpm-sys]: https://rustrpm.org/librpm_sys/index.html
 
 #![crate_name = "librpm"]
 #![crate_type = "rlib"]
 #![deny(warnings, missing_docs, trivial_casts, trivial_numeric_casts)]
 #![deny(unused_import_braces, unused_qualifications)]
-#![doc(html_root_url = "https://librpm.rs/rpmlib/")]
+#![doc(html_root_url = "https://rustrpm.org/librpm/")]
 
 extern crate failure;
 #[macro_use]
