@@ -10,7 +10,7 @@ ENV PATH "$PATH:/root/.cargo/bin"
 # Install/update RPMs
 RUN yum update -y && \
     yum groupinstall -y "Development Tools" && \
-    yum install -y centos-release-scl rpm-devel && \
+    yum install -y centos-release-scl rpm-devel zlib-devel && \
     yum install -y --enablerepo=centos-sclo-rh llvm-toolset-7
 
 # Set environment variables to enable llvm-toolset-7 SCL package
