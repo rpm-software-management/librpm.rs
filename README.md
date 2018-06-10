@@ -6,10 +6,10 @@
 
 [crate-image]: https://img.shields.io/crates/v/librpm.svg
 [crate-link]: https://crates.io/crates/librpm
-[build-image]: https://circleci.com/gh/rustrpm/librpm-rs.svg?style=shield
-[build-link]: https://circleci.com/gh/rustrpm/librpm-rs
+[build-image]: https://circleci.com/gh/RustRPM/librpm-rs.svg?style=shield
+[build-link]: https://circleci.com/gh/RustRPM/librpm-rs
 [license-image]: https://img.shields.io/badge/license-LGPLv2.1+-blue.svg
-[license-link]: https://github.com/rustrpm/librpm-rs/blob/master/LICENSE
+[license-link]: https://github.com/RustRPM/librpm-rs/blob/master/COPYING
 
 The [librpm] C library (available in the `rpm-devel` RPM package) exposes a
 programmatic interface to the [RPM Package Manager], and this crate aims to
@@ -43,4 +43,4 @@ This library is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 PARTICULAR PURPOSE. See the [GNU Lesser General Public License] for more details.
 
-[GNU Lesser General Public License]: https://github.com/rustrpm/librpm-rs/blob/master/COPYING
+[GNU Lesser General Public License]: https://github.com/RustRPM/librpm-rs/blob/master/COPYING
