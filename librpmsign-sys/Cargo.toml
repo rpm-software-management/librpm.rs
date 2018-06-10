@@ -1,14 +1,15 @@
 [package]
-name        = "librpmsign-sys"
-description = "rpmsign library FFI bindings (librpmsign.so)"
-version     = "0.1.0"
-license     = "LGPL-2.1+"
-authors     = ["Tony Arcieri <tony@iqlusion.io>"]
-categories  = ["external-ffi-bindings", "os"]
-keywords    = ["rpm", "linux", "redhat", "fedora", "centos"]
-readme      = "README.md"
-homepage    = "https://rustrpm.org/librpmsign-sys/"
-repository  = "https://github.com/rustrpm/librpm-rs/tree/master/librpmsign-sys"
+name          = "librpmsign-sys"
+description   = "rpmsign library FFI bindings (librpmsign.so)"
+version       = "0.1.0"
+license       = "LGPL-2.1+"
+authors       = ["Tony Arcieri <tony@iqlusion.io>"]
+categories    = ["external-ffi-bindings", "os"]
+keywords      = ["rpm", "linux", "redhat", "fedora", "centos"]
+readme        = "README.md"
+homepage      = "https://github.com/RustRPM/librpm-rs/"
+documentation = "https://rustrpm.org/librpmsign_sys/"
+repository    = "https://github.com/rustrpm/librpm-rs/tree/master/librpmsign-sys"
 
 [badges]
 circle-ci = { repository = "RustRPM/librpm-rs" }

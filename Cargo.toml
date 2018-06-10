@@ -1,13 +1,14 @@
 [package]
-name        = "librpm"
-version     = "0.1.0"
-description = "RPM Package Manager library binding with an idiomatic Rust API"
-license     = "LGPL-2.1+"
-authors     = ["Tony Arcieri <tony@iqlusion.io>"]
-categories  = ["api-bindings", "os", "parsing"]
-keywords    = ["rpm", "linux", "redhat", "fedora", "centos"]
-readme      = "README.md"
-homepage    = "https://rustrpm.org/librpm/"
+name          = "librpm"
+version       = "0.1.0"
+description   = "RPM Package Manager library binding with an idiomatic Rust API"
+license       = "LGPL-2.1+"
+authors       = ["Tony Arcieri <tony@iqlusion.io>"]
+categories    = ["api-bindings", "os", "parsing"]
+keywords      = ["rpm", "linux", "redhat", "fedora", "centos"]
+readme        = "README.md"
+homepage      = "https://github.com/RustRPM/librpm-rs/"
+documentation = "https://rustrpm.org/librpm/"
 
 [dependencies]
 failure = "0.1"
