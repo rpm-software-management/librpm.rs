@@ -11,8 +11,7 @@ homepage      = "https://github.com/RustRPM/librpm-rs/"
 documentation = "https://rustrpm.org/librpm/"
 
 [dependencies]
-failure = "0.1"
-failure_derive = "0.1"
+failure = "0.1.5"
 lazy_static = "1"
 librpm-sys = { version = "0.1", path = "librpm-sys" }
 streaming-iterator = "0.1"
