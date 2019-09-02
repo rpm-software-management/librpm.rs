@@ -6,9 +6,9 @@
 //! This struct tracks changes to librpm's global state based on functions we
 //! have (or have not) invoked.
 
+use super::ts::TransactionSet;
+use lazy_static::lazy_static;
 use std::sync::{Mutex, MutexGuard};
-
-use internal::ts::TransactionSet;
 
 lazy_static! {
     static ref RPM_GLOBAL_STATE: Mutex<GlobalState> = Mutex::new(GlobalState::default());

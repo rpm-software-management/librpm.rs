@@ -5,8 +5,9 @@
 //! This crate isn't intended to be used directly, but instead provides the
 //! low-level binding which is used by the idiomatic librpm crate.
 
-#![allow(non_upper_case_globals, non_camel_case_types, non_snake_case)]
 #![doc(html_root_url = "https://rustrpm.org/librpmsign_sys/")]
+#![allow(non_upper_case_globals, non_camel_case_types, non_snake_case)]
+#![warn(rust_2018_idioms)]
 
-/// Bindings to librpmsign.so
+// Bindings to librpmsign.so
 include!(concat!(env!("OUT_DIR"), "/binding.rs"));

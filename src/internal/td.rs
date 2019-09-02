@@ -3,12 +3,11 @@
 // Take this as a sign this code is not properly tested
 #![allow(dead_code)]
 
+use super::tag::TagType;
 use librpm_sys;
 use std::ffi::CStr;
 use std::os::raw::c_char;
 use std::{slice, str};
-
-use internal::tag::TagType;
 
 /// Data found in RPM headers, associated with a particular `Tag` value.
 #[derive(Debug)]

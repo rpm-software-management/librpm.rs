@@ -10,11 +10,12 @@ readme        = "README.md"
 homepage      = "https://github.com/RustRPM/librpm.rs/"
 repository    = "https://github.com/RustRPM/librpm.rs/tree/master/librpmbuild-sys"
 documentation = "https://rustrpm.org/librpmbuild_sys/"
+edition       = "2018"
 
 [badges]
 travis-ci = { repository = "RustRPM/librpm.rs" }
 maintenance = { status = "passively-maintained" }
 
 [build-dependencies]
-bindgen = "0.35"
+bindgen = "0.45"
 

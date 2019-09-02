@@ -9,6 +9,7 @@ keywords      = ["rpm", "linux", "redhat", "fedora", "centos"]
 readme        = "README.md"
 homepage      = "https://github.com/RustRPM/librpm.rs/"
 documentation = "https://rustrpm.org/librpm/"
+edition       = "2018"
 
 [badges]
 travis-ci = { repository = "RustRPM/librpm.rs" }

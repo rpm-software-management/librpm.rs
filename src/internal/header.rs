@@ -1,10 +1,9 @@
 //! RPM package headers
 
+use super::{tag::Tag, td::TagData};
+use crate::{License, Package, Version};
 use librpm_sys;
 use std::mem;
-
-use internal::{tag::Tag, td::TagData};
-use {License, Package, Version};
 
 /// RPM package header
 pub(crate) struct Header(*mut librpm_sys::headerToken_s);
@@ -21,7 +20,7 @@ impl Header {
     }
 
     /// Get the data that corresponds to the given header tag.
-    pub(crate) fn get(&self, tag: Tag) -> TagData {
+    pub(crate) fn get(&self, tag: Tag) -> TagData<'_> {
         // Create a zeroed `rpmtd_s` and then immediately initialize it
         let mut td: librpm_sys::rpmtd_s = unsafe { mem::zeroed() };
         unsafe {

@@ -5,11 +5,8 @@
 //!
 //! https://docs.fedoraproject.org/en-US/Fedora_Draft_Documentation/0.1/html/RPM_Guide/ch-programming-c.html
 
-extern crate bindgen;
-
 use bindgen::Builder;
-use std::env;
-use std::path::PathBuf;
+use std::{env, path::PathBuf};
 
 /// Bind to librpm.so + librpmio.so
 fn main() {

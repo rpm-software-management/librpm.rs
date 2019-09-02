@@ -22,10 +22,9 @@
 //! println!("package version: {}", package.version);
 //! ```
 
+use crate::internal::{iterator::MatchIterator, tag::Tag};
+use crate::package::Package;
 use streaming_iterator::StreamingIterator;
-
-use internal::{iterator::MatchIterator, tag::Tag};
-use package::Package;
 
 /// Iterator over the RPM database which returns `Package` structs.
 pub struct Iter(MatchIterator);

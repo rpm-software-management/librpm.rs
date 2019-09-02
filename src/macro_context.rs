@@ -1,10 +1,9 @@
 //! RPM macros are configuration parameters that have largely replaced the
 //! previous rpmrc system.
 
+use crate::error::{Error, ErrorKind};
 use librpm_sys;
 use std::ffi::CString;
-
-use error::{Error, ErrorKind};
 
 /// Scopes in which macros are defined
 pub struct MacroContext(librpm_sys::rpmMacroContext);

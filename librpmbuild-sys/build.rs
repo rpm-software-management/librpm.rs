@@ -1,10 +1,7 @@
 //! bindgen configuration for librpmbuild-sys
 
-extern crate bindgen;
-
 use bindgen::Builder;
-use std::env;
-use std::path::PathBuf;
+use std::{env, path::PathBuf};
 
 /// Bind to librpmbuild.so
 fn main() {

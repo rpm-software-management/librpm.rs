@@ -1,14 +1,13 @@
 //! Support for configuring RPM, i.e. reading configuration files
 
+use crate::error::{Error, ErrorKind};
+use crate::internal::GlobalState;
+use crate::macro_context::MacroContext;
 use librpm_sys;
 use std::ffi::CString;
 use std::os::unix::ffi::OsStrExt;
 use std::path::Path;
 use std::ptr;
-
-use error::{Error, ErrorKind};
-use internal::GlobalState;
-use MacroContext;
 
 /// Name of the macro which defines the path to the database
 const DB_PATH_MACRO: &str = "_dbpath";
