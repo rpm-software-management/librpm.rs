@@ -19,6 +19,9 @@ pub(crate) struct MatchIterator {
 
     /// Next item in the iterator
     next_item: Option<Header>,
+
+    /// Have we already finished iterating?
+    finished: bool,
 }
 
 impl MatchIterator {
@@ -27,6 +30,7 @@ impl MatchIterator {
     pub(crate) fn new(tag: Tag, key_opt: Option<&str>) -> Self {
         let mut txn = GlobalTS::create();
         let next_item = None;
+        let finished = false;
 
         if let Some(key) = key_opt {
             if !key.is_empty() {
@@ -43,6 +47,7 @@ impl MatchIterator {
                     ptr,
                     txn,
                     next_item,
+                    finished,
                 };
             }
         }
@@ -60,6 +65,7 @@ impl MatchIterator {
             ptr,
             txn,
             next_item,
+            finished,
         }
     }
 }
@@ -69,10 +75,16 @@ impl StreamingIterator for MatchIterator {
     type Item = Header;
 
     fn advance(&mut self) {
+        // Underlying rpmdb iterator has been consumed
+        if self.finished {
+            return;
+        }
+
         let header_ptr = unsafe { librpm_sys::rpmdbNextIterator(self.ptr) };
 
         if header_ptr.is_null() {
-            self.next_item = None
+            self.next_item = None;
+            self.finished = true;
         } else {
             self.next_item = Some(Header::new(header_ptr))
         }
