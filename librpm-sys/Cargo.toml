@@ -7,12 +7,13 @@ authors       = ["Tony Arcieri <tony@iqlusion.io>"]
 categories    = ["external-ffi-bindings", "os"]
 keywords      = ["rpm", "linux", "redhat", "fedora", "centos"]
 readme        = "README.md"
-homepage      = "https://github.com/RustRPM/librpm-rs/"
+homepage      = "https://github.com/RustRPM/librpm.rs/"
+repository    = "https://github.com/rustrpm/librpm.rs/tree/master/librpm-sys"
 documentation = "https://rustrpm.org/librpm_sys/"
-repository    = "https://github.com/rustrpm/librpm-rs/tree/master/librpm-sys"
 
 [badges]
-circle-ci = { repository = "RustRPM/librpm-rs" }
+travis-ci = { repository = "RustRPM/librpm.rs" }
+maintenance = { status = "passively-maintained" }
 
 [build-dependencies]
 bindgen = "0.35"

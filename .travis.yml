@@ -1,0 +1,29 @@
+language: rust
+cache: cargo
+os: linux
+sudo: true
+
+branches:
+  only:
+    - master
+
+rust:
+  - 1.31.0
+  - stable
+
+env:
+  global:
+    - RUST_BACKTRACE=1
+    - RUSTFLAGS="-D warnings"
+
+install:
+  - sudo apt-get install librpm-dev
+  - rustup component add rustfmt
+  - rustup component add clippy
+
+script:
+  - cargo fmt --all -- --check
+  #- cargo clippy --all # TODO: clippy
+  - cargo build --release
+  - cargo test --release
+  - cargo doc --no-deps

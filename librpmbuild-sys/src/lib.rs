@@ -5,9 +5,6 @@
 //! This crate isn't intended to be used directly, but instead provides the
 //! low-level binding which is used by the idiomatic librpm crate.
 
-#![crate_name = "librpmbuild_sys"]
-#![crate_type = "rlib"]
-#![allow(unknown_lints, clippy)]
 #![allow(non_upper_case_globals, non_camel_case_types, non_snake_case)]
 #![doc(html_root_url = "https://rustrpm.org/librpmbuild_sys/")]
 

@@ -1,99 +1,80 @@
 //! librpm error types
 
-use failure::{Backtrace, Context, Fail};
 use std::fmt::{self, Display};
 
 /// Error type
 #[derive(Debug)]
 pub struct Error {
-    /// Contextual information about the error
-    inner: Context<ErrorKind>,
+    /// Kind of error
+    kind: ErrorKind,
 
     /// Optional description message
-    description: Option<String>,
+    msg: Option<String>,
 }
 
 impl Error {
-    /// Create a new error
-    pub fn new(kind: ErrorKind) -> Self {
-        Self {
-            inner: Context::new(kind),
-            description: None,
-        }
-    }
-
     /// Create a new error with the given description
-    pub fn with_description(kind: ErrorKind, description: String) -> Self {
-        Self {
-            inner: Context::new(kind),
-            description: Some(description),
-        }
+    pub fn new(kind: ErrorKind, msg: Option<String>) -> Self {
+        Self { kind, msg }
     }
 
     /// Obtain the inner `ErrorKind` for this error
     pub fn kind(&self) -> ErrorKind {
-        *self.inner.get_context()
-    }
-}
-
-impl Fail for Error {
-    fn cause(&self) -> Option<&Fail> {
-        self.inner.cause()
-    }
-
-    fn backtrace(&self) -> Option<&Backtrace> {
-        self.inner.backtrace()
+        self.kind
     }
 }
 
 impl From<ErrorKind> for Error {
     fn from(kind: ErrorKind) -> Self {
-        Self::new(kind)
-    }
-}
-
-impl From<Context<ErrorKind>> for Error {
-    fn from(inner: Context<ErrorKind>) -> Self {
-        Self {
-            inner,
-            description: None,
-        }
+        Self { kind, msg: None }
     }
 }
 
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self.description {
-            Some(ref desc) => write!(f, "{}: {}", &self.inner, desc),
-            None => Display::fmt(&self.inner, f),
+        write!(f, "{}", self.kind)?;
+
+        if let Some(msg) = &self.msg {
+            write!(f, ": {}", msg)?;
+        }
+
+        Ok(())
+    }
+}
+
+impl std::error::Error for Error {}
+
+/// Kinds of errors
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+pub enum ErrorKind {
+    /// Configuration errors
+    Config,
+}
+
+impl Display for ErrorKind {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            ErrorKind::Config => write!(f, "configuration error"),
         }
     }
 }
 
-/// Kinds of errors
-#[derive(Copy, Clone, Eq, PartialEq, Debug, Fail)]
-pub enum ErrorKind {
-    /// Configuration errors
-    #[fail(display = "configuration error")]
-    ConfigError,
-}
-
 /// Create a new error (of a given enum variant) with a formatted message
-macro_rules! err {
-    ($variant:ident, $msg:expr) => {
-        ::error::Error::with_description(::error::ErrorKind::$variant, $msg.to_owned())
+macro_rules! format_err {
+    ($kind:path, $msg:expr) => {
+        $crate::error::Error::new($kind, Some($msg.to_string()))
     };
-    ($variant:ident, $fmt:expr, $($arg:tt)+) => {
-        ::error::Error::with_description(::error::ErrorKind::$variant, format!($fmt, $($arg)+))
+    ($kind:path, $fmt:expr, $($arg:tt)+) => {
+        format_err!($kind, &format!($fmt, $($arg)+))
     };
 }
 
 /// Create and return an error enum variant with a formatted message
 macro_rules! fail {
-    ($variant:ident, $msg:expr) => {
-        return Err(err!($variant, $msg));
+    ($kind:path, $msg:expr) => {
+        return Err(format_err!($kind, $msg));
     };
-    ($variant:ident, $fmt:expr, $($arg:tt)+) => {
-        return Err(err!($variant, $fmt, $($arg)+));
+    ($kind:path, $fmt:expr, $($arg:tt)+) => {
+        return Err(format_err!($kind, $fmt, $($arg)+));
     };
 }

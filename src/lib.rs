@@ -11,15 +11,9 @@
 //!
 //! [librpm-sys]: https://rustrpm.org/librpm_sys/index.html
 
-#![crate_name = "librpm"]
-#![crate_type = "rlib"]
-#![deny(warnings, missing_docs, trivial_casts, trivial_numeric_casts)]
-#![deny(unused_import_braces, unused_qualifications)]
 #![doc(html_root_url = "https://rustrpm.org/librpm/")]
+#![warn(missing_docs, trivial_casts, unused_qualifications)]
 
-extern crate failure;
-#[macro_use]
-extern crate failure_derive;
 #[macro_use]
 extern crate lazy_static;
 extern crate librpm_sys;
