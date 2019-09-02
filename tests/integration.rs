@@ -28,9 +28,12 @@ fn db_find_test() {
         assert_eq!(package.name, PACKAGE_NAME);
         assert_eq!(package.summary, PACKAGE_SUMMARY);
         assert_eq!(package.license.as_str(), PACKAGE_LICENSE);
+        assert!(matches.next().is_none(), "expected one result, got more!");
     } else {
-        panic!("expected 1 result, got 0!");
+        if librpm::db::installed_packages().count() == 0 {
+            eprintln!("*** warning: No RPMs installed! Tests skipped!")
+        } else {
+            panic!("some RPMs installed, but not `rpm-devel`?!");
+        }
     }
-
-    assert!(matches.next().is_none(), "expected one result, got more!");
 }
