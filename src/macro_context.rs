@@ -4,7 +4,7 @@
 use librpm_sys;
 use std::ffi::CString;
 
-use error::Error;
+use error::{Error, ErrorKind};
 
 /// Scopes in which macros are defined
 pub struct MacroContext(librpm_sys::rpmMacroContext);
@@ -23,7 +23,8 @@ impl MacroContext {
     ///
     /// Level defines the macro recursion level (0 is the entry API)
     pub fn define(&self, macro_string: &str, level: isize) -> Result<(), Error> {
-        let cstr = CString::new(macro_string).map_err(|e| err!(ConfigError, "{}", e))?;
+        let cstr =
+            CString::new(macro_string).map_err(|e| format_err!(ErrorKind::Config, "{}", e))?;
 
         unsafe {
             librpm_sys::rpmDefineMacro(self.0, cstr.as_ptr(), level as i32);

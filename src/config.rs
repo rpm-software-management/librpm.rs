@@ -6,8 +6,9 @@ use std::os::unix::ffi::OsStrExt;
 use std::path::Path;
 use std::ptr;
 
+use error::{Error, ErrorKind};
 use internal::GlobalState;
-use {Error, MacroContext};
+use MacroContext;
 
 /// Name of the macro which defines the path to the database
 const DB_PATH_MACRO: &str = "_dbpath";
@@ -24,7 +25,7 @@ pub fn read_file(config_file: Option<&Path>) -> Result<(), Error> {
     // invokes `rpmInitCrypto` which causes segfaults (NULL struct pointer
     // derefs) if invoked more than once.
     if global_state.configured {
-        fail!(ConfigError, "already configured");
+        fail!(ErrorKind::Config, "already configured");
     }
 
     global_state.configured = true;
@@ -32,11 +33,17 @@ pub fn read_file(config_file: Option<&Path>) -> Result<(), Error> {
     let rc = match config_file {
         Some(path) => {
             if !path.exists() {
-                fail!(ConfigError, "no such file: {}", path.display())
+                fail!(ErrorKind::Config, "no such file: {}", path.display())
             }
 
-            let cstr = CString::new(path.as_os_str().as_bytes())
-                .map_err(|e| err!(ConfigError, "invalid path: {} ({})", path.display(), e))?;
+            let cstr = CString::new(path.as_os_str().as_bytes()).map_err(|e| {
+                format_err!(
+                    ErrorKind::Config,
+                    "invalid path: {} ({})",
+                    path.display(),
+                    e
+                )
+            })?;
 
             unsafe { librpm_sys::rpmReadConfigFiles(cstr.as_ptr(), ptr::null()) }
         }
@@ -46,12 +53,12 @@ pub fn read_file(config_file: Option<&Path>) -> Result<(), Error> {
     if rc != 0 {
         match config_file {
             Some(path) => fail!(
-                ConfigError,
+                ErrorKind::Config,
                 "error reading RPM config from: {}",
                 path.display()
             ),
             None => fail!(
-                ConfigError,
+                ErrorKind::Config,
                 "error reading RPM config from default location"
             ),
         }
