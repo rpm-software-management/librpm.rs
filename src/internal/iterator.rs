@@ -1,12 +1,11 @@
 //! Iterators for matches in the RPM database
 
+use super::{header::Header, tag::Tag, ts::GlobalTS};
 use librpm_sys;
 #[cfg(feature = "regex")]
 use regex::Regex;
 use std::{os::raw::c_void, ptr};
 use streaming_iterator::StreamingIterator;
-
-use internal::{header::Header, tag::Tag, ts::GlobalTS};
 
 /// Iterator over the matches from a database query
 pub(crate) struct MatchIterator {

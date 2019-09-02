@@ -17,7 +17,8 @@ env:
     - RUSTFLAGS="-D warnings"
 
 install:
-  - sudo apt-get install librpm-dev
+  - sudo apt-get install rpm librpm-dev
+  - sudo rpm --initdb
   - rustup component add rustfmt
   - rustup component add clippy
 

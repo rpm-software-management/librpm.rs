@@ -31,7 +31,7 @@ impl From<ErrorKind> for Error {
 }
 
 impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.kind)?;
 
         if let Some(msg) = &self.msg {
@@ -52,7 +52,7 @@ pub enum ErrorKind {
 }
 
 impl Display for ErrorKind {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ErrorKind::Config => write!(f, "configuration error"),
         }

@@ -1,6 +1,6 @@
 //! RPM package type: represents `.rpm` files or entries in the RPM database
 
-use {License, Version};
+use crate::{license::License, version::Version};
 
 /// RPM packages
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]

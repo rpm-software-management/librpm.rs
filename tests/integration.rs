@@ -1,16 +1,14 @@
 //! librpm.rs integration tests
 
-extern crate librpm;
-
 use librpm::{config, Index};
-use std::sync::{Once, ONCE_INIT};
+use std::sync::Once;
 
 /// The `.rpm` containing librpm itself
 const PACKAGE_NAME: &str = "rpm-devel";
 const PACKAGE_SUMMARY: &str = "Development files for manipulating RPM packages";
 const PACKAGE_LICENSE: &str = "GPLv2+ and LGPLv2+ with exceptions";
 
-static CONFIGURE: Once = ONCE_INIT;
+static CONFIGURE: Once = Once::new();
 
 // Read the default config
 // TODO: create a mock RPM database for testing

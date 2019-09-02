@@ -13,11 +13,7 @@
 
 #![doc(html_root_url = "https://rustrpm.org/librpm/")]
 #![warn(missing_docs, trivial_casts, unused_qualifications)]
-
-#[macro_use]
-extern crate lazy_static;
-extern crate librpm_sys;
-extern crate streaming_iterator;
+#![warn(rust_2018_idioms)]
 
 /// Error types (defined first due to macros)
 #[macro_use]
@@ -44,9 +40,7 @@ pub mod package;
 /// Package versions
 pub mod version;
 
-pub use db::Index;
-pub use error::Error;
-pub use license::License;
-pub use macro_context::MacroContext;
-pub use package::Package;
-pub use version::Version;
+pub use self::{
+    db::Index, error::Error, license::License, macro_context::MacroContext, package::Package,
+    version::Version,
+};
