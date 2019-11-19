@@ -17,5 +17,4 @@ travis-ci = { repository = "RustRPM/librpm.rs" }
 maintenance = { status = "passively-maintained" }
 
 [build-dependencies]
-bindgen = "0.45"
-
+bindgen = "0.49"
