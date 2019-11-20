@@ -14,7 +14,6 @@
 #![doc(html_root_url = "https://rustrpm.org/librpm/")]
 
 extern crate failure;
-#[macro_use]
 extern crate lazy_static;
 extern crate librpm_sys;
 extern crate streaming_iterator;
