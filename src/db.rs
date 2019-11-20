@@ -22,9 +22,100 @@
 //! println!("package version: {}", package.version);
 //! ```
 
+use crate::error::{Error, ErrorKind};
 use crate::internal::{iterator::MatchIterator, tag::Tag};
 use crate::package::Package;
 use streaming_iterator::StreamingIterator;
+
+use std::ffi::CString;
+use std::os::unix::ffi::OsStrExt;
+use std::path::Path;
+use std::ptr;
+
+struct Db {}
+
+struct DbBuilder<P>
+where
+    P: AsRef<Path>,
+{
+    config: Option<P>,
+}
+
+impl<P> Default for DbBuilder<P>
+where
+    P: AsRef<Path>,
+{
+    fn default() -> Self {
+        Self { config: None }
+    }
+}
+
+impl Db {
+    fn open<P>() -> Result<Self, Error>
+    where
+        P: AsRef<Path>,
+    {
+        DbBuilder::<&Path>::new().open()
+    }
+
+    fn open_with<P>() -> DbBuilder<P>
+    where
+        P: AsRef<Path>,
+    {
+        DbBuilder::default()
+    }
+}
+
+impl<P> DbBuilder<P>
+where
+    P: AsRef<Path>,
+{
+    fn new() -> Self {
+        Self::default()
+    }
+
+    fn with_config(&mut self, config: P) {
+        self.config = Some(config);
+    }
+    
+    fn open(self) -> Result<Db, Error> {
+        let rc = match self.config {
+            Some(ref path) => {
+                if !path.as_ref().exists() {
+                    fail!(
+                        ErrorKind::Config,
+                        "no such file: {}",
+                        path.as_ref().display()
+                    )
+                }
+                let cstr = CString::new(path.as_ref().as_os_str().as_bytes()).map_err(|e| {
+                    format_err!(
+                        ErrorKind::Config,
+                        "invalid path: {} ({})",
+                        path.as_ref().display(),
+                        e
+                    )
+                })?;
+                unsafe { librpm_sys::rpmReadConfigFiles(cstr.as_ptr(), ptr::null()) }
+            }
+            None => unsafe { librpm_sys::rpmReadConfigFiles(ptr::null(), ptr::null()) },
+        };
+        if rc != 0 {
+            match self.config {
+                Some(path) => fail!(
+                    ErrorKind::Config,
+                    "error reading RPM config from: {}",
+                    path.as_ref().display()
+                ),
+                None => fail!(
+                    ErrorKind::Config,
+                    "error reading RPM config from default location"
+                ),
+            }
+        }
+        Err(Error::new(ErrorKind::Config, None))
+    }
+}
 
 /// Iterator over the RPM database which returns `Package` structs.
 pub struct Iter(MatchIterator);
@@ -86,4 +177,13 @@ pub fn installed_packages() -> Iter {
 /// Panics if the glob contains null bytes.
 pub fn find<S: AsRef<str>>(index: Index, key: S) -> Iter {
     index.find(key)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn db_opens() {
+        Db::open::<&Path>().unwrap();
+    }
 }
