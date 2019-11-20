@@ -2,7 +2,7 @@
 #
 # Resulting image is published as rustrpm/ci on Docker Hub
 
-FROM centos:7
+FROM centos:7.7.1908
 
 RUN yum update -y && \
 # Binding target

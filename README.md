@@ -23,6 +23,15 @@ provide a safe, idiomatic Rust wrapper.
 - [ ] RPM builder API (i.e. `librpmbuild`)
 - [ ] RPM signing API (i.e. `librpmsign`)
 
+## How to build for CentOS 7
+
+```
+$ docker build -t librpm.rs -f My.Dockerfile . 
+$ docker run -it --rm --mount type=bind,src=$PWD,dst=/work --mount type=bind,src=$PWD/.cargo,dst=/root/.cargo  librpm.rs /bin/bash
+(docker) $ cd /work
+(docker) $ cargo build --target-dir docker-target
+```
+
 ## License
 
 Copyright (C) 2018-2019 RustRPM Developers
