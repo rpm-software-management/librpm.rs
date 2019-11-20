@@ -12,8 +12,12 @@
 //! [librpm-sys]: https://rustrpm.org/librpm_sys/index.html
 
 #![doc(html_root_url = "https://rustrpm.org/librpm/")]
-#![warn(missing_docs, trivial_casts, unused_qualifications)]
-#![warn(rust_2018_idioms)]
+
+extern crate failure;
+#[macro_use]
+extern crate lazy_static;
+extern crate librpm_sys;
+extern crate streaming_iterator;
 
 /// Error types (defined first due to macros)
 #[macro_use]

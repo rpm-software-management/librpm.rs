@@ -33,11 +33,11 @@ impl MacroContext {
     }
 
     /// Delete a macro from this context.
-    pub fn delete(&self, name: &str) -> Result<(), Error> {
+    pub fn pop(&self, name: &str) -> Result<(), Error> {
         let cstr = CString::new(name).unwrap();
 
         unsafe {
-            librpm_sys::delMacro(self.0, cstr.as_ptr());
+            librpm_sys::rpmPopMacro(self.0, cstr.as_ptr());
         }
 
         Ok(())
