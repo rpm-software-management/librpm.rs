@@ -24,7 +24,8 @@ fn main() {
     // TODO: whitelist types and functions we actually use
     let builder = Builder::default()
         .header("include/librpm.hpp")
-        .blacklist_type("timex");
+        .blacklist_type("timex")
+        .disable_untagged_union();
 
     // Write generated bindings to OUT_DIR (to be included in the crate)
     let output_path = PathBuf::from(env::var("OUT_DIR").unwrap()).join("binding.rs");
