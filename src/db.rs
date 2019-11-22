@@ -10,11 +10,14 @@
 //! Finding the "rpm-devel" RPM in the database:
 //!
 //! ```
-//! use librpm::Index;
+//! use librpm::{Db, Index};
+//! 
+//! use std::path::Path;
 //!
 //! librpm::config::read_file(None).unwrap();
 //!
-//! let mut matches = Index::Name.find("rpm-devel");
+//! let db = Db::open::<&Path>().unwrap();
+//! let mut matches = Index::Name.find(&db, "rpm-devel");
 //! let package = matches.next().unwrap();
 //!
 //! println!("package name: {}", package.name);
@@ -68,6 +71,14 @@ impl Db {
     {
         DbBuilder::default()
     }
+
+
+    /// Find installed packages with a search key that exactly matches the given tag.
+    ///
+    /// Panics if the glob contains null bytes.
+    pub fn find<S: AsRef<str>>(&self, index: Index, key: S) -> Iter {
+        index.find(self, key)
+    }
 }
 
 impl<P> DbBuilder<P>
@@ -81,6 +92,7 @@ where
     pub fn with_config(&mut self, config: P) {
         self.config = Some(config);
     }
+
     pub fn open(self) -> Result<Db, Error> {
         let rc = {
             let p = match self.config {
@@ -162,7 +174,7 @@ pub enum Index {
 
 impl Index {
     /// Find an exact match in the given index
-    pub fn find<S: AsRef<str>>(self, key: S) -> Iter {
+    pub fn find<S: AsRef<str>>(self, db: &Db, key: S) -> Iter {
         Iter(MatchIterator::new(self.into(), Some(key.as_ref())))
     }
 }
@@ -182,13 +194,6 @@ impl Into<Tag> for Index {
 /// Find all packages installed on the local system.
 pub fn installed_packages() -> Iter {
     Iter(MatchIterator::new(Tag::NAME, None))
-}
-
-/// Find installed packages with a search key that exactly matches the given tag.
-///
-/// Panics if the glob contains null bytes.
-pub fn find<S: AsRef<str>>(index: Index, key: S) -> Iter {
-    index.find(key)
 }
 
 #[cfg(test)]
