@@ -43,3 +43,9 @@ fn db_find_test() {
 fn db_open_test() {
     Db::open::<&Path>().unwrap();
 }
+
+#[test]
+fn db_open_twice_test() {
+    Db::open::<&Path>().unwrap();
+    Db::open::<&Path>().unwrap();
+}
