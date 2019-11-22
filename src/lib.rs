@@ -44,6 +44,6 @@ pub mod package;
 pub mod version;
 
 pub use self::{
-    db::Index, error::Error, license::License, macro_context::MacroContext, package::Package,
+    db::Db, db::Index, error::Error, license::License, macro_context::MacroContext, package::Package,
     version::Version,
 };

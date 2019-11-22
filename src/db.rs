@@ -28,22 +28,23 @@ use crate::package::Package;
 use streaming_iterator::StreamingIterator;
 
 use std::ffi::CString;
+use std::fmt;
 use std::os::unix::ffi::OsStrExt;
 use std::path::Path;
 use std::ptr;
 
-struct Db {}
+pub struct Db {}
 
-struct DbBuilder<P>
+pub struct DbBuilder<P>
 where
-    P: AsRef<Path>,
+    P: AsRef<Path> + fmt::Debug,
 {
     config: Option<P>,
 }
 
 impl<P> Default for DbBuilder<P>
 where
-    P: AsRef<Path>,
+    P: AsRef<Path> + fmt::Debug,
 {
     fn default() -> Self {
         Self { config: None }
@@ -51,16 +52,16 @@ where
 }
 
 impl Db {
-    fn open<P>() -> Result<Self, Error>
+    pub fn open<P>() -> Result<Self, Error>
     where
         P: AsRef<Path>,
     {
         DbBuilder::<&Path>::new().open()
     }
 
-    fn open_with<P>() -> DbBuilder<P>
+    pub fn open_with<P>() -> DbBuilder<P>
     where
-        P: AsRef<Path>,
+        P: AsRef<Path> + fmt::Debug,
     {
         DbBuilder::default()
     }
@@ -68,17 +69,16 @@ impl Db {
 
 impl<P> DbBuilder<P>
 where
-    P: AsRef<Path>,
+    P: AsRef<Path> + fmt::Debug,
 {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self::default()
     }
 
-    fn with_config(&mut self, config: P) {
+    pub fn with_config(&mut self, config: P) {
         self.config = Some(config);
     }
-    
-    fn open(self) -> Result<Db, Error> {
+    pub fn open(self) -> Result<Db, Error> {
         let rc = match self.config {
             Some(ref path) => {
                 if !path.as_ref().exists() {
@@ -113,7 +113,7 @@ where
                 ),
             }
         }
-        Err(Error::new(ErrorKind::Config, None))
+        Ok(Db {})
     }
 }
 
