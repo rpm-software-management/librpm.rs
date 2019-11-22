@@ -21,6 +21,11 @@ lazy_static = "1"
 librpm-sys = { version = "0.1", path = "librpm-sys" }
 streaming-iterator = "0.1"
 
+[features]
+librpm-4-14 = []
+
+default = ["librpm-4-14"]
+
 [workspace]
 members = [
     "librpm-sys",
