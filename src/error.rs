@@ -49,12 +49,15 @@ impl std::error::Error for Error {}
 pub enum ErrorKind {
     /// Configuration errors
     Config,
+    /// Already configured. Global state in native librpm can't be cleaned w/o process restart
+    AlreadyConfigured
 }
 
 impl Display for ErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ErrorKind::Config => write!(f, "configuration error"),
+            ErrorKind::AlreadyConfigured => write!(f, "already configured error"),
         }
     }
 }

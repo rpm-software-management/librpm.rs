@@ -33,6 +33,8 @@ use std::os::unix::ffi::OsStrExt;
 use std::path::Path;
 use std::ptr;
 
+static mut LIB_RPM_CONFIGURED: bool = false;
+
 pub struct Db {}
 
 pub struct DbBuilder<P>
@@ -101,6 +103,12 @@ where
                 }
                 None => ptr::null(),
             };
+            unsafe {
+                if LIB_RPM_CONFIGURED {
+                    fail!(ErrorKind::AlreadyConfigured, "librpm is already configured, global state can't be configured again")
+                }
+                LIB_RPM_CONFIGURED = true;
+            }
             unsafe { librpm_sys::rpmReadConfigFiles(p, ptr::null()) }
         };
         if rc != 0 {
