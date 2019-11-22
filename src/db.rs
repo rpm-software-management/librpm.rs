@@ -79,26 +79,29 @@ where
         self.config = Some(config);
     }
     pub fn open(self) -> Result<Db, Error> {
-        let rc = match self.config {
-            Some(ref path) => {
-                if !path.as_ref().exists() {
-                    fail!(
-                        ErrorKind::Config,
-                        "no such file: {}",
-                        path.as_ref().display()
-                    )
+        let rc = {
+            let p = match self.config {
+                Some(ref path) => {
+                    if !path.as_ref().exists() {
+                        fail!(
+                            ErrorKind::Config,
+                            "no such file: {}",
+                            path.as_ref().display()
+                        )
+                    }
+                    let cstr = CString::new(path.as_ref().as_os_str().as_bytes()).map_err(|e| {
+                        format_err!(
+                            ErrorKind::Config,
+                            "invalid path: {} ({})",
+                            path.as_ref().display(),
+                            e
+                        )
+                    })?;
+                    cstr.as_ptr()
                 }
-                let cstr = CString::new(path.as_ref().as_os_str().as_bytes()).map_err(|e| {
-                    format_err!(
-                        ErrorKind::Config,
-                        "invalid path: {} ({})",
-                        path.as_ref().display(),
-                        e
-                    )
-                })?;
-                unsafe { librpm_sys::rpmReadConfigFiles(cstr.as_ptr(), ptr::null()) }
-            }
-            None => unsafe { librpm_sys::rpmReadConfigFiles(ptr::null(), ptr::null()) },
+                None => ptr::null(),
+            };
+            unsafe { librpm_sys::rpmReadConfigFiles(p, ptr::null()) }
         };
         if rc != 0 {
             match self.config {
