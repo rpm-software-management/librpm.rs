@@ -35,6 +35,7 @@ use std::ptr;
 
 static mut LIB_RPM_CONFIGURED: bool = false;
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct Db {}
 
 pub struct DbBuilder<P>

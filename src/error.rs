@@ -3,13 +3,13 @@
 use std::fmt::{self, Display};
 
 /// Error type
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Error {
     /// Kind of error
-    kind: ErrorKind,
+    pub kind: ErrorKind,
 
     /// Optional description message
-    msg: Option<String>,
+    pub msg: Option<String>,
 }
 
 impl Error {

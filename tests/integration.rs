@@ -1,7 +1,6 @@
 //! librpm.rs integration tests
 
-use librpm::{config, Index, Db};
-use std::path::Path;
+use librpm::{config, Index};
 use std::sync::Once;
 
 /// The `.rpm` containing librpm itself
@@ -37,15 +36,4 @@ fn db_find_test() {
             panic!("some RPMs installed, but not `rpm-devel`?!");
         }
     }
-}
-
-#[test]
-fn db_open_test() {
-    Db::open::<&Path>().unwrap();
-}
-
-#[test]
-fn db_open_twice_test() {
-    Db::open::<&Path>().unwrap();
-    Db::open::<&Path>().unwrap();
 }
