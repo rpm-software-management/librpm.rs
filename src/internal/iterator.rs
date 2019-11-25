@@ -1,6 +1,6 @@
 //! Iterators for matches in the RPM database
 
-use super::{header::Header, tag::Tag, ts::GlobalTS};
+use super::{header::Header, tag::Tag, ts::TransactionSet};
 use librpm_sys;
 #[cfg(feature = "regex")]
 use regex::Regex;
@@ -12,10 +12,7 @@ pub(crate) struct MatchIterator {
     /// Pointer to librpm's match iterator.
     ptr: *mut librpm_sys::rpmdbMatchIterator_s,
 
-    /// Hold the lock on the global transaction set while reading data.
-    /// This ensures nothing else can make calls to librpm while we are iterating over its data
-    #[allow(dead_code)]
-    txn: GlobalTS,
+    _txn: TransactionSet,
 
     /// Next item in the iterator
     next_item: Option<Header>,
@@ -28,7 +25,7 @@ impl MatchIterator {
     /// Create a new `MatchIterator` for the current RPM database, searching
     /// by the (optionally) given search key.
     pub(crate) fn new(tag: Tag, key_opt: Option<&str>) -> Self {
-        let mut txn = GlobalTS::create();
+        let mut txn = TransactionSet::create();
         let next_item = None;
         let finished = false;
 
@@ -36,7 +33,7 @@ impl MatchIterator {
             if !key.is_empty() {
                 let ptr = unsafe {
                     librpm_sys::rpmtsInitIterator(
-                        txn.as_mut_ptr(),
+                        *txn.as_mut_ptr(),
                         tag as librpm_sys::rpm_tag_t,
                         key.as_ptr() as *const c_void,
                         key.len(),
@@ -45,7 +42,7 @@ impl MatchIterator {
 
                 return Self {
                     ptr,
-                    txn,
+                    _txn: txn,
                     next_item,
                     finished,
                 };
@@ -54,7 +51,7 @@ impl MatchIterator {
 
         let ptr = unsafe {
             librpm_sys::rpmtsInitIterator(
-                txn.as_mut_ptr(),
+                *txn.as_mut_ptr(),
                 tag as librpm_sys::rpm_tag_t,
                 ptr::null(),
                 0,
@@ -63,7 +60,7 @@ impl MatchIterator {
 
         Self {
             ptr,
-            txn,
+            _txn: txn,
             next_item,
             finished,
         }
