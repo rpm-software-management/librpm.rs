@@ -2,7 +2,7 @@
 // It can't be cleared w/o process restart.
 // Every integration test source gets compiled to separate binary, so it works that way.
 
-use librpm::{Db, error};
+use librpm::{error, Db};
 
 use std::path::Path;
 
@@ -13,7 +13,9 @@ fn db_open_twice_test() {
         Db::open::<&Path>(),
         Err(error::Error {
             kind: error::ErrorKind::AlreadyConfigured,
-            msg: Some("librpm is already configured, global state can\'t be configured again".into())
+            msg: Some(
+                "librpm is already configured, global state can\'t be configured again".into()
+            )
         })
     );
 }

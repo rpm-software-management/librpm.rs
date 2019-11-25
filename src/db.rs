@@ -11,7 +11,7 @@
 //!
 //! ```
 //! use librpm::{Db, Index};
-//! 
+//!
 //! use std::path::Path;
 //!
 //! let db = Db::open::<&Path>().unwrap();
@@ -70,7 +70,6 @@ impl Db {
         DbBuilder::default()
     }
 
-
     /// Find installed packages with a search key that exactly matches the given tag.
     ///
     /// Panics if the glob contains null bytes.
@@ -118,7 +117,10 @@ where
             };
             unsafe {
                 if LIB_RPM_CONFIGURED {
-                    fail!(ErrorKind::AlreadyConfigured, "librpm is already configured, global state can't be configured again")
+                    fail!(
+                        ErrorKind::AlreadyConfigured,
+                        "librpm is already configured, global state can't be configured again"
+                    )
                 }
                 LIB_RPM_CONFIGURED = true;
             }

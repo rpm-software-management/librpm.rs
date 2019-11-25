@@ -50,7 +50,7 @@ pub enum ErrorKind {
     /// Configuration errors
     Config,
     /// Already configured. Global state in native librpm can't be cleaned w/o process restart
-    AlreadyConfigured
+    AlreadyConfigured,
 }
 
 impl Display for ErrorKind {
