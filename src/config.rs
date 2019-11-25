@@ -65,8 +65,3 @@ pub fn read_file(config_file: Option<&Path>) -> Result<(), Error> {
 
     Ok(())
 }
-
-/// Set the path to the global RPM database.
-pub fn set_db_path(path: &Path) -> Result<(), Error> {
-    MacroContext::default().define(&format!("{} {}", DB_PATH_MACRO, path.display()), 0)
-}
