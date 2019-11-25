@@ -8,7 +8,7 @@ RUN yum update -y && \
 # Binding target
     yum install -y rpm-devel && \
 # Development tools
-    yum install -y gcc clang llvm-devel gdb
+    yum install -y gcc clang llvm-devel gdb valgrind
 
 RUN debuginfo-install -y rpm-libs-4.11.3-40.el7.x86_64
 
