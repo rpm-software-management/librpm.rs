@@ -25,7 +25,7 @@ install:
 script:
   - cargo fmt --all -- --check
   #- cargo clippy --all # TODO: clippy
-  - cargo build --release
+  - cargo build --no-default-features --release
   # - cargo test --release # TODO: figure out why tests hang on CI
-  - cargo build --tests
+  - cargo build --no-default-features --tests
   - cargo doc --no-deps
