@@ -14,8 +14,6 @@
 //! 
 //! use std::path::Path;
 //!
-//! librpm::config::read_file(None).unwrap();
-//!
 //! let db = Db::open::<&Path>().unwrap();
 //! let mut matches = Index::Name.find(&db, "rpm-devel");
 //! let package = matches.next().unwrap();

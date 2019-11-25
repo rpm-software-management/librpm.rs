@@ -22,9 +22,6 @@ extern crate streaming_iterator;
 #[macro_use]
 pub mod error;
 
-/// RPM configuration (i.e. rpmrc)
-pub mod config;
-
 /// RPM database access
 pub mod db;
 
