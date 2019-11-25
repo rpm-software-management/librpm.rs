@@ -176,7 +176,7 @@ pub enum Index {
 
 impl Index {
     /// Find an exact match in the given index
-    pub fn find<S: AsRef<str>>(self, db: &Db, key: S) -> Iter {
+    pub fn find<S: AsRef<str>>(self, _db: &Db, key: S) -> Iter {
         Iter(MatchIterator::new(self.into(), Some(key.as_ref())))
     }
 }

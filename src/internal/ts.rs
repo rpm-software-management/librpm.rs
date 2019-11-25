@@ -2,7 +2,6 @@
 
 use librpm_sys;
 use std::sync::atomic::AtomicPtr;
-use std::sync::MutexGuard;
 
 /// librpm transactions, a.k.a. "transaction sets" (or `rpmts` librpm type)
 ///
