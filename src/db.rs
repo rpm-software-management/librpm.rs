@@ -89,12 +89,14 @@ where
         Self::default()
     }
 
-    pub fn with_config(&mut self, config: P) {
+    pub fn config(mut self, config: P) -> Self {
         self.config = Some(config);
+        self
     }
 
     pub fn open(self) -> Result<Db, Error> {
         let rc = {
+            let cstr;
             let p = match self.config {
                 Some(ref path) => {
                     if !path.as_ref().exists() {
@@ -104,7 +106,7 @@ where
                             path.as_ref().display()
                         )
                     }
-                    let cstr = CString::new(path.as_ref().as_os_str().as_bytes()).map_err(|e| {
+                    cstr = CString::new(path.as_ref().as_os_str().as_bytes()).map_err(|e| {
                         format_err!(
                             ErrorKind::Config,
                             "invalid path: {} ({})",
