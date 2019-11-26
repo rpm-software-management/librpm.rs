@@ -28,8 +28,10 @@ use crate::internal::{iterator::MatchIterator, tag::Tag};
 use crate::package::Package;
 use streaming_iterator::StreamingIterator;
 
+use std::cell::Cell;
 use std::ffi::CString;
 use std::fmt;
+use std::marker::PhantomData;
 use std::os::unix::ffi::OsStrExt;
 use std::path::Path;
 use std::ptr;
@@ -37,7 +39,9 @@ use std::ptr;
 static mut LIB_RPM_CONFIGURED: bool = false;
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct Db {}
+pub struct Db {
+    _this_type_is_not_sync: PhantomData<Cell<()>>,
+}
 
 pub struct DbBuilder<P>
 where
@@ -139,7 +143,9 @@ where
                 ),
             }
         }
-        Ok(Db {})
+        Ok(Db {
+            _this_type_is_not_sync: PhantomData,
+        })
     }
 }
 
