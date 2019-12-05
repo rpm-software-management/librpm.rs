@@ -150,14 +150,17 @@ where
 }
 
 /// Iterator over the RPM database which returns `Package` structs.
-pub struct Iter(MatchIterator);
+pub struct Iter<'i> {
+    _db: &'i Db,
+    match_iter: MatchIterator,
+}
 
-impl Iterator for Iter {
+impl<'i> Iterator for Iter<'i> {
     type Item = Package;
 
     /// Obtain the next header from the iterator.
     fn next(&mut self) -> Option<Package> {
-        self.0.next().map(|h| h.to_package())
+        self.match_iter.next().map(|h| h.to_package())
     }
 }
 
@@ -183,7 +186,10 @@ pub enum Index {
 impl Index {
     /// Find an exact match in the given index
     pub fn find<S: AsRef<str>>(self, _db: &Db, key: S) -> Iter {
-        Iter(MatchIterator::new(self.into(), Some(key.as_ref())))
+        Iter {
+            _db,
+            match_iter: MatchIterator::new(self.into(), Some(key.as_ref())),
+        }
     }
 }
 
@@ -200,8 +206,11 @@ impl Into<Tag> for Index {
 }
 
 /// Find all packages installed on the local system.
-pub fn installed_packages() -> Iter {
-    Iter(MatchIterator::new(Tag::NAME, None))
+pub fn installed_packages(_db: &Db) -> Iter {
+    Iter { 
+        _db,
+        match_iter: MatchIterator::new(Tag::NAME, None)
+    }
 }
 
 #[cfg(test)]

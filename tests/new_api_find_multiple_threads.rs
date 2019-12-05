@@ -11,7 +11,8 @@ fn db_find_test_multiple() {
     {
         let db = db.clone();
         thread::spawn(move || {
-            let mut matches = Index::Name.find(&db.lock().unwrap(), "glibc-common");
+            let db = &db.lock().unwrap();
+            let mut matches = Index::Name.find(db, "glibc-common");
             if let Some(package) = matches.next() {
                 assert_eq!(package.name, "glibc-common");
                 assert!(matches.next().is_none(), "expected one result, got more!");
@@ -21,7 +22,8 @@ fn db_find_test_multiple() {
         });
     }
 
-    let mut matches = Index::Name.find(&db.lock().unwrap(), "glibc");
+    let db = &db.lock().unwrap();
+    let mut matches = Index::Name.find(db, "glibc");
     if let Some(package) = matches.next() {
         assert_eq!(package.name, "glibc");
         assert!(matches.next().is_none(), "expected one result, got more!");
