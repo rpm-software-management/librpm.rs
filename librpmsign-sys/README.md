@@ -31,8 +31,8 @@ PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.
 
 [crate-image]: https://img.shields.io/crates/v/librpmsign-sys.svg
 [crate-link]: https://crates.io/crates/librpmsign-sys
-[build-image]: https://travis-ci.com/rpm-software-management/librpm.rs.svg?branch=master
-[build-link]: https://travis-ci.com/rpm-software-management/librpm.rs/
+[build-image]: https://travis-ci.org/rpm-software-management/librpm.rs.svg?branch=master
+[build-link]: https://travis-ci.org/rpm-software-management/librpm.rs/
 [license-image]: https://img.shields.io/badge/license-LGPLv2.1+-blue.svg
 [license-link]: https://github.com/iqlusion-io/crates/blob/master/LICENSE
 
