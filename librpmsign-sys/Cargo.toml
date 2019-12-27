@@ -7,13 +7,13 @@ authors       = ["Tony Arcieri <tony@iqlusion.io>"]
 categories    = ["external-ffi-bindings", "os"]
 keywords      = ["rpm", "linux", "redhat", "fedora", "centos"]
 readme        = "README.md"
-homepage      = "https://github.com/RustRPM/librpm.rs/"
-repository    = "https://github.com/RustRPM/librpm.rs/tree/master/librpmsign-sys"
+homepage      = "https://github.com/rpm-software-management/librpm.rs/"
+repository    = "https://github.com/rpm-software-management/librpm.rs/tree/master/librpmsign-sys"
 documentation = "https://rustrpm.org/librpmsign_sys/"
 edition       = "2018"
 
 [badges]
-travis-ci = { repository = "RustRPM/librpm.rs" }
+travis-ci = { repository = "rpm-software-management/librpm.rs" }
 maintenance = { status = "passively-maintained" }
 
 [build-dependencies]
