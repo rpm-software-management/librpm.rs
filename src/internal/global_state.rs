@@ -7,12 +7,11 @@
 //! have (or have not) invoked.
 
 use super::ts::TransactionSet;
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use std::sync::{Mutex, MutexGuard};
 
-lazy_static! {
-    static ref RPM_GLOBAL_STATE: Mutex<GlobalState> = Mutex::new(GlobalState::default());
-}
+static RPM_GLOBAL_STATE: Lazy<Mutex<GlobalState>> =
+    Lazy::new(|| Mutex::new(GlobalState::default()));
 
 /// Tracking struct for mutable global state in RPM
 pub(crate) struct GlobalState {
