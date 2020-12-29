@@ -39,7 +39,7 @@ impl MatchIterator {
                         txn.as_mut_ptr(),
                         tag as librpm_sys::rpm_tag_t,
                         key.as_ptr() as *const c_void,
-                        key.len(),
+                        key.len() as u64,
                     )
                 };
 
