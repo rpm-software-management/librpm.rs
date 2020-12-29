@@ -12,7 +12,6 @@ documentation = "https://rustrpm.org/librpm/"
 edition       = "2018"
 
 [badges]
-travis-ci = { repository = "rpm-software-management/librpm.rs" }
 maintenance = { status = "passively-maintained" }
 
 [dependencies]

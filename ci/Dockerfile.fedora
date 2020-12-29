@@ -1,8 +1,0 @@
-FROM registry.fedoraproject.org/fedora:latest
-
-WORKDIR /usr/src/librpm.rs
-COPY . .
-        
-RUN dnf -y install rpm-devel clang-devel rust cargo clippy rustfmt && dnf -y clean all
-
-CMD ci/ci-checks.sh

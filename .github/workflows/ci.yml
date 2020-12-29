@@ -1,0 +1,58 @@
+name: Compile and run tests
+
+on: [push, pull_request]
+
+jobs:
+  lint:
+    container: "fedora:latest"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install librpm dependencies
+        run: |
+          dnf install -y rpm-devel gcc clang-devel
+
+      - uses: actions-rs/toolchain@v1
+        with:
+            toolchain: nightly
+            components: clippy, rustfmt
+            override: true
+
+      - uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+
+      - uses: actions-rs/cargo@v1
+        with:
+          command: doc
+          args: --no-deps
+
+      - uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --all-features
+
+  run_tests:
+    strategy:
+      matrix:
+        container: ["fedora:latest", "centos:latest"]
+    container: ${{ matrix.container }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install librpm dependencies
+        run: |
+          dnf install -y rpm-devel gcc clang-devel
+          dnf -y clean all
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release --all-features
