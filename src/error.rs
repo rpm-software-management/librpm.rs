@@ -72,9 +72,9 @@ macro_rules! format_err {
 /// Create and return an error enum variant with a formatted message
 macro_rules! fail {
     ($kind:path, $msg:expr) => {
-        return Err(format_err!($kind, $msg));
+        return Err(format_err!($kind, $msg))
     };
     ($kind:path, $fmt:expr, $($arg:tt)+) => {
-        return Err(format_err!($kind, $fmt, $($arg)+));
+        return Err(format_err!($kind, $fmt, $($arg)+))
     };
 }
