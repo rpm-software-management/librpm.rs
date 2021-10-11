@@ -5,8 +5,8 @@ use std::sync::Once;
 
 /// The `.rpm` containing librpm itself
 const PACKAGE_NAME: &str = "rpm-devel";
-const PACKAGE_SUMMARY: &str = "Development files for manipulating RPM packages";
-const PACKAGE_LICENSE: &str = "GPLv2+ and LGPLv2+ with exceptions";
+const PACKAGE_SUMMARY: &str = "Development files for librpm";
+const PACKAGE_LICENSE: &str = "GPL-2.0-or-later";
 
 static CONFIGURE: Once = Once::new();
 
