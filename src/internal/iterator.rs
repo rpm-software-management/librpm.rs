@@ -1,7 +1,6 @@
 //! Iterators for matches in the RPM database
 
 use super::{header::Header, tag::Tag, ts::GlobalTS};
-use librpm_sys;
 #[cfg(feature = "regex")]
 use regex::Regex;
 use std::{os::raw::c_void, ptr};

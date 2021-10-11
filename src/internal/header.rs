@@ -2,7 +2,6 @@
 
 use super::{tag::Tag, td::TagData};
 use crate::{License, Package, Version};
-use librpm_sys;
 use std::mem;
 
 /// RPM package header

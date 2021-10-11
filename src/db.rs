@@ -64,18 +64,6 @@ impl Index {
     }
 }
 
-impl Into<Tag> for Index {
-    fn into(self) -> Tag {
-        match self {
-            Index::Name => Tag::NAME,
-            Index::Version => Tag::VERSION,
-            Index::License => Tag::LICENSE,
-            Index::Summary => Tag::SUMMARY,
-            Index::Description => Tag::DESCRIPTION,
-        }
-    }
-}
-
 /// Find all packages installed on the local system.
 pub fn installed_packages() -> Iter {
     Iter(MatchIterator::new(Tag::NAME, None))

@@ -1,8 +1,8 @@
 //! Tags are identifiers for RPM headers
 
-#![allow(dead_code, missing_docs, non_camel_case_types)]
+#![allow(dead_code, missing_docs, non_camel_case_types, clippy::upper_case_acronyms)]
 
-use librpm_sys;
+use crate::Index;
 
 /// Identifiers for data in RPM headers (`rpmTag_e` in librpm)
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -251,6 +251,18 @@ pub enum Tag {
     OBSOLETENEVRS = librpm_sys::rpmTag_e_RPMTAG_OBSOLETENEVRS as isize,
     CONFLICTNEVRS = librpm_sys::rpmTag_e_RPMTAG_CONFLICTNEVRS as isize,
     FILENLINKS = librpm_sys::rpmTag_e_RPMTAG_FILENLINKS as isize,
+}
+
+impl From<Index> for Tag {
+    fn from(i: Index) -> Self {
+        match i {
+            Index::Name => Tag::NAME,
+            Index::Version => Tag::VERSION,
+            Index::License => Tag::LICENSE,
+            Index::Summary => Tag::SUMMARY,
+            Index::Description => Tag::DESCRIPTION,
+        }
+    }
 }
 
 /// RPM database index tags (`rpmDbiTag_e` in librpm)

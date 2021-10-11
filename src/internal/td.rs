@@ -4,7 +4,6 @@
 #![allow(dead_code)]
 
 use super::tag::TagType;
-use librpm_sys;
 use std::ffi::CStr;
 use std::os::raw::c_char;
 use std::{slice, str};
@@ -126,10 +125,7 @@ impl<'hdr> TagData<'hdr> {
 
     /// Is this tag data NULL?
     pub fn is_null(&self) -> bool {
-        match *self {
-            TagData::Null => true,
-            _ => false,
-        }
+	matches!(*self, TagData::Null)
     }
 
     /// Obtain a char value, if this is a char
