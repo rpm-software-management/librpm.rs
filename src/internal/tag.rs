@@ -1,6 +1,11 @@
 //! Tags are identifiers for RPM headers
 
-#![allow(dead_code, missing_docs, non_camel_case_types, clippy::upper_case_acronyms)]
+#![allow(
+    dead_code,
+    missing_docs,
+    non_camel_case_types,
+    clippy::upper_case_acronyms
+)]
 
 use crate::Index;
 

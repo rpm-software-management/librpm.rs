@@ -125,7 +125,7 @@ impl<'hdr> TagData<'hdr> {
 
     /// Is this tag data NULL?
     pub fn is_null(&self) -> bool {
-	matches!(*self, TagData::Null)
+        matches!(*self, TagData::Null)
     }
 
     /// Obtain a char value, if this is a char
