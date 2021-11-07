@@ -54,5 +54,5 @@ jobs:
 
       - uses: actions-rs/cargo@v1
         with:
-          command: build
+          command: test
           args: --release --all-features
