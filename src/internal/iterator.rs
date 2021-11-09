@@ -82,10 +82,10 @@ impl StreamingIterator for MatchIterator {
         let header_ptr = unsafe { librpm_sys::rpmdbNextIterator(self.ptr) };
 
         if header_ptr.is_null() {
-            self.next_item = None;
             self.finished = true;
+            self.next_item = None;
         } else {
-            self.next_item = Some(Header::new(header_ptr))
+            self.next_item = Some(unsafe { Header::from_ptr(header_ptr) })
         }
     }
 

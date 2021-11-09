@@ -28,19 +28,10 @@ pub mod db;
 /// Internal functionality not to be exposed outside of this crate
 mod internal;
 
-/// Package licenses
-pub mod license;
-
 /// Macros are RPM's configuration system
 pub mod macro_context;
 
 /// RPM packages
 pub mod package;
 
-/// Package versions
-pub mod version;
-
-pub use self::{
-    db::Index, error::Error, license::License, macro_context::MacroContext, package::Package,
-    version::Version,
-};
+pub use self::{db::Index, error::Error, macro_context::MacroContext, package::Package};
