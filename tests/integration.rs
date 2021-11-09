@@ -1,12 +1,9 @@
 //! librpm.rs integration tests
 
 use librpm::{config, Index};
+use std::io::BufRead;
+use std::process::Command;
 use std::sync::Once;
-
-/// The `.rpm` containing librpm itself
-const PACKAGE_NAME: &str = "rpm-devel";
-const PACKAGE_SUMMARY: &str = "Development files for manipulating RPM packages";
-const PACKAGE_LICENSE: &str = "GPLv2+ and LGPLv2+ with exceptions";
 
 static CONFIGURE: Once = Once::new();
 
@@ -18,16 +15,54 @@ fn configure() {
     });
 }
 
+fn fetch_package_info(package_name: &str, query_param: &str) -> Option<String> {
+    let rpm_info = Command::new("rpm")
+        .arg("-q")
+        .arg("rpm-devel")
+        .arg(format!("--queryformat=%{{{}}}", query_param))
+        .output()
+        .unwrap()
+        .stdout;
+
+    let text = String::from_utf8(rpm_info).unwrap();
+    Some(text).filter(|c| c != "(none)" && c != "")
+}
+
 #[test]
 fn db_find_test() {
     configure();
 
+    let PACKAGE_NAME = "rpm-devel";
+    let PACKAGE_NEVRA = fetch_package_info(PACKAGE_NAME, "NEVRA").unwrap();
+
     let mut matches = Index::Name.find(PACKAGE_NAME);
 
     if let Some(package) = matches.next() {
-        assert_eq!(package.name, PACKAGE_NAME);
-        assert_eq!(package.summary, PACKAGE_SUMMARY);
-        assert_eq!(package.license.as_str(), PACKAGE_LICENSE);
+        assert_eq!(package.name(), "rpm-devel");
+        assert_eq!(
+            package.epoch(),
+            fetch_package_info(PACKAGE_NAME, "EPOCH").as_deref()
+        );
+        assert_eq!(
+            package.version(),
+            fetch_package_info(PACKAGE_NAME, "VERSION").unwrap()
+        );
+        assert_eq!(
+            package.release(),
+            fetch_package_info(PACKAGE_NAME, "RELEASE").unwrap()
+        );
+        assert_eq!(
+            package.summary(),
+            fetch_package_info(PACKAGE_NAME, "SUMMARY").unwrap()
+        );
+        assert_eq!(
+            package.license(),
+            fetch_package_info(PACKAGE_NAME, "LICENSE").unwrap()
+        );
+
+        assert_eq!(package.nevra(), PACKAGE_NEVRA);
+        assert_eq!(package.to_string(), PACKAGE_NEVRA);
+
         assert!(matches.next().is_none(), "expected one result, got more!");
     } else {
         if librpm::db::installed_packages().count() == 0 {

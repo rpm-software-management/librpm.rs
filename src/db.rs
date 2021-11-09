@@ -17,9 +17,9 @@
 //! let mut matches = Index::Name.find("rpm-devel");
 //! let package = matches.next().unwrap();
 //!
-//! println!("package name: {}", package.name);
-//! println!("package summary: {}", package.summary);
-//! println!("package version: {}", package.version);
+//! println!("package name: {}", package.name());
+//! println!("package summary: {}", package.summary());
+//! println!("package version: {}", package.version());
 //! ```
 
 use crate::internal::{iterator::MatchIterator, tag::Tag};
