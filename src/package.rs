@@ -1,35 +1,50 @@
 //! RPM package type: represents `.rpm` files or entries in the RPM database
 use std::fmt;
 
+use crate::internal::{header::Header, tag::Tag};
+
 /// RPM packages
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Package {
     /// Name of the package
-    pub(crate) name: String,
+    name: String,
 
     /// Epoch of the package
-    pub(crate) epoch: Option<String>,
+    epoch: Option<String>,
 
     /// Version of the package
-    pub(crate) version: String,
+    version: String,
 
     /// Release of the package
-    pub(crate) release: String,
+    release: String,
 
     /// Arch of the package
-    pub(crate) arch: String,
+    arch: String,
 
     /// License of the package
-    pub(crate) license: String,
+    license: String,
 
     /// Succinct description of the package
-    pub(crate) summary: String,
+    summary: String,
 
     /// Longer description of the package
-    pub(crate) description: String,
+    description: String,
 }
 
 impl Package {
+    pub(crate) fn from_header(h: &Header) -> Self {
+        Package {
+            name: h.get(Tag::NAME).unwrap().as_str().unwrap().to_owned(),
+            epoch: h.get(Tag::EPOCH).map(|d| d.as_str().unwrap().to_owned()),
+            version: h.get(Tag::VERSION).unwrap().as_str().unwrap().to_owned(),
+            release: h.get(Tag::RELEASE).unwrap().as_str().unwrap().to_owned(),
+            arch: h.get(Tag::ARCH).unwrap().as_str().unwrap().to_owned(),
+            license: h.get(Tag::LICENSE).unwrap().as_str().unwrap().to_owned(),
+            summary: h.get(Tag::SUMMARY).unwrap().as_str().unwrap().into(),
+            description: h.get(Tag::DESCRIPTION).unwrap().as_str().unwrap().into(),
+        }
+    }
+
     pub fn name(&self) -> &str {
         &self.name
     }
