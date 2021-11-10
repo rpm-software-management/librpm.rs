@@ -65,3 +65,24 @@ impl Drop for GlobalTS {
         }
     }
 }
+
+// pub(crate) enum RpmVsFlags {
+//     Default = librpm_sys::rpmVSFlags_e_RPMVSF_DEFAULT as isize,
+//     NoHeaderCheck = librpm_sys::rpmVSFlags_e_RPMVSF_NOHDRCHK as isize,
+//     NeedPayload = librpm_sys::rpmVSFlags_e_RPMVSF_NEEDPAYLOAD as isize,
+
+//     NoSha1Header = librpm_sys::rpmVSFlags_e_RPMVSF_NOSHA1HEADER as isize,
+//     NoSha256Header = librpm_sys::rpmVSFlags_e_RPMVSF_NOSHA256HEADER as isize,
+//     NoDsaHeader = librpm_sys::rpmVSFlags_e_RPMVSF_NODSAHEADER as isize,
+//     NoRsaHeader = librpm_sys::rpmVSFlags_e_RPMVSF_NORSAHEADER as isize,
+
+//     NoPayload = librpm_sys::rpmVSFlags_e_RPMVSF_NOPAYLOAD as isize,
+//     NoMd5 = librpm_sys::rpmVSFlags_e_RPMVSF_NOMD5 as isize,
+//     NoDsa = librpm_sys::rpmVSFlags_e_RPMVSF_NODSA as isize,
+//     NoRsa = librpm_sys::rpmVSFlags_e_RPMVSF_NORSA as isize,
+// }
+
+// const NoDigestMask: isize = RpmVsFlags::NoSha1Header | RpmVsFlags::NoSha256Header | RpmVsFlags::NoPayload | RpmVsFlags::NoMd5;
+// const NoSignaturesMask: isize = RpmVsFlags::NoDsaHeader | RpmVsFlags::NoRsaHeader | RpmVsFlags::NoDsa | RpmVsFlags::NoRsa;
+// const NoHeaderMask: isize = RpmVsFlags::NoSha1Header | RpmVsFlags::NoSha256Header | RpmVsFlags::NoDsaHeader | RpmVsFlags::NoRsaHeader;
+// const NoPayloadMask: isize = RpmVsFlags::NoMd5 | RpmVsFlags::NoPayload | RpmVsFlags::NoDsa | RpmVsFlags::NoRsa;

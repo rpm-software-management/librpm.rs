@@ -1,6 +1,5 @@
 //! RPM package type: represents `.rpm` files or entries in the RPM database
-use std::fmt;
-
+use std::{fmt, path::Path};
 use crate::internal::{header::Header, tag::Tag};
 
 /// RPM packages
@@ -43,6 +42,11 @@ impl Package {
             summary: h.get(Tag::SUMMARY).unwrap().as_str().unwrap().into(),
             description: h.get(Tag::DESCRIPTION).unwrap().as_str().unwrap().into(),
         }
+    }
+
+    pub fn from_file(path: &Path) -> Self {
+        let header = Header::from_file(path).unwrap();
+        Self::from_header(&header)
     }
 
     pub fn name(&self) -> &str {
