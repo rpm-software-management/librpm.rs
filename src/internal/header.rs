@@ -1,18 +1,64 @@
 //! RPM package headers
 
-use super::{tag::Tag, td::TagData};
-use crate::Package;
+use super::archive::{RpmReturnCode, RpmErrorKind};
+use super::{tag::Tag, td::TagData, ts::TransactionSet};
+use std::ffi::CString;
 use std::mem;
+use std::os::unix::prelude::OsStrExt;
+use std::path::Path;
 
 /// RPM package header
 pub(crate) struct Header(*mut librpm_sys::headerToken_s);
 
 impl Header {
+    pub(crate) fn new() -> Self {
+        let ffi_header = unsafe { librpm_sys::headerNew() };
+        assert!(!ffi_header.is_null());
+
+        // No need to increment refcount, starts with refcount=1
+        Header(ffi_header)
+    }
+
+    /// Create a Header handle in Rust from a raw pointer
+    ///
+    /// SAFETY: The input pointer must not be used after passing ownership from Rust, except for dropping
+    /// the live reference if one existed.
     pub(crate) unsafe fn from_ptr(ffi_header: librpm_sys::Header) -> Self {
         assert!(!ffi_header.is_null());
         // Increment librpm's internal reference count for this header
         librpm_sys::headerLink(ffi_header);
         Header(ffi_header)
+    }
+
+    pub(crate) fn from_file(path: &Path) -> Result<Self, RpmErrorKind> {
+        let filename = CString::new(path.as_os_str().as_bytes()).unwrap();
+        let fmode = CString::new("r.ufdio").unwrap();
+
+        let fd: librpm_sys::FD_t = unsafe { librpm_sys::Fopen(filename.as_ptr(), fmode.as_ptr()) };
+        // GlobalTS.lock() ?  Or can the transaction sets be independent because we're not touching a global database?
+        let ts = TransactionSet::create();
+
+        let mut hdr = Header::new();
+
+        let mut vsflags: librpm_sys::rpmVSFlags;
+        // These are #defines, need to recreate them :(
+        vsflags |= librpm_sys::_RPMVSF_NODIGESTS;
+        vsflags |= librpm_sys::_RPMVSF_NOSIGNATURES;
+        vsflags |= librpm_sys::_RPMVSF_NOHDRCHK;
+
+        unsafe {
+            let raw_ts = *ts.as_mut_ptr();
+            librpm_sys::rpmtsSetVSFlags(raw_ts, vsflags);
+
+            // TODO: implement Header::as_ptr() to avoid needing field accesses?
+            match librpm_sys::rpmReadPackageFile(raw_ts, fd, std::ptr::null(), &mut hdr.0) {
+                RpmReturnCode::Ok => Ok(hdr),
+                RpmReturnCode::Fail => Err(RpmErrorKind::Fail),
+                RpmReturnCode::NotFound => Err(RpmErrorKind::NotFound),
+                RpmReturnCode::NotTrusted => Err(RpmErrorKind::NotTrusted),
+                RpmReturnCode::NoKey => Err(RpmErrorKind::NoKey),
+            }
+        }
     }
 
     /// Get the data that corresponds to the given header tag.
@@ -53,19 +99,6 @@ impl Header {
         Some(data)
     }
 
-    /// Convert this `Header` into a `Package`
-    pub(crate) fn to_package(&self) -> Package {
-        Package {
-            name: self.get(Tag::NAME).unwrap().as_str().unwrap().to_owned(),
-            epoch: self.get(Tag::EPOCH).map(|d| d.as_str().unwrap().to_owned()),
-            version: self.get(Tag::VERSION).unwrap().as_str().unwrap().to_owned(),
-            release: self.get(Tag::RELEASE).unwrap().as_str().unwrap().to_owned(),
-            arch: self.get(Tag::ARCH).unwrap().as_str().unwrap().to_owned(),
-            license: self.get(Tag::LICENSE).unwrap().as_str().unwrap().to_owned(),
-            summary: self.get(Tag::SUMMARY).unwrap().as_str().unwrap().into(),
-            description: self.get(Tag::DESCRIPTION).unwrap().as_str().unwrap().into(),
-        }
-    }
 }
 
 impl Drop for Header {

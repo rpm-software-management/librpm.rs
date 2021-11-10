@@ -34,7 +34,7 @@ impl Iterator for Iter {
 
     /// Obtain the next header from the iterator.
     fn next(&mut self) -> Option<Package> {
-        self.0.next().map(|h| h.to_package())
+        self.0.next().map(|h| Package::from_header(h))
     }
 }
 
