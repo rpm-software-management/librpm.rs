@@ -1,30 +1,9 @@
 //! librpm.rs integration tests
 
+use librpm::db::Index;
 use librpm::{Package, Tag};
 
 mod common;
-
-// TODO: This will deadlock: https://github.com/rpm-software-management/librpm.rs/issues/15
-// #[test]
-// fn db_find_test_multiple() {
-//     let db = common::configure();
-//
-//     let mut matches = db.find(librpm::Index::Name, "glibc-common");
-//     if let Some(package) = matches.next() {
-//         assert_eq!(package.name(), "glibc-common");
-//         assert!(matches.next().is_none(), "expected one result, got more!");
-//     } else {
-//         panic!("glibc-common package not installed, are you running on RPM hosted system (RHEL, Fedora, CentOS)?");
-//     }
-//
-//     let mut matches = db.find(librpm::Index::Name, "glibc");
-//     if let Some(package) = matches.next() {
-//         assert_eq!(package.name(), "glibc");
-//         assert!(matches.next().is_none(), "expected one result, got more!");
-//     } else {
-//         panic!("glibc package not installed, are you running on RPM hosted system (RHEL, Fedora, CentOS)?");
-//     }
-// }
 
 #[test]
 fn test_scalar_int32_tag() {
@@ -95,4 +74,37 @@ fn test_tag_type_mismatch_returns_none() {
     assert!(buildtime.as_str().is_none());
     assert!(buildtime.as_bytes().is_none());
     assert!(buildtime.as_str_array().is_none());
+}
+
+#[test]
+fn db_find_test_multiple() {
+    let db = common::init(&common::CENTOS_STREAM_9);
+
+    let mut matches = db.find(Index::Name, "glibc-common");
+    if let Some(package) = matches.next() {
+        assert_eq!(package.name(), "glibc-common");
+        assert!(matches.next().is_none(), "expected one result, got more!");
+    } else {
+        panic!(
+            "glibc-common package not installed, are you running on RPM hosted system (RHEL, Fedora, CentOS)?"
+        );
+    }
+
+    let mut matches = db.find(Index::Name, "glibc");
+    if let Some(package) = matches.next() {
+        assert_eq!(package.name(), "glibc");
+        assert!(matches.next().is_none(), "expected one result, got more!");
+    } else {
+        panic!(
+            "glibc package not installed, are you running on RPM hosted system (RHEL, Fedora, CentOS)?"
+        );
+    }
+}
+
+#[test]
+fn db_find_test_multiple_packages() {
+    let db = common::init(&common::CENTOS_STREAM_9);
+
+    assert!(db.find(Index::Name, "bash").next().is_some());
+    assert!(db.find(Index::Name, "filesystem").next().is_some());
 }

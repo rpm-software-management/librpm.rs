@@ -15,13 +15,19 @@
  * file, You can obtain one at <https://mozilla.org/MPL/2.0/>.
  */
 
-//! Thread-safe tracking struct for RPM's global mutable state
+//! Thread-safe tracking struct for RPM's global mutable state.
 //!
 //! librpm has a lot of global mutable state, and depending on what state it
 //! is in various calls are safe (or not).
 //!
 //! This struct tracks changes to librpm's global state based on functions we
 //! have (or have not) invoked.
+//!
+//! The global state lock serializes operations that mutate the `rpmts` itself
+//! (configuration, lazy DB/keyring initialization). Read-only database
+//! iteration does not require holding the lock because `rpmtsInitIterator`
+//! takes its own refcounted link to the transaction set and each iterator
+//! carries independent cursor state.
 
 use super::ts::TransactionSet;
 use once_cell::sync::Lazy;

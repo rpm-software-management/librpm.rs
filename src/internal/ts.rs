@@ -18,7 +18,6 @@
 //! Transaction sets: librpm's transaction API
 
 use super::GlobalState;
-use std::sync::MutexGuard;
 use std::sync::atomic::AtomicPtr;
 
 /// librpm transactions, a.k.a. "transaction sets" (or `rpmts` librpm type)
@@ -55,22 +54,24 @@ impl TransactionSet {
     }
 }
 
-/// Crate-public wrapper for acquiring and releasing the global transaction set
-/// which also cleans it prior to unlocking it.
-pub(crate) struct GlobalTS(MutexGuard<'static, GlobalState>);
+/// Crate-public wrapper for the global transaction set pointer.
+///
+/// Briefly acquires the global state lock to obtain the raw `rpmts` pointer,
+/// then releases it. The pointer remains valid because the global
+/// `TransactionSet` lives for the process lifetime, and librpm's
+/// `rpmtsInitIterator` takes its own refcounted link to the `rpmts`.
+pub(crate) struct GlobalTS(*mut librpm_sys::rpmts_s);
 
 impl GlobalTS {
-    /// Acquire the global state mutex, giving the current thread exclusive
-    /// access to the global transaction set.
+    /// Briefly acquire the global state lock and snapshot the transaction set pointer.
     pub fn create() -> Self {
-        GlobalTS(GlobalState::lock())
+        let mut state = GlobalState::lock();
+        GlobalTS(*state.ts.as_mut_ptr())
     }
 
     /// Obtain the internal pointer to the transaction set
     pub(crate) fn as_mut_ptr(&mut self) -> *mut librpm_sys::rpmts_s {
-        // Since we're guaranteed to be holding the GlobalState mutex here,
-        // we're free to deref the pointer.
-        *self.0.ts.as_mut_ptr()
+        self.0
     }
 }
 
