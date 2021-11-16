@@ -8,10 +8,11 @@
 
 use super::ts::TransactionSet;
 use once_cell::sync::Lazy;
-use std::sync::{Mutex, MutexGuard};
+use parking_lot::{ReentrantMutex, ReentrantMutexGuard};
+use std::cell::RefCell;
 
-static RPM_GLOBAL_STATE: Lazy<Mutex<GlobalState>> =
-    Lazy::new(|| Mutex::new(GlobalState::default()));
+static RPM_GLOBAL_STATE: Lazy<ReentrantMutex<RefCell<GlobalState>>> =
+    Lazy::new(|| ReentrantMutex::new(RefCell::new(GlobalState::default())));
 
 /// Tracking struct for mutable global state in RPM
 pub(crate) struct GlobalState {
@@ -35,7 +36,7 @@ impl Default for GlobalState {
 
 impl GlobalState {
     /// Obtain an exclusive lock to the global state
-    pub fn lock() -> MutexGuard<'static, Self> {
-        RPM_GLOBAL_STATE.lock().unwrap()
+    pub fn lock() -> ReentrantMutexGuard<'static, RefCell<Self>> {
+        RPM_GLOBAL_STATE.lock()
     }
 }

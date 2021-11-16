@@ -18,7 +18,8 @@ const DB_PATH_MACRO: &str = "_dbpath";
 ///
 /// Configuration is global to the process.
 pub fn read_file(config_file: Option<&Path>) -> Result<(), Error> {
-    let mut global_state = GlobalState::lock();
+    let lock = GlobalState::lock();
+    let mut global_state = lock.borrow_mut();
 
     // Avoid invoking `rpmReadConfigFiles` more than once. This vicariously
     // invokes `rpmInitCrypto` which causes segfaults (NULL struct pointer
