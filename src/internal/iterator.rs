@@ -21,15 +21,27 @@ use super::{header::Header, tag::DBIndexTag, ts::GlobalTS};
 use std::{os::raw::c_void, ptr};
 use streaming_iterator::StreamingIterator;
 
-/// Iterator over the matches from a database query
+/// Iterator over the matches from a database query.
+///
+/// # Locking
+///
+/// The global state lock is held only during construction (to safely access
+/// the global `rpmts` for `rpmtsInitIterator`). It is *not* held for the
+/// iterator's lifetime. This is safe because:
+///
+/// - `rpmtsInitIterator` takes its own refcounted link (`rpmtsLink`) to the
+///   transaction set, keeping it alive independently of our lock.
+/// - Index query results are snapshotted into a `dbiIndexSet` at creation
+///   time; iteration walks this snapshot, not a live cursor on the index.
+/// - Each iterator has its own `rpmdbMatchIterator` / database cursor.
+/// - During iteration, the only access back to the `rpmts` is read-only
+///   header signature verification (`mi_hdrchk`).
+///
+/// This design allows multiple iterators to coexist on the same thread
+/// without deadlocking (see issue #15).
 pub(crate) struct MatchIterator {
     /// Pointer to librpm's match iterator.
     ptr: *mut librpm_sys::rpmdbMatchIterator_s,
-
-    /// Hold the lock on the global transaction set while reading data.
-    /// This ensures nothing else can make calls to librpm while we are iterating over its data
-    #[allow(dead_code)]
-    txn: GlobalTS,
 
     /// Next item in the iterator
     next_item: Option<Header>,
@@ -60,7 +72,6 @@ impl MatchIterator {
 
             return Self {
                 ptr,
-                txn,
                 next_item,
                 finished,
             };
@@ -77,7 +88,6 @@ impl MatchIterator {
 
         Self {
             ptr,
-            txn,
             next_item,
             finished,
         }

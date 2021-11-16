@@ -26,6 +26,7 @@
 #![cfg(feature = "test-current-system")]
 
 use librpm::Package;
+use librpm::db::Index;
 use std::process::Command;
 
 mod common;
@@ -101,5 +102,19 @@ fn test_against_installed_packages() {
         assert_eq!(expected.version, found.version());
         assert_eq!(expected.release, found.release());
         assert_eq!(expected.summary, found.summary());
+    }
+}
+
+// Note: needs to be run against a database that has multiple kernels installed
+// The fixtures do not have multiple kernels
+#[test]
+fn db_find_test_multiple_matching() {
+    let db = common::configure();
+
+    let matches: Vec<librpm::Package> = db.find(Index::Name, "kernel").collect();
+    assert!(matches.len() > 1);
+
+    for package in matches {
+        assert_eq!(package.name(), "kernel");
     }
 }
