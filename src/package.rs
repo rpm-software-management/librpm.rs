@@ -17,7 +17,7 @@ pub struct Package {
     pub(crate) release: String,
 
     /// Arch of the package
-    pub(crate) arch: String,
+    pub(crate) arch: Option<String>,
 
     /// License of the package
     pub(crate) license: String,
@@ -46,8 +46,8 @@ impl Package {
         &self.release
     }
 
-    pub fn arch(&self) -> &str {
-        &self.arch
+    pub fn arch(&self) -> Option<&str> {
+        self.arch.as_ref().map(|s| s.as_str())
     }
 
     pub fn evr(&self) -> String {
@@ -59,7 +59,11 @@ impl Package {
     }
 
     pub fn nevra(&self) -> String {
-        format!("{}-{}.{}", self.name, self.evr(), self.arch)
+        if let Some(arch) = &self.arch {
+            format!("{}-{}.{}", self.name, self.evr(), arch)
+        } else {
+            format!("{}-{}", self.name, self.evr())
+        }
     }
 
     pub fn license(&self) -> &str {

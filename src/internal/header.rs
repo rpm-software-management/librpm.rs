@@ -60,7 +60,7 @@ impl Header {
             epoch: self.get(Tag::EPOCH).map(|d| d.as_str().unwrap().to_owned()),
             version: self.get(Tag::VERSION).unwrap().as_str().unwrap().to_owned(),
             release: self.get(Tag::RELEASE).unwrap().as_str().unwrap().to_owned(),
-            arch: self.get(Tag::ARCH).unwrap().as_str().unwrap().to_owned(),
+            arch: self.get(Tag::ARCH).map(|d| d.as_str().unwrap().to_owned()),
             license: self.get(Tag::LICENSE).unwrap().as_str().unwrap().to_owned(),
             summary: self.get(Tag::SUMMARY).unwrap().as_str().unwrap().into(),
             description: self.get(Tag::DESCRIPTION).unwrap().as_str().unwrap().into(),
