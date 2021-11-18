@@ -15,19 +15,19 @@ pub(crate) enum TagData<'hdr> {
     Null,
 
     /// Character
-    Char(Vec<char>),
+    Char(char),
 
     /// 8-bit integer
-    Int8(Vec<i8>),
+    Int8(i8),
 
     /// 16-bit integer
-    Int16(Vec<i16>),
+    Int16(i16),
 
     /// 32-bit integer
-    Int32(Vec<i32>),
+    Int32(i32),
 
     /// 64-bit integer
-    Int64(Vec<i64>),
+    Int64(i64),
 
     /// String
     Str(&'hdr str),
@@ -44,28 +44,38 @@ pub(crate) enum TagData<'hdr> {
 
 impl<'hdr> TagData<'hdr> {
     /// Convert an `rpmtd_s` into a `TagData::Char`
-    pub(crate) unsafe fn char(_td: &librpm_sys::rpmtd_s) -> Self {
-        panic!("RPM_CHAR_TYPE unimplemented!");
+    pub(crate) unsafe fn char(td: &librpm_sys::rpmtd_s) -> Self {
+        assert_eq!(td.type_, TagType::CHAR as u32);
+        let ix = if td.ix >= 0 { td.ix as isize } else { 0 };
+        TagData::Char(*(td.data as *const char).offset(ix))
     }
 
     /// Convert an `rpmtd_s` into an `TagData::Int8`
-    pub(crate) unsafe fn int8(_td: &librpm_sys::rpmtd_s) -> Self {
-        panic!("RPM_INT8_TYPE unimplemented!");
+    pub(crate) unsafe fn int8(td: &librpm_sys::rpmtd_s) -> Self {
+        assert_eq!(td.type_, TagType::INT8 as u32);
+        let ix = if td.ix >= 0 { td.ix as isize } else { 0 };
+        TagData::Int8(*(td.data as *const i8).offset(ix))
     }
 
     /// Convert an `rpmtd_s` int an `TagData::Int16`
-    pub(crate) unsafe fn int16(_td: &librpm_sys::rpmtd_s) -> Self {
-        panic!("RPM_INT16_TYPE unimplemented!");
+    pub(crate) unsafe fn int16(td: &librpm_sys::rpmtd_s) -> Self {
+        assert_eq!(td.type_, TagType::INT16 as u32);
+        let ix = if td.ix >= 0 { td.ix as isize } else { 0 };
+        TagData::Int16(*(td.data as *const i16).offset(ix))
     }
 
     /// Convert an `rpmtd_s` int an `TagData::Int32`
-    pub(crate) unsafe fn int32(_td: &librpm_sys::rpmtd_s) -> Self {
-        panic!("RPM_INT32_TYPE unimplemented!");
+    pub(crate) unsafe fn int32(td: &librpm_sys::rpmtd_s) -> Self {
+        assert_eq!(td.type_, TagType::INT32 as u32);
+        let ix = if td.ix >= 0 { td.ix as isize } else { 0 };
+        TagData::Int32(*(td.data as *const i32).offset(ix))
     }
 
     /// Convert an `rpmtd_s` int an `Int64`
-    pub(crate) unsafe fn int64(_td: &librpm_sys::rpmtd_s) -> Self {
-        panic!("RPM_INT64_TYPE unimplemented!");
+    pub(crate) unsafe fn int64(td: &librpm_sys::rpmtd_s) -> Self {
+        assert_eq!(td.type_, TagType::INT64 as u32);
+        let ix = if td.ix >= 0 { td.ix as isize } else { 0 };
+        TagData::Int64(*(td.data as *const i64).offset(ix))
     }
 
     /// Convert an `rpmtd_s` into a `Str`
@@ -129,68 +139,68 @@ impl<'hdr> TagData<'hdr> {
     }
 
     /// Obtain a char value, if this is a char
-    pub fn as_char(&self) -> Option<&[char]> {
+    pub fn to_char(&self) -> Option<char> {
         match *self {
-            TagData::Char(ref c) => Some(c),
+            TagData::Char(c) => Some(c),
             _ => None,
         }
     }
 
     /// Is this value a char?
     pub fn is_char(&self) -> bool {
-        self.as_char().is_some()
+        self.to_char().is_some()
     }
 
     /// Obtain an int8 value, if this is an int8
-    pub fn as_int8(&self) -> Option<&[i8]> {
+    pub fn to_int8(&self) -> Option<i8> {
         match *self {
-            TagData::Int8(ref i) => Some(i),
+            TagData::Int8(i) => Some(i),
             _ => None,
         }
     }
 
     /// Is this value an int8?
     pub fn is_int8(&self) -> bool {
-        self.as_int8().is_some()
+        self.to_int8().is_some()
     }
 
     /// Obtain an int16 value, if this is an int16
-    pub fn as_int16(&self) -> Option<&[i16]> {
+    pub fn to_int16(&self) -> Option<i16> {
         match *self {
-            TagData::Int16(ref i) => Some(i),
+            TagData::Int16(i) => Some(i),
             _ => None,
         }
     }
 
     /// Is this value an int16?
     pub fn is_int16(&self) -> bool {
-        self.as_int16().is_some()
+        self.to_int16().is_some()
     }
 
     /// Obtain an int32 value, if this is an int32
-    pub fn as_int32(&self) -> Option<&[i32]> {
+    pub fn to_int32(&self) -> Option<i32> {
         match *self {
-            TagData::Int32(ref i) => Some(i),
+            TagData::Int32(i) => Some(i),
             _ => None,
         }
     }
 
     /// Is this value an int32?
     pub fn is_int32(&self) -> bool {
-        self.as_int32().is_some()
+        self.to_int32().is_some()
     }
 
     /// Obtain an int64 value, if this is an int64
-    pub fn as_int64(&self) -> Option<&[i64]> {
+    pub fn to_int64(&self) -> Option<i64> {
         match *self {
-            TagData::Int64(ref i) => Some(i),
+            TagData::Int64(i) => Some(i),
             _ => None,
         }
     }
 
     /// Is this value an int64?
     pub fn is_int64(&self) -> bool {
-        self.as_int64().is_some()
+        self.to_int64().is_some()
     }
 
     /// Obtain a string reference, so long as this value is a string type
