@@ -64,6 +64,7 @@ impl Header {
             license: self.get(Tag::LICENSE).unwrap().as_str().unwrap().to_owned(),
             summary: self.get(Tag::SUMMARY).unwrap().as_str().unwrap().into(),
             description: self.get(Tag::DESCRIPTION).unwrap().as_str().unwrap().into(),
+            buildtime: self.get(Tag::BUILDTIME).unwrap().to_int32().unwrap(),
         }
     }
 }

@@ -1,5 +1,6 @@
 //! RPM package type: represents `.rpm` files or entries in the RPM database
-use std::fmt;
+use std::convert::TryFrom;
+use std::{fmt, time};
 
 /// RPM packages
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -12,6 +13,7 @@ pub struct Package {
     pub(crate) license: String,
     pub(crate) summary: String,
     pub(crate) description: String,
+    pub(crate) buildtime: i32,
 }
 
 impl Package {
@@ -71,6 +73,12 @@ impl Package {
     /// Longer description of the package
     pub fn description(&self) -> &str {
         &self.description
+    }
+
+    /// Buildtime of the package
+    pub fn buildtime(&self) -> time::SystemTime {
+        let buildtime = u64::try_from(self.buildtime).expect("negative build time");
+        time::SystemTime::UNIX_EPOCH + time::Duration::new(buildtime, 0)
     }
 }
 
