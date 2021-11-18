@@ -4,52 +4,43 @@ use std::fmt;
 /// RPM packages
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Package {
-    /// Name of the package
     pub(crate) name: String,
-
-    /// Epoch of the package
     pub(crate) epoch: Option<String>,
-
-    /// Version of the package
     pub(crate) version: String,
-
-    /// Release of the package
     pub(crate) release: String,
-
-    /// Arch of the package
     pub(crate) arch: Option<String>,
-
-    /// License of the package
     pub(crate) license: String,
-
-    /// Succinct description of the package
     pub(crate) summary: String,
-
-    /// Longer description of the package
     pub(crate) description: String,
 }
 
 impl Package {
+    /// Name of the package
     pub fn name(&self) -> &str {
         &self.name
     }
 
+    /// Epoch of the package
     pub fn epoch(&self) -> Option<&str> {
         self.epoch.as_ref().map(|s| s.as_str())
     }
 
+    /// Version of the package
     pub fn version(&self) -> &str {
         &self.version
     }
 
+    /// Release of the package
     pub fn release(&self) -> &str {
         &self.release
     }
 
+    /// Arch of the package
     pub fn arch(&self) -> Option<&str> {
         self.arch.as_ref().map(|s| s.as_str())
     }
 
+    /// EVR (epoch, version, release) of the package
     pub fn evr(&self) -> String {
         if let Some(epoch) = &self.epoch {
             format!("{}:{}-{}", epoch, self.version, self.release)
@@ -58,6 +49,7 @@ impl Package {
         }
     }
 
+    /// NEVRA (name, epoch, version, release, arch) of the package
     pub fn nevra(&self) -> String {
         if let Some(arch) = &self.arch {
             format!("{}-{}.{}", self.name, self.evr(), arch)
@@ -66,14 +58,17 @@ impl Package {
         }
     }
 
+    /// License of the package
     pub fn license(&self) -> &str {
         &self.license
     }
 
+    /// Succinct description of the package
     pub fn summary(&self) -> &str {
         &self.summary
     }
 
+    /// Longer description of the package
     pub fn description(&self) -> &str {
         &self.description
     }
