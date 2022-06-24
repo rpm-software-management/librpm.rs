@@ -3,6 +3,7 @@
 use super::GlobalState;
 use std::sync::atomic::AtomicPtr;
 use std::sync::MutexGuard;
+use bitflags::bitflags;
 
 pub(crate) struct TransactionElement(AtomicPtr<librpm_sys::rpmte_s>);
 
@@ -23,14 +24,10 @@ impl TransactionElement {
             librpm_sys::rpmteSetHeader(*self.0.get_mut(), header);
         }
     }
-    pub(crate) fn element_type(&mut self) -> ElementType {
+    pub(crate) fn element_type(&mut self) -> ElementTypes {
         let e = unsafe { librpm_sys::rpmteType(*self.0.get_mut()) };
-        match e {
-            e if e == ElementType::ADDED as u32 => ElementType::ADDED,
-            e if e == ElementType::REMOVED as u32 => ElementType::REMOVED,
-            e if e == ElementType::RPMDB as u32 => ElementType::RPMDB,
-            _ => unreachable!(),
-        }
+
+        ElementTypes::from_bits_truncate(e)
     }
     // NEVRAO of the package
     pub(crate) fn name(&mut self) -> String {
@@ -173,9 +170,10 @@ impl TransactionElement {
     }
 }
 
-#[derive(Copy, Clone)]
-pub enum ElementType {
-    ADDED = librpm_sys::rpmElementType_e_TR_ADDED as isize,
-    REMOVED = librpm_sys::rpmElementType_e_TR_REMOVED as isize,
-    RPMDB = librpm_sys::rpmElementType_e_TR_RPMDB as isize,
+bitflags! {
+    pub(crate) struct ElementTypes: u32 {
+        const ADDED = librpm_sys::rpmElementType_e_TR_ADDED;
+        const REMOVED = librpm_sys::rpmElementType_e_TR_REMOVED;
+        const RPMDB = librpm_sys::rpmElementType_e_TR_RPMDB;
+    }
 }

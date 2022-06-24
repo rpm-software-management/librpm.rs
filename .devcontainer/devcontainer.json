@@ -5,7 +5,7 @@
     "args": { "VARIANT": "36" }
   },
   "settings": {},
-  "extensions": ["rust-lang.rust-analyzer"],
+  "extensions": ["rust-lang.rust-analyzer", "serayuzgur.crates"],
   "remoteUser": "vscode",
   "runArgs": ["--userns=host", "--privileged"],
   "remoteEnv": { "PATH": "${containerEnv:PATH}:/home/vscode/.cargo/bin" }

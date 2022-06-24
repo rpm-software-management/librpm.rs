@@ -5,9 +5,12 @@ use librpm_sys::rpmtsiNext;
 use crate::db::Iter;
 
 use super::GlobalState;
-use super::te::{TransactionElement, ElementType};
+use super::te::{TransactionElement, ElementTypes};
+use std::ffi::{CStr, CString};
+use std::fmt::Display;
 use std::sync::atomic::AtomicPtr;
 use std::sync::MutexGuard;
+use bitflags::bitflags;
 
 /// librpm transactions, a.k.a. "transaction sets" (or `rpmts` librpm type)
 ///
@@ -28,6 +31,30 @@ impl TransactionSet {
         TransactionSet(AtomicPtr::new(unsafe { librpm_sys::rpmtsCreate() }))
     }
 
+    pub(crate) fn check(&mut self) -> bool {
+        unsafe { librpm_sys::rpmtsCheck(*self.0.get_mut()) == 0 }
+    }
+
+    pub(crate) fn root_dir(&mut self) -> String {
+        unsafe {
+            librpm_sys::rpmtsRootDir(*self.0.get_mut())
+                .as_ref()
+                .map(|s| s.to_string())
+                .unwrap_or_default()
+        }
+    }
+
+    pub(crate) fn set_root_dir(&mut self, root_dir: &str) -> Result<(), InvalidRootDir> {
+        let str = CString::new(root_dir).expect("invalid string passed as root_dir");
+        unsafe {
+            if librpm_sys::rpmtsSetRootDir(*self.0.get_mut(), str.as_ptr()) == 0 {
+                Ok(())
+            } else {
+                Err(InvalidRootDir)
+            }
+        }
+    }
+
     pub(crate) fn element_length(&mut self) -> i32 {
         unsafe { librpm_sys::rpmtsNElements(*self.0.get_mut()) }
     }
@@ -41,21 +68,46 @@ impl TransactionSet {
         unsafe { TransactionElement::from_ptr(rpmte) }
     }
 
-    pub(crate) fn iter(&mut self, flags: Vec<ElementType>) -> TransactionSetIterator {
+    pub(crate) fn iter(&mut self, flags: ElementTypes) -> TransactionSetIterator {
         let iterator = unsafe { librpm_sys::rpmtsiInit(*self.0.get_mut()) };
 
         unsafe { TransactionSetIterator::from_ptr(iterator, flags) }
+    }
+
+    pub(crate) fn transaction_id(&mut self) -> u32 {
+        unsafe { librpm_sys::rpmtsGetTid(*self.0.get_mut()) }
+    }
+
+    pub(crate) fn set_transaction_id(&mut self, id: u32) -> u32 {
+        unsafe { librpm_sys::rpmtsSetTid(*self.0.get_mut(), id) }
+    }
+
+    pub(crate) fn flags(&mut self) -> TransFlags {
+        unsafe { TransFlags::from_bits_truncate(librpm_sys::rpmtsFlags(*self.0.get_mut())) }
+    }
+
+    pub(crate) fn set_flags(&mut self, flags: TransFlags) -> TransFlags {
+        unsafe { TransFlags::from_bits_truncate(librpm_sys::rpmtsSetFlags(*self.0.get_mut(), flags.bits())) }
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct InvalidRootDir;
+
+impl Display for InvalidRootDir {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "the root dir passed is invalid")
     }
 }
 
 pub(crate) struct TransactionSetIterator{
     ptr: AtomicPtr<librpm_sys::rpmtsi_s>,
-    flags: Vec<ElementType>,
+    flags: ElementTypes,
     exhausted: bool
 }
 
 impl TransactionSetIterator {
-    pub(crate) unsafe fn from_ptr(ffi_tsi: librpm_sys::rpmtsi, flags: Vec<ElementType>) -> Self {
+    pub(crate) unsafe fn from_ptr(ffi_tsi: librpm_sys::rpmtsi, flags: ElementTypes) -> Self {
         assert!(!ffi_tsi.is_null());
 
         TransactionSetIterator {
@@ -63,16 +115,6 @@ impl TransactionSetIterator {
             flags,
             exhausted: false
         }
-    }
-
-    fn get_bit_flags(&mut self) -> u32 {
-        let mut bitflags = 0u32;
-
-        for &flag in &self.flags {
-            bitflags |= flag as u32;
-        }
-
-        bitflags
     }
 }
 
@@ -82,7 +124,7 @@ impl Iterator for TransactionSetIterator {
     fn next(&mut self) -> Option<Self::Item> {
         if self.exhausted { return None };
 
-        let element = unsafe { librpm_sys::rpmtsiNext(*self.ptr.get_mut(), self.get_bit_flags()) };
+        let element = unsafe { librpm_sys::rpmtsiNext(*self.ptr.get_mut(), self.flags.bits()) };
         if element.is_null() {
             self.exhausted = true;
             return None;
@@ -137,5 +179,42 @@ impl Drop for GlobalTS {
         unsafe {
             librpm_sys::rpmtsClean(self.as_mut_ptr());
         }
+    }
+}
+
+// TRANS FLAGS!!! 🏳️‍⚧️
+bitflags! {
+    pub(crate) struct TransFlags: u32 {
+        const RPMTRANS_FLAG_NONE = 0;
+        const RPMTRANS_FLAG_TEST = (1 << 0);
+        const RPMTRANS_FLAG_BUILD_PROBS = (1 << 1);
+        const RPMTRANS_FLAG_NOSCRIPTS = (1 << 2);
+        
+        const RPMTRANS_FLAG_JUSTDB = (1 << 3);
+        const RPMTRANS_FLAG_NOTRIGGERS = (1 << 4);
+        const RPMTRANS_FLAG_NODOCS = (1 << 5);
+        const RPMTRANS_FLAG_ALLFILES = (1 << 6);
+        
+        const RPMTRANS_FLAG_NOPLUGINS = (1 << 7);
+        const RPMTRANS_FLAG_NOCONTEXTS = (1 << 8);
+        const RPMTRANS_FLAG_NOCAPS = (1 << 9);
+        const RPMTRANS_FLAG_NOTRIGGERPREIN = (1 << 16);
+        
+        const RPMTRANS_FLAG_NOPRE = (1 << 17);
+        const RPMTRANS_FLAG_NOPOST = (1 << 18);
+        const RPMTRANS_FLAG_NOTRIGGERIN = (1 << 19);
+        const RPMTRANS_FLAG_NOTRIGGERUN = (1 << 20);
+        
+        const RPMTRANS_FLAG_NOPREUN = (1 << 21);
+        const RPMTRANS_FLAG_NOPOSTUN = (1 << 22);
+        const RPMTRANS_FLAG_NOTRIGGERPOSTUN = (1 << 23);
+        const RPMTRANS_FLAG_NOPRETRANS = (1 << 24);
+        
+        const RPMTRANS_FLAG_NOPOSTTRANS = (1 << 25);
+        const RPMTRANS_FLAG_NOFILEDIGEST = (1 << 27);
+        const RPMTRANS_FLAG_NOCONFIGS = (1 << 30);
+        
+        const RPMTRANS_FLAG_DEPLOOPS = (1 << 31);
+    
     }
 }
