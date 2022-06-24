@@ -6,6 +6,7 @@ use crate::db::Iter;
 
 use super::GlobalState;
 use super::te::{TransactionElement, ElementTypes};
+use super::txn::Transaction;
 use std::ffi::{CStr, CString};
 use std::fmt::Display;
 use std::sync::atomic::AtomicPtr;
@@ -88,6 +89,10 @@ impl TransactionSet {
 
     pub(crate) fn set_flags(&mut self, flags: TransFlags) -> TransFlags {
         unsafe { TransFlags::from_bits_truncate(librpm_sys::rpmtsSetFlags(*self.0.get_mut(), flags.bits())) }
+    }
+
+    pub(crate) fn transaction_begin(&mut self, flags: TransFlags) -> Transaction {
+        unsafe { Transaction::from_ptr(librpm_sys::rpmtxnBegin(*self.0.get_mut(), flags.bits())) }
     }
 }
 

@@ -9,5 +9,6 @@ pub(crate) mod tag;
 pub(crate) mod td;
 pub(crate) mod ts;
 pub(crate) mod te;
+pub(crate) mod txn;
 
 pub(crate) use self::global_state::GlobalState;
