@@ -1,6 +1,11 @@
 //! Transaction sets: librpm's transaction API
 
+use librpm_sys::rpmtsiNext;
+
+use crate::db::Iter;
+
 use super::GlobalState;
+use super::te::{TransactionElement, ElementType};
 use std::sync::atomic::AtomicPtr;
 use std::sync::MutexGuard;
 
@@ -21,6 +26,75 @@ impl TransactionSet {
     /// from `GlobalState`.
     pub(crate) fn create() -> Self {
         TransactionSet(AtomicPtr::new(unsafe { librpm_sys::rpmtsCreate() }))
+    }
+
+    pub(crate) fn element_length(&mut self) -> i32 {
+        unsafe { librpm_sys::rpmtsNElements(*self.0.get_mut()) }
+    }
+
+    pub(crate) fn get_element(&mut self, index: i32) -> TransactionElement {
+        if index > self.element_length() - 1 {
+            panic!("out of bounds transaction element access")
+        }
+
+        let rpmte = unsafe { librpm_sys::rpmtsElement(*self.0.get_mut(), index) };
+        unsafe { TransactionElement::from_ptr(rpmte) }
+    }
+
+    pub(crate) fn iter(&mut self, flags: Vec<ElementType>) -> TransactionSetIterator {
+        let iterator = unsafe { librpm_sys::rpmtsiInit(*self.0.get_mut()) };
+
+        unsafe { TransactionSetIterator::from_ptr(iterator, flags) }
+    }
+}
+
+pub(crate) struct TransactionSetIterator{
+    ptr: AtomicPtr<librpm_sys::rpmtsi_s>,
+    flags: Vec<ElementType>,
+    exhausted: bool
+}
+
+impl TransactionSetIterator {
+    pub(crate) unsafe fn from_ptr(ffi_tsi: librpm_sys::rpmtsi, flags: Vec<ElementType>) -> Self {
+        assert!(!ffi_tsi.is_null());
+
+        TransactionSetIterator {
+            ptr: AtomicPtr::from(ffi_tsi),
+            flags,
+            exhausted: false
+        }
+    }
+
+    fn get_bit_flags(&mut self) -> u32 {
+        let mut bitflags = 0u32;
+
+        for &flag in &self.flags {
+            bitflags |= flag as u32;
+        }
+
+        bitflags
+    }
+}
+
+impl Iterator for TransactionSetIterator {
+    type Item = TransactionElement;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.exhausted { return None };
+
+        let element = unsafe { librpm_sys::rpmtsiNext(*self.ptr.get_mut(), self.get_bit_flags()) };
+        if element.is_null() {
+            self.exhausted = true;
+            return None;
+        }
+
+        unsafe { Some(TransactionElement::from_ptr(element)) }
+    }
+}
+
+impl Drop for TransactionSetIterator {
+    fn drop(&mut self) {
+        unsafe { librpm_sys::rpmtsiFree(*self.ptr.get_mut()) };
     }
 }
 

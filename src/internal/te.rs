@@ -7,11 +7,17 @@ use std::sync::MutexGuard;
 pub(crate) struct TransactionElement(AtomicPtr<librpm_sys::rpmte_s>);
 
 impl TransactionElement {
+    pub(crate) unsafe fn from_ptr(ffi_te: librpm_sys::rpmte) -> Self {
+        assert!(!ffi_te.is_null());
+        TransactionElement(AtomicPtr::from(ffi_te))
+    }
+
     pub(crate) fn header(&mut self) {
         unsafe {
             librpm_sys::rpmteHeader(*self.0.get_mut());
         }
     }
+
     pub(crate) fn set_header(&mut self, header: *mut librpm_sys::headerToken_s) {
         unsafe {
             librpm_sys::rpmteSetHeader(*self.0.get_mut(), header);
@@ -167,6 +173,7 @@ impl TransactionElement {
     }
 }
 
+#[derive(Copy, Clone)]
 pub enum ElementType {
     ADDED = librpm_sys::rpmElementType_e_TR_ADDED as isize,
     REMOVED = librpm_sys::rpmElementType_e_TR_REMOVED as isize,

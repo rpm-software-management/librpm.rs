@@ -1,0 +1,12 @@
+{
+  "name": "Fedora",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "args": { "VARIANT": "36" }
+  },
+  "settings": {},
+  "extensions": ["rust-lang.rust-analyzer"],
+  "remoteUser": "vscode",
+  "runArgs": ["--userns=host", "--privileged"],
+  "remoteEnv": { "PATH": "${containerEnv:PATH}:/home/vscode/.cargo/bin" }
+}
