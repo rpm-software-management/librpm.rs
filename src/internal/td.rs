@@ -60,9 +60,9 @@ impl TagData {
     pub(crate) unsafe fn set_char(&mut self, value: char) {
         unsafe {
             *(*self.0.get_mut()).size = 1;
-            *self.0.get_mut().data = &mut value as *mut c_void;
+            *self.0.get_mut().data = 
+    }&mut value as *mut c_void;
         }
-    }
 
     pub(crate) unsafe fn int8(&mut self) -> i8 {
         let td = *self.0.get_mut();
@@ -124,7 +124,7 @@ impl TagData {
         }
     }
 
-    pub(crate) unsafe fn string(&mut self) -> str {
+    pub(crate) unsafe fn string(&mut self) -> &str {
         let td = *self.0.get_mut();
 
         assert_eq!((*td).type_, TagType::STRING as u32);
@@ -138,9 +138,9 @@ impl TagData {
         })
     }
 
-    pub(crate) unsafe fn set_str(&mut self, value: str) {
+    pub(crate) unsafe fn set_str(&mut self, value: &str) {
         unsafe {
-            *self.0.get_mut().size = value.len();
+            *(*self.0.get_mut()).size = value.len();
             *self.0.get_mut().data = &mut value as *mut c_void;
         }
     }
@@ -149,16 +149,16 @@ impl TagData {
         panic!("RPM_STRING_ARRAY_TYPE unsupported!");
     }
 
-    pub(crate) unsafe fn i18n_string(&mut self) -> str {
+    pub(crate) unsafe fn i18n_string(&mut self) -> &str {
         let td = *self.0.get_mut();
 
-        assert_eq!(td.type_, TagType::I18NSTRING as u32);
-        let cstr = CStr::from_ptr(td.data as *const c_char);
+        assert_eq!((*td).type_, TagType::I18NSTRING as u32);
+        let cstr = CStr::from_ptr((*td).data as *const c_char);
 
         str::from_utf8(cstr.to_bytes()).unwrap_or_else(|e| {
             panic!(
                 "failed to decode RPM_I18NSTRING_TYPE as UTF-8 (tag: {}): {}",
-                td.tag, e
+                (*td).tag, e
             );
         })
     }
