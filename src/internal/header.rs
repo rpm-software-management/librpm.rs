@@ -5,7 +5,7 @@ use crate::Package;
 use std::mem;
 
 /// RPM package header
-pub(crate) struct Header(*mut librpm_sys::headerToken_s);
+pub struct Header(*mut librpm_sys::headerToken_s);
 
 impl Header {
     pub(crate) unsafe fn from_ptr(ffi_header: librpm_sys::Header) -> Self {
@@ -57,8 +57,21 @@ impl Header {
         Some(data)
     }
 
+    pub(crate) fn set(&mut self, data: TagData<'_>) {
+        let rc = unsafe {
+            librpm_sys::headerMod(
+                self.0,
+                data.to_ptr(),
+            )
+        };
+
+        if rc == 0 {
+            panic!("failed to set header tag");
+        }
+    }
+
     /// Convert this `Header` into a `Package`
-    pub(crate) fn to_package(&self) -> Package {
+    pub fn to_package(&self) -> Package {
         Package {
             name: self.get(Tag::NAME).unwrap().as_str().unwrap().to_owned(),
             epoch: self.get(Tag::EPOCH).map(|d| d.as_str().unwrap().to_owned()),
@@ -70,6 +83,18 @@ impl Header {
             description: self.get(Tag::DESCRIPTION).unwrap().as_str().unwrap().into(),
             buildtime: self.get(Tag::BUILDTIME).unwrap().to_int32().unwrap(),
         }
+    }
+    /// Turn the given `Package` into a `Header`
+    pub fn from_package(package: Package) -> Self {
+        let mut header = Header {
+            0: unsafe { librpm_sys::headerNew() },
+        };
+        // TODO: Either ditch the Package struct or add a way to convert it into a Header
+        // fingers crossed, i don't know what i'm doing -cappy
+        unsafe {
+            //header.set(TagData::string(package.name.as_bytes()).to_ptr());
+        };
+        header
     }
 }
 

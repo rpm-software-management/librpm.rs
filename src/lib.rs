@@ -37,4 +37,4 @@ pub mod package;
 /// Transactions
 pub mod transaction;
 
-pub use self::{db::Index, error::Error, macro_context::MacroContext, package::Package};
+pub use self::{db::Index, error::Error, macro_context::MacroContext, package::Package, internal::header::Header};

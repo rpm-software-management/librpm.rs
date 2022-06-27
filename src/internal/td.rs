@@ -3,10 +3,12 @@
 // Take this as a sign this code is not properly tested
 #![allow(dead_code)]
 
+use librpm_sys::rpmtd_s;
+
 use super::tag::TagType;
 use std::ffi::CStr;
 use std::os::raw::c_char;
-use std::{slice, str};
+use std::{slice, str, ptr};
 
 /// Data found in RPM headers, associated with a particular `Tag` value.
 #[derive(Debug)]
@@ -242,5 +244,9 @@ impl<'hdr> TagData<'hdr> {
     /// Is this value binary data?
     pub fn is_bytes(&self) -> bool {
         self.as_bytes().is_some()
+    }
+
+    pub fn to_ptr(&self) -> *mut rpmtd_s {
+        self.as_bytes().map(|b| b.as_ptr() as *mut _).unwrap_or(ptr::null_mut())
     }
 }
