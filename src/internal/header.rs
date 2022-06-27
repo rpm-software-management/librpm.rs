@@ -20,7 +20,7 @@ impl Header {
     }
 
     /// Get the data that corresponds to the given header tag.
-    pub(crate) fn get(&self, tag: Tag) -> Option<TagData<'_>> {
+    pub(crate) fn get(&self, tag: Tag) -> Option<TagData> {
         // Create a zeroed `rpmtd_s` and then immediately initialize it
         let mut td: librpm_sys::rpmtd_s = unsafe { mem::zeroed() };
         unsafe {
@@ -57,7 +57,7 @@ impl Header {
         Some(data)
     }
 
-    pub(crate) fn set(&mut self, data: TagData<'_>) {
+    pub(crate) fn set(&mut self, data: TagData) {
         let rc = unsafe {
             librpm_sys::headerMod(
                 self.0,

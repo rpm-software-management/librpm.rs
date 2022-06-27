@@ -1,252 +1,197 @@
-//! Tag data, i.e. data fields found in RPM headers
-
-// Take this as a sign this code is not properly tested
-#![allow(dead_code)]
-
-use librpm_sys::rpmtd_s;
-
-use super::tag::TagType;
-use std::ffi::CStr;
+use std::sync::atomic::AtomicPtr;
+use super::tag::{TagType, Tag};
+use std::ffi::{CStr, c_void};
 use std::os::raw::c_char;
 use std::{slice, str, ptr};
+use std::convert::TryInto;
 
-/// Data found in RPM headers, associated with a particular `Tag` value.
-#[derive(Debug)]
-pub(crate) enum TagData<'hdr> {
-    /// No data associated with this tag
-    Null,
 
-    /// Character
-    Char(char),
+pub(crate) struct TagData(AtomicPtr<librpm_sys::rpmtd_s>);
 
-    /// 8-bit integer
-    Int8(i8),
-
-    /// 16-bit integer
-    Int16(i16),
-
-    /// 32-bit integer
-    Int32(i32),
-
-    /// 64-bit integer
-    Int64(i64),
-
-    /// String
-    Str(&'hdr str),
-
-    /// String array
-    StrArray(Vec<&'hdr str>),
-
-    /// Internationalized string (UTF-8?)
-    I18NStr(&'hdr str),
-
-    /// Binary data
-    Bin(&'hdr [u8]),
-}
-
-impl<'hdr> TagData<'hdr> {
-    /// Convert an `rpmtd_s` into a `TagData::Char`
-    pub(crate) unsafe fn char(td: &librpm_sys::rpmtd_s) -> Self {
-        assert_eq!(td.type_, TagType::CHAR as u32);
-        let ix = if td.ix >= 0 { td.ix as isize } else { 0 };
-        TagData::Char(*(td.data as *const char).offset(ix))
-    }
-
-    /// Convert an `rpmtd_s` into an `TagData::Int8`
-    pub(crate) unsafe fn int8(td: &librpm_sys::rpmtd_s) -> Self {
-        assert_eq!(td.type_, TagType::INT8 as u32);
-        let ix = if td.ix >= 0 { td.ix as isize } else { 0 };
-        TagData::Int8(*(td.data as *const i8).offset(ix))
-    }
-
-    /// Convert an `rpmtd_s` int an `TagData::Int16`
-    pub(crate) unsafe fn int16(td: &librpm_sys::rpmtd_s) -> Self {
-        assert_eq!(td.type_, TagType::INT16 as u32);
-        let ix = if td.ix >= 0 { td.ix as isize } else { 0 };
-        TagData::Int16(*(td.data as *const i16).offset(ix))
-    }
-
-    /// Convert an `rpmtd_s` int an `TagData::Int32`
-    pub(crate) unsafe fn int32(td: &librpm_sys::rpmtd_s) -> Self {
-        assert_eq!(td.type_, TagType::INT32 as u32);
-        let ix = if td.ix >= 0 { td.ix as isize } else { 0 };
-        TagData::Int32(*(td.data as *const i32).offset(ix))
-    }
-
-    /// Convert an `rpmtd_s` int an `Int64`
-    pub(crate) unsafe fn int64(td: &librpm_sys::rpmtd_s) -> Self {
-        assert_eq!(td.type_, TagType::INT64 as u32);
-        let ix = if td.ix >= 0 { td.ix as isize } else { 0 };
-        TagData::Int64(*(td.data as *const i64).offset(ix))
-    }
-
-    /// Convert an `rpmtd_s` into a `Str`
-    pub(crate) unsafe fn string(td: &librpm_sys::rpmtd_s) -> Self {
-        assert_eq!(td.type_, TagType::STRING as u32);
-        let cstr = CStr::from_ptr(td.data as *const c_char);
-
-        // RPM_STRING_TYPE is ASCII-only. We presently treat it as UTF-8.
-        TagData::Str(str::from_utf8(cstr.to_bytes()).unwrap_or_else(|e| {
-            panic!(
-                "failed to decode RPM_STRING_TYPE as UTF-8 (tag: {}): {}",
-                td.tag, e
-            );
+impl TagData {
+    pub(crate) fn create() -> Self {
+        TagData(AtomicPtr::new(unsafe {
+            librpm_sys::rpmtdNew()
         }))
     }
 
-    /// Convert an `rpmtd_s` into a `StrArray`
-    pub(crate) unsafe fn string_array(_td: &librpm_sys::rpmtd_s) -> Self {
+    pub(crate) fn tag_type(&mut self) -> TagType {
+        unsafe {
+            num::FromPrimitive::from_u32(librpm_sys::rpmtdType(*self.0.get_mut())).unwrap()
+        }
+    }
+
+    pub(crate) fn tag(&mut self) -> Tag {
+        unsafe {
+            num::FromPrimitive::from_i32(librpm_sys::rpmtdTag(*self.0.get_mut())).unwrap()
+        }
+    }
+
+    pub(crate) fn set_tag(&mut self, tag: Tag) {
+        unsafe {
+            let code = librpm_sys::rpmtdSetTag(*self.0.get_mut(), tag as i32);
+
+            if code != 1 {
+                panic!("failed to set tag, since container is not empty and types are incompatible");
+            }
+        }
+    }
+
+    pub(crate) fn reset(&mut self) {
+        unsafe {
+            librpm_sys::rpmtdReset(*self.0.get_mut());
+        }
+    }
+
+    pub(crate) fn count(&mut self) -> u32 {
+        unsafe {
+            librpm_sys::rpmtdCount(*self.0.get_mut())
+        }
+    }
+
+    pub(crate) unsafe fn char(&mut self) -> char {
+        let td = *self.0.get_mut();
+
+        assert_eq!((*td).type_, TagType::CHAR as u32);
+        let ix = if (*td).ix >= 0 { (*td).ix as isize } else { 0 };
+        *((*td).data as *const char).offset(ix)
+    }
+
+    pub(crate) unsafe fn set_char(&mut self, value: char) {
+        unsafe {
+            *(*self.0.get_mut()).size = 1;
+            *self.0.get_mut().data = &mut value as *mut c_void;
+        }
+    }
+
+    pub(crate) unsafe fn int8(&mut self) -> i8 {
+        let td = *self.0.get_mut();
+
+        assert_eq!((*td).type_, TagType::INT8 as u32);
+        let ix = if (*td).ix >= 0 { (*td).ix as isize } else { 0 };
+        *((*td).data as *const i8).offset(ix)
+    }
+
+    pub(crate) unsafe fn set_int8(&mut self, value: i8) {
+        unsafe {
+            *self.0.get_mut().size = 1;
+            *self.0.get_mut().data = &mut value as *mut c_void;
+        }
+    }
+
+    pub(crate) unsafe fn int16(&mut self) -> i16 {
+        let td = *self.0.get_mut();
+
+        assert_eq!((*td).type_, TagType::INT16 as u32);
+        let ix = if (*td).ix >= 0 { (*td).ix as isize } else { 0 };
+        *((*td).data as *const i16).offset(ix)
+    }
+
+    pub(crate) unsafe fn set_int16(&mut self, value: i16) {
+        unsafe {
+            *self.0.get_mut().size = 1;
+            *self.0.get_mut().data = &mut value as *mut c_void;
+        }
+    }
+
+    pub(crate) unsafe fn int32(&mut self) -> i32 {
+        let td = *self.0.get_mut();
+
+        assert_eq!((*td).type_, TagType::INT32 as u32);
+        let ix = if (*td).ix >= 0 { (*td).ix as isize } else { 0 };
+        *((*td).data as *const i32).offset(ix)
+    }
+
+    pub(crate) unsafe fn set_int32(&mut self, value: i32) {
+        unsafe {
+            *self.0.get_mut().size = 1;
+            *self.0.get_mut().data = &mut value as *mut c_void;
+        }
+    }
+
+    pub(crate) unsafe fn int64(&mut self) -> i64 {
+        let td = *self.0.get_mut();
+
+        assert_eq!((*td).type_, TagType::INT64 as u32);
+        let ix = if (*td).ix >= 0 { (*td).ix as isize } else { 0 };
+        *((*td).data as *const i64).offset(ix)
+    }
+
+    pub(crate) unsafe fn set_int64(&mut self, value: i64) {
+        unsafe {
+            *self.0.get_mut().size = 1;
+            *self.0.get_mut().data = &mut value as *mut c_void;
+        }
+    }
+
+    pub(crate) unsafe fn string(&mut self) -> str {
+        let td = *self.0.get_mut();
+
+        assert_eq!((*td).type_, TagType::STRING as u32);
+        let cstr = CStr::from_ptr((*td).data as *const c_char);
+
+        str::from_utf8(cstr.to_bytes()).unwrap_or_else(|e| {
+            panic!(
+                "failed to decode RPM_STRING_TYPE as UTF-8 (tag: {}): {}",
+                (*td).tag, e
+            );
+        })
+    }
+
+    pub(crate) unsafe fn set_str(&mut self, value: str) {
+        unsafe {
+            *self.0.get_mut().size = value.len();
+            *self.0.get_mut().data = &mut value as *mut c_void;
+        }
+    }
+
+    pub(crate) unsafe fn string_array(&mut self) -> ! {
         panic!("RPM_STRING_ARRAY_TYPE unsupported!");
     }
 
-    /// Convert an `rpmtd_s` into an `I18NStr`
-    pub(crate) unsafe fn i18n_string(td: &librpm_sys::rpmtd_s) -> Self {
+    pub(crate) unsafe fn i18n_string(&mut self) -> str {
+        let td = *self.0.get_mut();
+
         assert_eq!(td.type_, TagType::I18NSTRING as u32);
         let cstr = CStr::from_ptr(td.data as *const c_char);
 
-        TagData::I18NStr(str::from_utf8(cstr.to_bytes()).unwrap_or_else(|e| {
+        str::from_utf8(cstr.to_bytes()).unwrap_or_else(|e| {
             panic!(
                 "failed to decode RPM_I18NSTRING_TYPE as UTF-8 (tag: {}): {}",
                 td.tag, e
             );
-        }))
+        })
     }
 
-    /// Convert an `rpmtd_s` into a `Bin`
-    pub(crate) unsafe fn bin(td: &librpm_sys::rpmtd_s) -> Self {
-        assert_eq!(td.type_, TagType::BIN as u32);
+    pub(crate) unsafe fn bin(&mut self) -> &[u8] {
+        let td = *self.0.get_mut();
+
+        assert_eq!((*td).type_, TagType::BIN as u32);
 
         assert!(
-            !td.data.is_null(),
+            !(*td).data.is_null(),
             "rpmtd.data is NULL! (tag type: {})",
-            td.tag
+            (*td).tag
         );
 
         assert_ne!(
-            td.type_,
+            (*td).type_,
             TagType::NULL as u32,
             "can't get slice of NULL data (tag type: {})",
-            td.tag
+            (*td).tag
         );
 
-        TagData::Bin(slice::from_raw_parts(
-            td.data as *const u8,
-            td.count as usize,
-        ))
+        slice::from_raw_parts(
+            (*td).data as *const u8,
+            (*td).count as usize,
+        )
     }
+}
 
-    /// Is this tag data NULL?
-    pub fn is_null(&self) -> bool {
-        matches!(*self, TagData::Null)
-    }
-
-    /// Obtain a char value, if this is a char
-    pub fn to_char(&self) -> Option<char> {
-        match *self {
-            TagData::Char(c) => Some(c),
-            _ => None,
+impl Drop for TagData {
+    fn drop(&mut self) {
+        unsafe {
+            librpm_sys::rpmtdFree(*self.0.get_mut());
         }
-    }
-
-    /// Is this value a char?
-    pub fn is_char(&self) -> bool {
-        self.to_char().is_some()
-    }
-
-    /// Obtain an int8 value, if this is an int8
-    pub fn to_int8(&self) -> Option<i8> {
-        match *self {
-            TagData::Int8(i) => Some(i),
-            _ => None,
-        }
-    }
-
-    /// Is this value an int8?
-    pub fn is_int8(&self) -> bool {
-        self.to_int8().is_some()
-    }
-
-    /// Obtain an int16 value, if this is an int16
-    pub fn to_int16(&self) -> Option<i16> {
-        match *self {
-            TagData::Int16(i) => Some(i),
-            _ => None,
-        }
-    }
-
-    /// Is this value an int16?
-    pub fn is_int16(&self) -> bool {
-        self.to_int16().is_some()
-    }
-
-    /// Obtain an int32 value, if this is an int32
-    pub fn to_int32(&self) -> Option<i32> {
-        match *self {
-            TagData::Int32(i) => Some(i),
-            _ => None,
-        }
-    }
-
-    /// Is this value an int32?
-    pub fn is_int32(&self) -> bool {
-        self.to_int32().is_some()
-    }
-
-    /// Obtain an int64 value, if this is an int64
-    pub fn to_int64(&self) -> Option<i64> {
-        match *self {
-            TagData::Int64(i) => Some(i),
-            _ => None,
-        }
-    }
-
-    /// Is this value an int64?
-    pub fn is_int64(&self) -> bool {
-        self.to_int64().is_some()
-    }
-
-    /// Obtain a string reference, so long as this value is a string type
-    pub fn as_str(&self) -> Option<&'hdr str> {
-        // We presently treat `STRING` and `I18NSTRING` equivalently
-        match *self {
-            TagData::Str(s) => Some(s),
-            TagData::I18NStr(s) => Some(s),
-            _ => None,
-        }
-    }
-
-    /// Is this value a string?
-    pub fn is_str(&self) -> bool {
-        self.as_str().is_some()
-    }
-
-    /// Obtain a slice of string references, if this value is a string array
-    pub fn as_str_array(&self) -> Option<&[&'hdr str]> {
-        match *self {
-            TagData::StrArray(ref sa) => Some(&sa[..]),
-            _ => None,
-        }
-    }
-
-    /// Is this value a string array?
-    pub fn is_str_array(&self) -> bool {
-        self.as_str_array().is_some()
-    }
-
-    /// Obtain a byte slice, if this value contains binary data
-    pub fn as_bytes(&self) -> Option<&[u8]> {
-        match *self {
-            TagData::Bin(b) => Some(b),
-            _ => None,
-        }
-    }
-
-    /// Is this value binary data?
-    pub fn is_bytes(&self) -> bool {
-        self.as_bytes().is_some()
-    }
-
-    pub fn to_ptr(&self) -> *mut rpmtd_s {
-        self.as_bytes().map(|b| b.as_ptr() as *mut _).unwrap_or(ptr::null_mut())
     }
 }

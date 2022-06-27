@@ -8,9 +8,11 @@
 )]
 
 use crate::Index;
+use num_derive::FromPrimitive;
+use num_traits::FromPrimitive;
 
 /// Identifiers for data in RPM headers (`rpmTag_e` in librpm)
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, FromPrimitive)]
 pub enum Tag {
     /// Unknown tag
     NOT_FOUND = librpm_sys::rpmTag_e_RPMTAG_NOT_FOUND as isize,
@@ -340,7 +342,7 @@ pub enum SignatureTag {
 }
 
 /// Types of data in tags from headers (`rpmTagType_e` in librpm)
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, FromPrimitive)]
 pub enum TagType {
     NULL = librpm_sys::rpmTagType_e_RPM_NULL_TYPE as isize,
     CHAR = librpm_sys::rpmTagType_e_RPM_CHAR_TYPE as isize,
@@ -355,7 +357,7 @@ pub enum TagType {
 }
 
 /// Classes of data in tags from headers (`rpmTagClass_e` in librpm)
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, FromPrimitive)]
 pub enum TagClass {
     NULL = librpm_sys::rpmTagClass_e_RPM_NULL_CLASS as isize,
     NUMERIC = librpm_sys::rpmTagClass_e_RPM_NUMERIC_CLASS as isize,
