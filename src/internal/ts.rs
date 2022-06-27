@@ -125,6 +125,10 @@ impl TransactionSet {
             }
         }
     }
+
+    pub(crate) fn set_notify_callback(&mut self, callback: librpm_sys::rpmCallbackFunction, data: librpm_sys::rpmCallbackData) {
+        unsafe { librpm_sys::rpmtsSetNotifyCallback(*self.0.get_mut(), callback, data) };
+    }
 }
 
 #[derive(Debug)]
