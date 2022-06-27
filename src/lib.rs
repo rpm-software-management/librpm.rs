@@ -34,4 +34,7 @@ pub mod macro_context;
 /// RPM packages
 pub mod package;
 
+/// Transactions
+pub mod transaction;
+
 pub use self::{db::Index, error::Error, macro_context::MacroContext, package::Package};

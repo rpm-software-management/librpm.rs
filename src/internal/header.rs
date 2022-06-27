@@ -15,6 +15,10 @@ impl Header {
         Header(ffi_header)
     }
 
+    pub(crate) fn as_ptr(&self) -> *mut librpm_sys::headerToken_s {
+        self.0
+    }
+
     /// Get the data that corresponds to the given header tag.
     pub(crate) fn get(&self, tag: Tag) -> Option<TagData<'_>> {
         // Create a zeroed `rpmtd_s` and then immediately initialize it

@@ -49,3 +49,4 @@
 #include <rpm/rpmfi.h> // File information
 #include <rpm/rpmts.h> // Transaction sets
 #include <rpm/rpmte.h> // Transaction elements (packages)
+#include <rpm/rpmtypes.h> // RPM data types

@@ -1,10 +1,11 @@
 //! Transaction sets: librpm's transaction API
 
-use librpm_sys::rpmtsiNext;
+use librpm_sys::{rpmtsiNext, fnpyKey};
 
 use crate::db::Iter;
 
-use super::GlobalState;
+use super::{GlobalState, header};
+use super::header::Header;
 use super::te::{TransactionElement, ElementTypes};
 use super::txn::Transaction;
 use std::ffi::{CStr, CString};
@@ -93,6 +94,36 @@ impl TransactionSet {
 
     pub(crate) fn transaction_begin(&mut self, flags: TransFlags) -> Transaction {
         unsafe { Transaction::from_ptr(librpm_sys::rpmtxnBegin(*self.0.get_mut(), flags.bits())) }
+    }
+
+    pub(crate) fn add_install_element(&mut self, header: &Header, fnpykey: fnpyKey, upgrade: i32, reloc: *mut librpm_sys::rpmRelocation_s) -> Result<(), String> {
+        unsafe {
+            if librpm_sys::rpmtsAddInstallElement(*self.0.get_mut(), header.as_ptr(), fnpykey, upgrade, reloc) == 0 {
+                Ok(())
+            } else {
+                Err("rpmtsAddInstallElement failed".to_string())
+            }
+        }
+    }
+
+    pub(crate) fn add_erase_element(&mut self, header: &Header, db_offset: i32) -> Result<(), String> {
+        unsafe {
+            if librpm_sys::rpmtsAddEraseElement(*self.0.get_mut(), header.as_ptr(), db_offset) == 0 {
+                Ok(())
+            } else {
+                Err("rpmtsAddEraseElement failed".to_string())
+            }
+        }
+    }
+
+    pub(crate) fn add_reinstall_element(&mut self, header: &Header, fnpykey: fnpyKey) -> Result<(), String> {
+        unsafe {
+            if librpm_sys::rpmtsAddReinstallElement(*self.0.get_mut(), header.as_ptr(), fnpykey) == 0 {
+                Ok(())
+            } else {
+                Err("rpmtsAddReinstallElement failed".to_string())
+            }
+        }
     }
 }
 
