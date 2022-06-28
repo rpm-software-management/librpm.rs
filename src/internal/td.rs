@@ -1,6 +1,6 @@
 use std::sync::atomic::AtomicPtr;
 use super::tag::{TagType, Tag};
-use std::ffi::{CStr, c_void};
+use std::ffi::{CStr, c_void, CString};
 use std::os::raw::c_char;
 use std::{slice, str, ptr};
 use std::convert::TryInto;
@@ -59,9 +59,10 @@ impl TagData {
 
     pub(crate) unsafe fn set_char(&mut self, value: char) {
         unsafe {
-            *(*self.0.get_mut()).size = 1;
-            *self.0.get_mut().data = 
-    }&mut value as *mut c_void;
+                let container = **self.0.get_mut();
+                container.size = 1;
+                container.data = &mut value as *mut _ as *mut c_void;
+            }
         }
 
     pub(crate) unsafe fn int8(&mut self) -> i8 {
@@ -74,8 +75,9 @@ impl TagData {
 
     pub(crate) unsafe fn set_int8(&mut self, value: i8) {
         unsafe {
-            *self.0.get_mut().size = 1;
-            *self.0.get_mut().data = &mut value as *mut c_void;
+            let container = **self.0.get_mut();
+            container.size = 1;
+            container.data = &mut value as *mut _ as *mut c_void;
         }
     }
 
@@ -89,8 +91,9 @@ impl TagData {
 
     pub(crate) unsafe fn set_int16(&mut self, value: i16) {
         unsafe {
-            *self.0.get_mut().size = 1;
-            *self.0.get_mut().data = &mut value as *mut c_void;
+            let container = **self.0.get_mut();
+            container.size = 1;
+            container.data = &mut value as *mut _ as *mut c_void;
         }
     }
 
@@ -104,8 +107,9 @@ impl TagData {
 
     pub(crate) unsafe fn set_int32(&mut self, value: i32) {
         unsafe {
-            *self.0.get_mut().size = 1;
-            *self.0.get_mut().data = &mut value as *mut c_void;
+            let container = **self.0.get_mut();
+            container.size = 1;
+            container.data = &mut value as *mut _ as *mut c_void;
         }
     }
 
@@ -119,8 +123,9 @@ impl TagData {
 
     pub(crate) unsafe fn set_int64(&mut self, value: i64) {
         unsafe {
-            *self.0.get_mut().size = 1;
-            *self.0.get_mut().data = &mut value as *mut c_void;
+            let container = **self.0.get_mut();
+            container.size = 1;
+            container.data = &mut value as *mut _ as *mut c_void;
         }
     }
 
@@ -140,8 +145,10 @@ impl TagData {
 
     pub(crate) unsafe fn set_str(&mut self, value: &str) {
         unsafe {
-            *(*self.0.get_mut()).size = value.len();
-            *self.0.get_mut().data = &mut value as *mut c_void;
+            let container = **self.0.get_mut();
+            let string = CString::new(value).expect("could not convert to c string");
+            container.size = 1;
+            container.data = &mut string.as_c_str().as_ptr() as *mut _ as *mut c_void;
         }
     }
 
