@@ -2,7 +2,7 @@
 
 use super::{tag::Tag, td::TagData};
 use crate::Package;
-use std::mem;
+use std::{mem, borrow::BorrowMut};
 
 /// RPM package header
 pub struct Header(*mut librpm_sys::headerToken_s);
@@ -40,28 +40,16 @@ impl Header {
             return None;
         }
 
-        let data = match td.type_ {
-            librpm_sys::rpmTagType_e_RPM_NULL_TYPE => TagData::Null,
-            librpm_sys::rpmTagType_e_RPM_CHAR_TYPE => unsafe { TagData::char(&td) },
-            librpm_sys::rpmTagType_e_RPM_INT8_TYPE => unsafe { TagData::int8(&td) },
-            librpm_sys::rpmTagType_e_RPM_INT16_TYPE => unsafe { TagData::int16(&td) },
-            librpm_sys::rpmTagType_e_RPM_INT32_TYPE => unsafe { TagData::int32(&td) },
-            librpm_sys::rpmTagType_e_RPM_INT64_TYPE => unsafe { TagData::int64(&td) },
-            librpm_sys::rpmTagType_e_RPM_STRING_TYPE => unsafe { TagData::string(&td) },
-            librpm_sys::rpmTagType_e_RPM_STRING_ARRAY_TYPE => unsafe { TagData::string_array(&td) },
-            librpm_sys::rpmTagType_e_RPM_I18NSTRING_TYPE => unsafe { TagData::i18n_string(&td) },
-            librpm_sys::rpmTagType_e_RPM_BIN_TYPE => unsafe { TagData::bin(&td) },
-            other => panic!("unsupported rpmtd tag type: {}", other),
-        };
+        let data = unsafe { TagData::from_ptr(td.borrow_mut()) };
 
         Some(data)
     }
 
-    pub(crate) fn set(&mut self, data: TagData) {
+    pub(crate) fn set(&mut self, mut data: TagData) {
         let rc = unsafe {
             librpm_sys::headerMod(
                 self.0,
-                data.to_ptr(),
+                *data.to_ptr().get_mut(),
             )
         };
 
@@ -72,16 +60,18 @@ impl Header {
 
     /// Convert this `Header` into a `Package`
     pub fn to_package(&self) -> Package {
-        Package {
-            name: self.get(Tag::NAME).unwrap().as_str().unwrap().to_owned(),
-            epoch: self.get(Tag::EPOCH).map(|d| d.as_str().unwrap().to_owned()),
-            version: self.get(Tag::VERSION).unwrap().as_str().unwrap().to_owned(),
-            release: self.get(Tag::RELEASE).unwrap().as_str().unwrap().to_owned(),
-            arch: self.get(Tag::ARCH).map(|d| d.as_str().unwrap().to_owned()),
-            license: self.get(Tag::LICENSE).unwrap().as_str().unwrap().to_owned(),
-            summary: self.get(Tag::SUMMARY).unwrap().as_str().unwrap().into(),
-            description: self.get(Tag::DESCRIPTION).unwrap().as_str().unwrap().into(),
-            buildtime: self.get(Tag::BUILDTIME).unwrap().to_int32().unwrap(),
+        unsafe {
+            Package {
+                name: self.get(Tag::NAME).unwrap().str().to_owned(),
+                epoch: self.get(Tag::EPOCH).map(|mut d| d.str().to_owned()),
+                version: self.get(Tag::VERSION).unwrap().str().to_owned(),
+                release: self.get(Tag::RELEASE).unwrap().str().to_owned(),
+                arch: self.get(Tag::ARCH).map(|mut d| d.str().to_owned()),
+                license: self.get(Tag::LICENSE).unwrap().str().to_owned(),
+                summary: self.get(Tag::SUMMARY).unwrap().str().into(),
+                description: self.get(Tag::DESCRIPTION).unwrap().str().into(),
+                buildtime: self.get(Tag::BUILDTIME).unwrap().int32(),
+            }
         }
     }
     /// Turn the given `Package` into a `Header`
