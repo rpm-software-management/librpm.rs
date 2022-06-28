@@ -68,6 +68,8 @@ impl TagData {
     }
 
     pub(crate) unsafe fn set_char(&mut self, mut value: char) {
+        assert_eq!(self.tag_type(), TagType::CHAR);
+
         let mut container = **self.0.get_mut();
         container.size = 1;
         container.data = &mut value as *mut _ as *mut c_void;
@@ -82,6 +84,8 @@ impl TagData {
     }
 
     pub(crate) unsafe fn set_int8(&mut self, mut value: i8) {
+        assert_eq!(self.tag_type(), TagType::INT8);
+
         let mut container = **self.0.get_mut();
         container.size = 1;
         container.data = &mut value as *mut _ as *mut c_void;
@@ -96,6 +100,8 @@ impl TagData {
     }
 
     pub(crate) unsafe fn set_int16(&mut self, mut value: i16) {
+        assert_eq!(self.tag_type(), TagType::INT16);
+
         let mut container = **self.0.get_mut();
         container.size = 1;
         container.data = &mut value as *mut _ as *mut c_void;
@@ -110,6 +116,8 @@ impl TagData {
     }
 
     pub(crate) unsafe fn set_int32(&mut self, mut value: i32) {
+        assert_eq!(self.tag_type(), TagType::INT32);
+
         let mut container = **self.0.get_mut();
         container.size = 1;
         container.data = &mut value as *mut _ as *mut c_void;
@@ -124,6 +132,8 @@ impl TagData {
     }
 
     pub(crate) unsafe fn set_int64(&mut self, mut value: i64) {
+        assert_eq!(self.tag_type(), TagType::INT64);
+
         let mut container = **self.0.get_mut();
         container.size = 1;
         container.data = &mut value as *mut _ as *mut c_void;
@@ -146,6 +156,8 @@ impl TagData {
     }
 
     pub(crate) unsafe fn set_str(&mut self, mut value: &str) {
+        assert_eq!(self.tag_type(), TagType::STRING);
+
         let mut container = **self.0.get_mut();
         let string = CString::new(value).expect("could not convert to c string");
         // Do we need to include the null byte?
