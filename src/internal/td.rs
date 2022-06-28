@@ -5,6 +5,7 @@ use std::ffi::{CStr, c_void, CString};
 use std::os::raw::c_char;
 use std::{slice, str, ptr};
 use std::convert::TryInto;
+use log::{debug, info};
 
 
 pub(crate) struct TagData(AtomicPtr<librpm_sys::rpmtd_s>);
@@ -134,12 +135,14 @@ impl TagData {
         assert_eq!((*td).type_, TagType::STRING as u32);
         let cstr = CStr::from_ptr((*td).data as *const c_char);
 
-        str::from_utf8(cstr.to_bytes()).unwrap_or_else(|e| {
+        let s = str::from_utf8(cstr.to_bytes()).unwrap_or_else(|e| {
             panic!(
                 "failed to decode RPM_STRING_TYPE as UTF-8 (tag: {}): {}",
                 (*td).tag, e
             );
-        })
+        });
+        debug!("decoded RPM_STRING_TYPE as UTF-8: {}", s);
+        s
     }
 
     pub(crate) unsafe fn set_str(&mut self, mut value: &str) {

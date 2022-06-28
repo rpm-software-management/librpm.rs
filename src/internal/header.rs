@@ -66,6 +66,7 @@ impl Header {
                 epoch: self.get(Tag::EPOCH).map(|mut d| d.str().to_owned()),
                 version: self.get(Tag::VERSION).unwrap().str().to_owned(),
                 release: self.get(Tag::RELEASE).unwrap().str().to_owned(),
+                // BUG: Architecture is an enum and not to be converted into a string. Please fix.
                 arch: self.get(Tag::ARCH).map(|mut d| d.str().to_owned()),
                 license: self.get(Tag::LICENSE).unwrap().str().to_owned(),
                 summary: self.get(Tag::SUMMARY).unwrap().str().into(),
