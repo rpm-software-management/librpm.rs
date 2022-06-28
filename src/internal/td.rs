@@ -147,10 +147,10 @@ impl TagData {
 
     pub(crate) unsafe fn set_str(&mut self, mut value: &str) {
         let mut container = **self.0.get_mut();
-        let string = CString::new(value).expect("could not convert to c string").as_c_str();
+        let string = CString::new(value).expect("could not convert to c string");
         // Do we need to include the null byte?
-        container.size = string.to_bytes().len() + 1;
-        container.data = &mut string.as_ptr() as *mut _ as *mut c_void;
+        container.size = string.to_bytes().len() as u32 + 1;
+        container.data = &mut string.as_c_str().as_ptr() as *mut _ as *mut c_void;
     }
 
     pub(crate) unsafe fn string_array(&mut self) -> ! {
