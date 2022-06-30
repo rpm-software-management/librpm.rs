@@ -21,17 +21,14 @@ impl Header {
 
     /// Get the data that corresponds to the given header tag.
     pub(crate) fn get(&self, tag: Tag) -> Option<TagData> {
-        // Create a zeroed `rpmtd_s` and then immediately initialize it
-        let mut td: librpm_sys::rpmtd_s = unsafe { mem::zeroed() };
-        unsafe {
-            librpm_sys::rpmtdReset(&mut td);
-        }
+        let mut data = TagData::create();
+        let td = data.to_ptr();
 
         let rc = unsafe {
             librpm_sys::headerGet(
                 self.0,
                 tag as i32,
-                &mut td,
+                td,
                 librpm_sys::headerGetFlags_e_HEADERGET_MINMEM,
             )
         };
@@ -40,16 +37,16 @@ impl Header {
             return None;
         }
 
-        let data = unsafe { TagData::from_ptr(td.borrow_mut()) };
-
         Some(data)
     }
 
     pub(crate) fn set(&mut self, mut data: TagData) {
+        let td = data.to_ptr();
+
         let rc = unsafe {
             librpm_sys::headerMod(
                 self.0,
-                *data.to_ptr().get_mut(),
+                td,
             )
         };
 
@@ -60,19 +57,17 @@ impl Header {
 
     /// Convert this `Header` into a `Package`
     pub fn to_package(&self) -> Package {
-        unsafe {
-            Package {
-                name: self.get(Tag::NAME).unwrap().str().to_owned(),
-                epoch: self.get(Tag::EPOCH).map(|mut d| d.str().to_owned()),
-                version: self.get(Tag::VERSION).unwrap().str().to_owned(),
-                release: self.get(Tag::RELEASE).unwrap().str().to_owned(),
-                // BUG: Architecture is an enum and not to be converted into a string. Please fix.
-                arch: self.get(Tag::ARCH).map(|mut d| d.str().to_owned()),
-                license: self.get(Tag::LICENSE).unwrap().str().to_owned(),
-                summary: self.get(Tag::SUMMARY).unwrap().str().into(),
-                description: self.get(Tag::DESCRIPTION).unwrap().str().into(),
-                buildtime: self.get(Tag::BUILDTIME).unwrap().int32(),
-            }
+        Package {
+            name: self.get(Tag::NAME).unwrap().str().to_owned(),
+            epoch: self.get(Tag::EPOCH).map(|mut d| d.str().to_owned()),
+            version: self.get(Tag::VERSION).unwrap().str().to_owned(),
+            release: self.get(Tag::RELEASE).unwrap().str().to_owned(),
+            // BUG: Architecture is an enum and not to be converted into a string. Please fix.
+            arch: self.get(Tag::ARCH).map(|mut d| d.str().to_owned()),
+            license: self.get(Tag::LICENSE).unwrap().str().to_owned(),
+            summary: self.get(Tag::SUMMARY).unwrap().str().into(),
+            description: self.get(Tag::DESCRIPTION).unwrap().str().into(),
+            buildtime: self.get(Tag::BUILDTIME).unwrap().int32(),
         }
     }
     /// Turn the given `Package` into a `Header`

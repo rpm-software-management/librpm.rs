@@ -21,8 +21,8 @@ impl TagData {
         }))
     }
 
-    pub(crate) fn to_ptr(&mut self) -> &mut AtomicPtr<librpm_sys::rpmtd_s> {
-        &mut self.0
+    pub(crate) fn to_ptr(&mut self) -> *mut librpm_sys::rpmtd_s {
+        *self.0.get_mut()
     }
 
     pub(crate) fn tag_type(&mut self) -> TagType {
@@ -59,128 +59,141 @@ impl TagData {
         }
     }
 
-    pub(crate) unsafe fn char(&mut self) -> char {
-        let td = *self.0.get_mut();
-
-        assert_eq!((*td).type_, TagType::CHAR as u32);
-        let ix = if (*td).ix >= 0 { (*td).ix as isize } else { 0 };
-        *((*td).data as *const char).offset(ix)
-    }
-
-    pub(crate) unsafe fn set_char(&mut self, mut value: char) {
+    pub(crate) fn char(&mut self) -> char {
         assert_eq!(self.tag_type(), TagType::CHAR);
 
-        let mut container = **self.0.get_mut();
-        container.size = 1;
-        container.data = &mut value as *mut _ as *mut c_void;
+        let chr = unsafe { *librpm_sys::rpmtdGetChar(*self.0.get_mut()) };
+        chr as char
     }
 
-    pub(crate) unsafe fn int8(&mut self) -> i8 {
-        let td = *self.0.get_mut();
+    pub(crate) fn set_char(&mut self, value: char) {
+        assert_eq!(self.tag_type(), TagType::CHAR);
 
-        assert_eq!((*td).type_, TagType::INT8 as u32);
-        let ix = if (*td).ix >= 0 { (*td).ix as isize } else { 0 };
-        *((*td).data as *const i8).offset(ix)
+        let boxed = Box::new(value as u8);
+        let pointer = Box::into_raw(boxed);
+
+        let result = unsafe {
+            librpm_sys::rpmtdFromUint8(*self.0.get_mut(), self.tag() as i32, pointer, 1)
+        };
+
+        assert!(result == 1, "the tag type is not compatible with char");
     }
 
-    pub(crate) unsafe fn set_int8(&mut self, mut value: i8) {
+    pub(crate) fn int8(&mut self) -> i8 {
         assert_eq!(self.tag_type(), TagType::INT8);
 
-        let mut container = **self.0.get_mut();
-        container.size = 1;
-        container.data = &mut value as *mut _ as *mut c_void;
+        let chr = unsafe { librpm_sys::rpmtdGetNumber(*self.0.get_mut()) };
+        chr as i8
     }
 
-    pub(crate) unsafe fn int16(&mut self) -> i16 {
-        let td = *self.0.get_mut();
+    pub(crate) fn set_int8(&mut self, value: i8) {
+        assert_eq!(self.tag_type(), TagType::INT8);
 
-        assert_eq!((*td).type_, TagType::INT16 as u32);
-        let ix = if (*td).ix >= 0 { (*td).ix as isize } else { 0 };
-        *((*td).data as *const i16).offset(ix)
+        let boxed = Box::new(value as u8);
+        let pointer = Box::into_raw(boxed);
+
+        let result = unsafe {
+            librpm_sys::rpmtdFromUint8(*self.0.get_mut(), self.tag() as i32, pointer, 1)
+        };
+
+        assert!(result == 1, "the tag type is not compatible with u8");
     }
 
-    pub(crate) unsafe fn set_int16(&mut self, mut value: i16) {
+    pub(crate) fn int16(&mut self) -> i16 {
         assert_eq!(self.tag_type(), TagType::INT16);
 
-        let mut container = **self.0.get_mut();
-        container.size = 1;
-        container.data = &mut value as *mut _ as *mut c_void;
+        let chr = unsafe { librpm_sys::rpmtdGetNumber(*self.0.get_mut()) };
+        chr as i16
     }
 
-    pub(crate) unsafe fn int32(&mut self) -> i32 {
-        let td = *self.0.get_mut();
+    pub(crate) fn set_int16(&mut self, value: i16) {
+        assert_eq!(self.tag_type(), TagType::INT16);
 
-        assert_eq!((*td).type_, TagType::INT32 as u32);
-        let ix = if (*td).ix >= 0 { (*td).ix as isize } else { 0 };
-        *((*td).data as *const i32).offset(ix)
+        let boxed = Box::new(value as u16);
+        let pointer = Box::into_raw(boxed);
+
+        let result = unsafe {
+            librpm_sys::rpmtdFromUint16(*self.0.get_mut(), self.tag() as i32, pointer, 1)
+        };
+
+        assert!(result == 1, "the tag type is not compatible with u16");
     }
 
-    pub(crate) unsafe fn set_int32(&mut self, mut value: i32) {
+    pub(crate) fn int32(&mut self) -> i32 {
         assert_eq!(self.tag_type(), TagType::INT32);
 
-        let mut container = **self.0.get_mut();
-        container.size = 1;
-        container.data = &mut value as *mut _ as *mut c_void;
+        let chr = unsafe { librpm_sys::rpmtdGetNumber(*self.0.get_mut()) };
+        chr as i32
+    }
+
+    pub(crate) fn set_int32(&mut self, value: i32) {
+        assert_eq!(self.tag_type(), TagType::INT32);
+
+        let boxed = Box::new(value as u32);
+        let pointer = Box::into_raw(boxed);
+
+        let result = unsafe {
+            librpm_sys::rpmtdFromUint32(*self.0.get_mut(), self.tag() as i32, pointer, 1)
+        };
+
+        assert!(result == 1, "the tag type is not compatible with u32");
     }
 
     pub(crate) unsafe fn int64(&mut self) -> i64 {
-        let td = *self.0.get_mut();
-
-        assert_eq!((*td).type_, TagType::INT64 as u32);
-        let ix = if (*td).ix >= 0 { (*td).ix as isize } else { 0 };
-        *((*td).data as *const i64).offset(ix)
-    }
-
-    pub(crate) unsafe fn set_int64(&mut self, mut value: i64) {
         assert_eq!(self.tag_type(), TagType::INT64);
 
-        let mut container = **self.0.get_mut();
-        container.size = 1;
-        container.data = &mut value as *mut _ as *mut c_void;
+        let chr = unsafe { librpm_sys::rpmtdGetNumber(*self.0.get_mut()) };
+        chr as i64
     }
 
-    pub(crate) unsafe fn str(&mut self) -> &str {
-        let td = *self.0.get_mut();
+    pub(crate) fn set_int64(&mut self, value: i64) {
+        assert_eq!(self.tag_type(), TagType::INT64);
 
-        assert_eq!((*td).type_, TagType::STRING as u32);
-        let cstr = CStr::from_ptr((*td).data as *const c_char);
+        let boxed = Box::new(value as u64);
+        let pointer = Box::into_raw(boxed);
 
-        let s = str::from_utf8(cstr.to_bytes()).unwrap_or_else(|e| {
-            panic!(
-                "failed to decode RPM_STRING_TYPE as UTF-8 (tag: {}): {}",
-                (*td).tag, e
-            );
-        });
-        debug!("decoded RPM_STRING_TYPE as UTF-8: {}", s);
-        s
+        let result = unsafe {
+            librpm_sys::rpmtdFromUint64(*self.0.get_mut(), self.tag() as i32, pointer, 1)
+        };
+
+        assert!(result == 1, "the tag type is not compatible with u32");
     }
 
-    pub(crate) unsafe fn set_str(&mut self, mut value: &str) {
+    pub(crate) fn str(&mut self) -> String {
         assert_eq!(self.tag_type(), TagType::STRING);
 
-        let mut container = **self.0.get_mut();
-        let string = CString::new(value).expect("could not convert to c string");
-        // Do we need to include the null byte?
-        container.size = string.to_bytes().len() as u32 + 1;
-        container.data = &mut string.as_c_str().as_ptr() as *mut _ as *mut c_void;
+        let chr = unsafe { librpm_sys::rpmtdGetString(*self.0.get_mut()) };
+        let cstr = unsafe { CStr::from_ptr(chr) };
+
+        let str = cstr.to_string_lossy().into_owned();
+        str
     }
 
-    pub(crate) unsafe fn string_array(&mut self) -> ! {
+    pub(crate) fn set_str(&mut self, value: &str) {
+        assert_eq!(self.tag_type(), TagType::STRING);
+
+        let string = CString::new(value).expect("could not convert to c string");
+        let pointer = string.into_raw();
+
+        let result = unsafe {
+            librpm_sys::rpmtdFromString(*self.0.get_mut(), self.tag() as i32, pointer)
+        };
+
+        assert!(result == 1, "the tag type is not compatible with str");
+    }
+
+    pub(crate) fn string_array(&mut self) -> ! {
         panic!("RPM_STRING_ARRAY_TYPE unsupported!");
     }
 
-    pub(crate) unsafe fn i18n_string(&mut self) -> &str {
-        let td = *self.0.get_mut();
+    pub(crate) fn i18n_string(&mut self) -> String {
+        assert_eq!(self.tag_type(), TagType::STRING);
 
-        assert_eq!((*td).type_, TagType::I18NSTRING as u32);
-        let cstr = CStr::from_ptr((*td).data as *const c_char);
+        let chr = unsafe { librpm_sys::rpmtdGetString(*self.0.get_mut()) };
+        let cstr = unsafe { CStr::from_ptr(chr) };
 
-        str::from_utf8(cstr.to_bytes()).unwrap_or_else(|e| {
-            panic!(
-                "failed to decode RPM_I18NSTRING_TYPE as UTF-8 (tag: {}): {}",
-                (*td).tag, e
-            );
-        })
+        let str = cstr.to_string_lossy().into_owned();
+        str
     }
 
     pub(crate) unsafe fn bin(&mut self) -> &[u8] {
@@ -211,7 +224,7 @@ impl TagData {
 impl Drop for TagData {
     fn drop(&mut self) {
         unsafe {
-            librpm_sys::rpmtdFree(*self.0.get_mut());
+            // librpm_sys::rpmtdFree(*self.0.get_mut());
         }
     }
 }
