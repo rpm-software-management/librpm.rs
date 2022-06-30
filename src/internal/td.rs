@@ -224,7 +224,8 @@ impl TagData {
 impl Drop for TagData {
     fn drop(&mut self) {
         unsafe {
-            // librpm_sys::rpmtdFree(*self.0.get_mut());
+            librpm_sys::rpmtdFreeData(*self.0.get_mut());
+            librpm_sys::rpmtdFree(*self.0.get_mut());
         }
     }
 }
