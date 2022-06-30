@@ -1,6 +1,6 @@
 //! Transaction sets: librpm's transaction API
 
-use librpm_sys::{rpmtsiNext, fnpyKey};
+use librpm_sys::{rpmtsiNext, fnpyKey, rpmps_s};
 
 use crate::db::Iter;
 
@@ -10,6 +10,7 @@ use super::te::{TransactionElement, ElementTypes};
 use super::txn::Transaction;
 use std::ffi::{CStr, CString};
 use std::fmt::Display;
+use std::ptr;
 use std::sync::atomic::AtomicPtr;
 use std::sync::MutexGuard;
 use bitflags::bitflags;
@@ -128,6 +129,19 @@ impl TransactionSet {
 
     pub(crate) fn set_notify_callback(&mut self, callback: librpm_sys::rpmCallbackFunction, data: librpm_sys::rpmCallbackData) {
         unsafe { librpm_sys::rpmtsSetNotifyCallback(*self.0.get_mut(), callback, data) };
+    }
+
+    pub(crate) fn run(&mut self, problem_filter_flags: FilterFlags) -> Result<(), ()> {
+        let rc = unsafe { 
+            let null_ptr = ptr::null::<*mut rpmps_s>() as *mut rpmps_s;
+            librpm_sys::rpmtsRun(*self.0.get_mut(), null_ptr, problem_filter_flags.bits())
+        };
+
+        if rc == 0 {
+            Ok(())
+        } else {
+            Err(())
+        }
     }
 }
 
@@ -256,5 +270,21 @@ bitflags! {
         
         const RPMTRANS_FLAG_DEPLOOPS = (1 << 31);
     
+    }
+}
+
+bitflags! {
+    pub(crate) struct FilterFlags: u32 {
+        const RPMPROB_FILTER_NONE		= 0;
+        const RPMPROB_FILTER_IGNOREOS	= (1 << 0);	// from --ignoreos
+        const RPMPROB_FILTER_IGNOREARCH	= (1 << 1);	//from --ignorearch
+        const RPMPROB_FILTER_REPLACEPKG	= (1 << 2);// from --replacepkgs
+        const RPMPROB_FILTER_FORCERELOCATE= (1 << 3);// from --badreloc
+        const RPMPROB_FILTER_REPLACENEWFILES= (1 << 4);// from --replacefiles
+        const RPMPROB_FILTER_REPLACEOLDFILES= (1 << 5);// from --replacefiles
+        const RPMPROB_FILTER_OLDPACKAGE	= (1 << 6);// from --oldpackage
+        const RPMPROB_FILTER_DISKSPACE	= (1 << 7);// from --ignoresize
+        const RPMPROB_FILTER_DISKNODES	= (1 << 8);// from --ignoresize
+        const RPMPROB_FILTER_VERIFY	= (1 << 9);// from --noverify
     }
 }

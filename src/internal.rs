@@ -11,5 +11,6 @@ pub(crate) mod ts;
 pub(crate) mod te;
 pub(crate) mod txn;
 pub(crate) mod callback;
+pub(crate) mod problem;
 
 pub(crate) use self::global_state::GlobalState;
