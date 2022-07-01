@@ -1,13 +1,72 @@
-use std::sync::atomic::AtomicPtr;
+use std::{sync::{atomic::AtomicPtr}, ffi::CStr};
 use num_derive::FromPrimitive;
 
 pub(crate) struct Problem(AtomicPtr<librpm_sys::rpmProblem_s>);
 
 impl Problem {
-  pub(crate) fn create(type_: ProblemType, pkgNEVR: &str, ) -> Self {
-    // librpm_sys::rpmProblemCreate(type_, pkgNEVR, key, altNEVR, str_, number)
+  pub(crate) fn from_ptr(problem: librpm_sys::rpmProblem) -> Self {
+    Problem(AtomicPtr::new(problem))
+  }
+  
+  pub(crate) fn data_string(&mut self) -> String {
+    let chr = unsafe { librpm_sys::rpmProblemGetStr(*self.0.get_mut()) };
+    let cstr = unsafe { CStr::from_ptr(chr) };
+
+    let str = cstr.to_string_lossy().into_owned();
+    str
+  }
+
+  pub(crate) fn string(&mut self) -> String {
+    let chr = unsafe { librpm_sys::rpmProblemString(*self.0.get_mut()) };
+    let cstr = unsafe { CStr::from_ptr(chr) };
+
+    let str = cstr.to_string_lossy().into_owned();
+    str
+  }
+
+  pub(crate) fn problem_type(&mut self) -> ProblemType {
+    let num = unsafe { librpm_sys::rpmProblemGetType(*self.0.get_mut()) };
+
+    num::FromPrimitive::from_u32(num).unwrap()
+  }
+
+  pub(crate) fn nevr(&mut self) -> String {
+    let chr = unsafe { librpm_sys::rpmProblemGetPkgNEVR(*self.0.get_mut()) };
+    let cstr = unsafe { CStr::from_ptr(chr) };
+
+    let str = cstr.to_string_lossy().into_owned();
+    str
+  }
+
+  pub(crate) fn alt_nevr(&mut self) -> String {
+    let chr = unsafe { librpm_sys::rpmProblemGetAltNEVR(*self.0.get_mut()) };
+    let cstr = unsafe { CStr::from_ptr(chr) };
+
+    let str = cstr.to_string_lossy().into_owned();
+    str
+  }
+
+  pub(crate) fn equal(one: &mut Problem, two: &mut Problem) -> bool {
+    let rc = unsafe { librpm_sys::rpmProblemCompare(*one.0.get_mut(), *two.0.get_mut()) };
+
+    rc == 0
+  }
+
+  pub(crate) fn disk_reqirement(&mut self) -> u64 {
+    let problem_type = self.problem_type();
+    assert_eq!(problem_type, ProblemType::RPMPROB_DISKSPACE);
+    assert_eq!(problem_type, ProblemType::RPMPROB_DISKNODES);
+    
+    unsafe { librpm_sys::rpmProblemGetDiskNeed(*self.0.get_mut()) }
   }
 }
+
+// TODO: all of these methods borrow as mut, which means we can't impl traits like PartialEq or Display
+// this seems to be related to AtomicPtr not being able to be cloned/copied :/
+// we could use a mutex but that leaves two questions
+// 1. does librpm already lock the data?
+// 2. if not, would using a mutex be too much of a performance impact?
+// - L
 
 impl Drop for Problem {
   fn drop(&mut self) {
