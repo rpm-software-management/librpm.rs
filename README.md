@@ -25,7 +25,7 @@ provide a safe, idiomatic Rust wrapper.
 
 ## License
 
-Copyright (C) 2018-2019 RustRPM Developers
+Copyright (C) 2018-2022 RustRPM Developers
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
