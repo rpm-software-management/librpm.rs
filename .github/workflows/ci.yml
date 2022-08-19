@@ -37,7 +37,7 @@ jobs:
   run_tests:
     strategy:
       matrix:
-        container: ["fedora:latest", "centos:latest"]
+        container: ["fedora:latest", "rockylinux:latest"]
     container: ${{ matrix.container }}
     runs-on: ubuntu-latest
     steps:
