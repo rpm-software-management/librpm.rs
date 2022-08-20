@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 jobs:
   lint:
-    container: "fedora:latest"
+    container: "registry.fedoraproject.org/fedora:latest"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -37,7 +37,7 @@ jobs:
   run_tests:
     strategy:
       matrix:
-        container: ["fedora:latest", "centos:latest"]
+        container: ["registry.fedoraproject.org/fedora:latest", "quay.io/centos/centos:stream9"]
     container: ${{ matrix.container }}
     runs-on: ubuntu-latest
     steps:
