@@ -1,9 +1,11 @@
 //! librpm.rs integration tests
 
 use librpm::{config, Index};
+use std::env;
 use std::io::BufRead;
 use std::process::Command;
 use std::sync::Once;
+use pretty_env_logger;
 
 static CONFIGURE: Once = Once::new();
 
@@ -13,6 +15,8 @@ fn configure() {
     CONFIGURE.call_once(|| {
         config::read_file(None).unwrap();
     });
+    env::set_var("RUST_LOG", "debug");
+    pretty_env_logger::init();
 }
 
 fn fetch_package_info(package_name: &str, query_param: &str) -> Option<String> {
