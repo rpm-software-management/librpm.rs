@@ -1,3 +1,21 @@
+/*
+ * Copyright (C) RustRPM Developers
+ *
+ * Licensed under the Mozilla Public License Version 2.0
+ * Fedora-License-Identifier: MPLv2.0
+ * SPDX-2.0-License-Identifier: MPL-2.0
+ * SPDX-3.0-License-Identifier: MPL-2.0
+ *
+ * This is free software.
+ * For more information on the license, see LICENSE.
+ * For more information on free software, see <https://www.gnu.org/philosophy/free-sw.en.html>.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at <https://mozilla.org/MPL/2.0/>.
+ */
+
+
 //! bindgen configuration for librpm-sys
 //!
 //! For more on using librpm, see "Chapter 15. Programming RPM with C" from the
