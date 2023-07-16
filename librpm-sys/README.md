@@ -33,8 +33,8 @@ If a copy of the MPL was not distributed with this file, You can obtain one at <
 
 [crate-image]: https://img.shields.io/crates/v/librpm-sys.svg
 [crate-link]: https://crates.io/crates/librpm-sys
-[build-image]: https://travis-ci.org/rpm-software-management/librpm.rs.svg?branch=master
-[build-link]: https://travis-ci.org/rpm-software-management/librpm.rs/
+[build-image]: https://github.com/rpm-software-management/librpm.rs/actions/workflows/ci.yml/badge.svg?branch=main
+[build-link]: https://github.com/rpm-software-management/librpm.rs/actions
 [license-image]: https://img.shields.io/badge/license-MPLv2.0-blue.svg
 [license-link]: https://github.com/rpm-software-management/librpm.rs/blob/main/LICENSE
 
