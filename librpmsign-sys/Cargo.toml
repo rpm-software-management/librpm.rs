@@ -2,7 +2,7 @@
 name          = "librpmsign-sys"
 description   = "rpmsign library FFI bindings (librpmsign.so)"
 version       = "0.1.1"
-license       = "LGPL-2.1+"
+license       = "MPL-2.0"
 authors       = ["Tony Arcieri <tony@iqlusion.io>"]
 categories    = ["external-ffi-bindings", "os"]
 keywords      = ["rpm", "linux", "redhat", "fedora", "centos"]
