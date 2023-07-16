@@ -2,7 +2,7 @@
 
 [![Crate][crate-image]][crate-link]
 [![Build Status][build-image]][build-link]
-[![LGPL v2.1+ Licensed][license-image]][license-link]
+[![MPL-2.0 Licensed][license-image]][license-link]
 
 The [librpm] C library (available in the `rpm-devel` RPM package) exposes a
 programmatic interface to the [RPM Package Manager], and this crate aims to
@@ -25,16 +25,13 @@ provide a safe, idiomatic Rust wrapper.
 
 ## License
 
-Copyright (C) 2018-2019 RustRPM Developers
+Copyright (C) RustRPM Developers
 
-This library is free software; you can redistribute it and/or modify it under
-the terms of the GNU Lesser General Public License as published by the Free
-Software Foundation; either version 2.1 of the License, or (at your option) any
-later version.
+This library is free software.
+For more information on free software, see <https://www.gnu.org/philosophy/free-sw.en.html>.
 
-This library is distributed in the hope that it will be useful, but WITHOUT ANY
-WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-PARTICULAR PURPOSE. See the [GNU Lesser General Public License] for more details.
+This Source Code Form is subject to the terms of the [Mozilla Public License, v. 2.0].
+If a copy of the MPL was not distributed with this file, You can obtain one at <https://mozilla.org/MPL/2.0/>.
 
 [//]: # (badges)
 
@@ -42,9 +39,9 @@ PARTICULAR PURPOSE. See the [GNU Lesser General Public License] for more details
 [crate-link]: https://crates.io/crates/librpm
 [build-image]: https://travis-ci.org/rpm-software-management/librpm.rs.svg?branch=master
 [build-link]: https://travis-ci.org/rpm-software-management/librpm.rs/
-[license-image]: https://img.shields.io/badge/license-LGPLv2.1+-blue.svg
-[license-link]: https://github.com/rpm-software-management/librpm.rs/blob/master/COPYING
+[license-image]: https://img.shields.io/badge/license-MPLv2.0-blue.svg
+[license-link]: https://github.com/rpm-software-management/librpm.rs/blob/main/LICENSE
 
 [//]: # (general links)
 
-[GNU Lesser General Public License]: https://github.com/rpm-software-management/librpm.rs/blob/master/COPYING
+[Mozilla Public License, v. 2.0]: https://github.com/rpm-software-management/librpm.rs/blob/main/LICENSE
