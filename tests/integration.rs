@@ -33,17 +33,25 @@ fn configure() {
     });
 }
 
-fn fetch_package_info(package_name: &str, query_param: &str) -> Option<String> {
+fn fetch_package_info(package_name: &str, query_param: &str) -> Vec<Option<String>> {
     let rpm_info = Command::new("rpm")
         .arg("-q")
-        .arg("rpm-devel")
-        .arg(format!("--queryformat=%{{{}}}", query_param))
+        .arg(package_name)
+        .arg(format!("--queryformat=%{{{}}}\n", query_param))
         .output()
         .unwrap()
         .stdout;
 
     let text = String::from_utf8(rpm_info).unwrap();
-    Some(text).filter(|c| c != "(none)" && c != "")
+    text.lines()
+        .map(|c| {
+            if c.starts_with("(none)") {
+                None
+            } else {
+                Some(c.to_owned())
+            }
+        })
+        .collect()
 }
 
 #[test]
@@ -51,31 +59,41 @@ fn db_find_test() {
     configure();
 
     let PACKAGE_NAME = "rpm-devel";
-    let PACKAGE_NEVRA = fetch_package_info(PACKAGE_NAME, "NEVRA").unwrap();
+    let PACKAGE_NEVRA = fetch_package_info(PACKAGE_NAME, "NEVRA")[0]
+        .clone()
+        .unwrap();
 
     let mut matches = Index::Name.find(PACKAGE_NAME);
 
     if let Some(package) = matches.next() {
-        assert_eq!(package.name(), "rpm-devel");
+        assert_eq!(package.name(), PACKAGE_NAME);
         assert_eq!(
-            package.epoch(),
-            fetch_package_info(PACKAGE_NAME, "EPOCH").as_deref()
+            package.epoch().map(|e| e.to_owned()),
+            fetch_package_info(PACKAGE_NAME, "EPOCH")[0].clone()
         );
         assert_eq!(
             package.version(),
-            fetch_package_info(PACKAGE_NAME, "VERSION").unwrap()
+            fetch_package_info(PACKAGE_NAME, "VERSION")[0]
+                .clone()
+                .unwrap()
         );
         assert_eq!(
             package.release(),
-            fetch_package_info(PACKAGE_NAME, "RELEASE").unwrap()
+            fetch_package_info(PACKAGE_NAME, "RELEASE")[0]
+                .clone()
+                .unwrap()
         );
         assert_eq!(
             package.summary(),
-            fetch_package_info(PACKAGE_NAME, "SUMMARY").unwrap()
+            fetch_package_info(PACKAGE_NAME, "SUMMARY")[0]
+                .clone()
+                .unwrap()
         );
         assert_eq!(
             package.license(),
-            fetch_package_info(PACKAGE_NAME, "LICENSE").unwrap()
+            fetch_package_info(PACKAGE_NAME, "LICENSE")[0]
+                .clone()
+                .unwrap()
         );
 
         assert_eq!(package.nevra(), PACKAGE_NEVRA);
@@ -88,5 +106,23 @@ fn db_find_test() {
         } else {
             panic!("some RPMs installed, but not `rpm-devel`?!");
         }
+    }
+}
+
+#[test]
+fn db_find_test_multiple_packages() {
+    configure();
+    assert!(Index::Name.find("kernel").next().is_some());
+    assert!(Index::Name.find("rpm-devel").next().is_some());
+}
+
+#[test]
+fn db_find_test_multiple_matching() {
+    configure();
+    let matches: Vec<librpm::Package> = Index::Name.find("kernel").collect();
+    assert!(matches.len() > 1);
+
+    for package in matches {
+        assert_eq!(package.name(), "kernel");
     }
 }
