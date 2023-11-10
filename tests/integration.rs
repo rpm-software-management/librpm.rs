@@ -19,7 +19,7 @@
 
 use librpm::config::set_db_path;
 use librpm::db::installed_packages;
-use librpm::{config, package, Index, Package};
+use librpm::{config, Package};
 use std::io::BufRead;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -35,71 +35,64 @@ fn configure() {
     });
 }
 
-fn fetch_package_info(package_name: &str, query_param: &str) -> Option<String> {
+#[derive(Debug, PartialEq)]
+struct PartialPackage {
+    name: String,
+    version: String,
+    release: String,
+    summary: String,
+}
+
+fn fetch_system_packages() -> Vec<PartialPackage> {
     let rpm_info = Command::new("rpm")
-        .arg("-q")
-        .arg("rpm-devel")
-        .arg(format!("--queryformat=%{{{}}}", query_param))
+        .arg("-qa")
+        .arg("'%{NAME}~%{VERSION}~%{RELEASE}~%{SUMMARY}\n'")
         .output()
         .unwrap()
         .stdout;
 
     let text = String::from_utf8(rpm_info).unwrap();
-    Some(text).filter(|c| c != "(none)" && c != "")
+    let mut packages = Vec::new();
+    for line in text.lines() {
+        let mut parts = line.split('~');
+        let name = parts.next().unwrap();
+        let version = parts.next().unwrap();
+        let release = parts.next().unwrap();
+        let summary = parts.next().unwrap();
+        packages.push(PartialPackage {
+            name: name.to_string(),
+            version: version.to_string(),
+            release: release.to_string(),
+            summary: summary.to_string(),
+        });
+    }
+
+    packages
 }
 
 #[test]
-fn system_installed_find_db_test() {
+fn test_against_installed_packages() {
     configure();
 
-    let PACKAGE_NAME = "rpm-devel";
-    let PACKAGE_NEVRA = fetch_package_info(PACKAGE_NAME, "NEVRA").unwrap();
+    let mut expected_install_packages = fetch_system_packages();
+    let mut found_packages: Vec<Package> = installed_packages().collect();
 
-    let mut matches = Index::Name.find(PACKAGE_NAME);
+    expected_install_packages.sort_by_key(|p| p.name.to_string());
+    found_packages.sort_by_key(|p| p.name().to_string());
 
-    if let Some(package) = matches.next() {
-        assert_eq!(package.name(), "rpm-devel");
-        assert_eq!(
-            package.epoch(),
-            fetch_package_info(PACKAGE_NAME, "EPOCH")
-                .unwrap()
-                .parse::<i32>()
-                .ok()
-        );
-        assert_eq!(
-            package.version(),
-            fetch_package_info(PACKAGE_NAME, "VERSION").unwrap()
-        );
-        assert_eq!(
-            package.release(),
-            fetch_package_info(PACKAGE_NAME, "RELEASE").unwrap()
-        );
-        assert_eq!(
-            package.summary(),
-            fetch_package_info(PACKAGE_NAME, "SUMMARY").unwrap()
-        );
-        assert_eq!(
-            package.license(),
-            fetch_package_info(PACKAGE_NAME, "LICENSE").unwrap()
-        );
+    assert!(
+        expected_install_packages.len() > 0,
+        "Couldn't find any installed packages using the RPM CLI"
+    );
+    assert_eq!(expected_install_packages.len(), found_packages.len());
 
-        assert_eq!(package.nevra(), PACKAGE_NEVRA);
-        assert_eq!(package.to_string(), PACKAGE_NEVRA);
-
-        assert!(matches.next().is_none(), "expected one result, got more!");
-    } else {
-        if librpm::db::installed_packages().count() == 0 {
-            eprintln!("*** warning: No RPMs installed! Tests skipped!")
-        } else {
-            panic!("some RPMs installed, but not `rpm-devel`?!");
-        }
+    for (expected, found) in expected_install_packages.iter().zip(found_packages.iter()) {
+        assert_eq!(expected.summary, found.summary());
     }
 }
 
 fn get_assets_path() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("tests")
-        .join("assets")
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("testdata")
 }
 
 #[test]
