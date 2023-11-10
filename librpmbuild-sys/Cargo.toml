@@ -1,7 +1,7 @@
 [package]
 name = "librpmbuild-sys"
 description = "rpmbuild library FFI bindings (librpmbuild.so)"
-version = "0.1.1"
+version = "0.2.0-pre"
 license = "MPL-2.0"
 authors = ["Tony Arcieri <tony@iqlusion.io>"]
 categories = ["external-ffi-bindings", "os"]
