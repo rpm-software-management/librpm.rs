@@ -53,6 +53,7 @@ fn fetch_system_packages() -> Vec<PartialPackage> {
     let text = String::from_utf8(rpm_info).unwrap();
     let mut packages = Vec::new();
     for line in text.lines() {
+        eprintln!("Line: {}", line);
         let mut parts = line.split('~');
         let name = parts.next().unwrap();
         let version = parts.next().unwrap();
