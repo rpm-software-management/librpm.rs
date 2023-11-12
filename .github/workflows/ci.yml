@@ -2,6 +2,9 @@ name: Compile and run tests
 
 on: [push, pull_request]
 
+env:
+  CARGO_TERM_COLOR: always
+
 jobs:
   lint-and-build:
     runs-on: ubuntu-latest
