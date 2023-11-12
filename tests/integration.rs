@@ -86,6 +86,9 @@ fn test_against_installed_packages() {
     assert_eq!(expected_install_packages.len(), found_packages.len());
 
     for (expected, found) in expected_install_packages.iter().zip(found_packages.iter()) {
+        assert_eq!(expected.name, found.name());
+        assert_eq!(expected.version, found.version());
+        assert_eq!(expected.release, found.release());
         assert_eq!(expected.summary, found.summary());
     }
 }
