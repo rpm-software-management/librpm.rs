@@ -15,7 +15,6 @@
  * file, You can obtain one at <https://mozilla.org/MPL/2.0/>.
  */
 
-
 //! RPM package headers
 
 use super::{tag::Tag, td::TagData};

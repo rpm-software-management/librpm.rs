@@ -15,7 +15,6 @@
  * file, You can obtain one at <https://mozilla.org/MPL/2.0/>.
  */
 
-
 //! RPM database access
 //!
 //! The database used is whichever one is configured as the `_dbpath` in the
