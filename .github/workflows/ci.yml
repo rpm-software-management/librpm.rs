@@ -10,15 +10,10 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Install librpm dependencies
+      - name: 📦 Install librpm dependencies
         run: |
-          dnf install -y rpm-devel gcc clang-devel
+          dnf install -y rpm-devel gcc clang-devel rustc cargo clippy rustfmt
           dnf -y clean all
-
-      - name: ⚙️ Install Rust
-        run: |
-          curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain stable -y
-          echo $PATH:"$HOME/.cargo/bin" >> $GITHUB_PATH
 
       - name: 📎 Run Linters
         run: |
@@ -44,15 +39,10 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Install librpm dependencies
+      - name: 📦 Install librpm dependencies
         run: |
-          dnf install -y rpm-devel gcc clang-devel
+          dnf install -y rpm-devel gcc clang-devel rustc cargo clippy rustfmt
           dnf -y clean all
-
-      - name: ⚙️ Install Rust
-        run: |
-          curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain stable -y
-          echo $PATH:"$HOME/.cargo/bin" >> $GITHUB_PATH
 
       - name: 🧪 Run Integration Tests
         run: |
