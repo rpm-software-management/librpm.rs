@@ -3,41 +3,42 @@ name: Compile and run tests
 on: [push, pull_request]
 
 jobs:
-  lint:
-    container: "registry.fedoraproject.org/fedora:latest"
+  lint-and-build:
     runs-on: ubuntu-latest
+    container: "quay.io/centos/centos:stream9"
+
     steps:
       - uses: actions/checkout@v2
 
       - name: Install librpm dependencies
         run: |
           dnf install -y rpm-devel gcc clang-devel
+          dnf -y clean all
 
-      - uses: actions-rs/toolchain@v1
-        with:
-            toolchain: nightly
-            components: clippy, rustfmt
-            override: true
+      - name: ⚙️ Install Rust
+        run: |
+          curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain stable -y
+          echo $PATH:"$HOME/.cargo/bin" >> $GITHUB_PATH
 
-      - uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
+      - name: 📎 Run Linters
+        run: |
+          cargo clippy --release -- -D warnings
+          cargo fmt --all -- --check
+          cargo doc --no-deps
 
-      - uses: actions-rs/cargo@v1
-        with:
-          command: doc
-          args: --no-deps
+      - name: 🔨 Build (Debug)
+        run: cargo build --verbose
 
-      - uses: actions-rs/clippy-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all-features
+      - name: 🔨 Build (Release)
+        run: cargo build --release --verbose
+      
+      - name: 🧪 Run Unit Tests
+        run: cargo test --release --bins --lib
 
-  run_tests:
+  integration-tests:
     strategy:
       matrix:
-        container: ["registry.fedoraproject.org/fedora:latest", "quay.io/centos/centos:stream9"]
+        container: ["fedora:38", "quay.io/centos/centos:stream9"]
     container: ${{ matrix.container }}
     runs-on: ubuntu-latest
     steps:
@@ -48,11 +49,11 @@ jobs:
           dnf install -y rpm-devel gcc clang-devel
           dnf -y clean all
 
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
+      - name: ⚙️ Install Rust
+        run: |
+          curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain stable -y
+          echo $PATH:"$HOME/.cargo/bin" >> $GITHUB_PATH
 
-      - uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --release --all-features
+      - name: 🧪 Run Integration Tests
+        run: |
+          cargo test --test '*' --release --all-features
