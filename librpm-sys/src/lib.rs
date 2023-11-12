@@ -23,8 +23,12 @@
 //! low-level binding which is used by the idiomatic librpm crate.
 
 #![doc(html_root_url = "https://rustrpm.org/librpm_sys/")]
-#![allow(non_upper_case_globals, non_camel_case_types, non_snake_case)]
-#![warn(rust_2018_idioms)]
+#![allow(
+    non_upper_case_globals,
+    non_camel_case_types,
+    non_snake_case,
+    improper_ctypes
+)]
 
 // Bindings to librpm.so and librpmio.so
 include!(concat!(env!("OUT_DIR"), "/binding.rs"));

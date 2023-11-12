@@ -15,7 +15,6 @@
  * file, You can obtain one at <https://mozilla.org/MPL/2.0/>.
  */
 
-
 //! Rust binding for librpm: the RPM Package Manager library
 //!
 //! This crate contains idiomatic Rust bindings which aim to expose a safe
@@ -31,7 +30,6 @@
 
 #![doc(html_root_url = "https://rustrpm.org/librpm/")]
 #![warn(missing_docs, trivial_casts, unused_qualifications)]
-#![warn(rust_2018_idioms)]
 
 /// Error types (defined first due to macros)
 #[macro_use]
