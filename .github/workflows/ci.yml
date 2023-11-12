@@ -31,14 +31,14 @@ jobs:
 
       - name: 🔨 Build (Release)
         run: cargo build --release --verbose
-      
+
       - name: 🧪 Run Unit Tests
         run: cargo test --release --bins --lib
 
   integration-tests:
     strategy:
       matrix:
-        container: ["fedora:38", "quay.io/centos/centos:stream9"]
+        container: ["registry.fedoraproject.org/fedora:38", "quay.io/centos/centos:stream9"]
     container: ${{ matrix.container }}
     runs-on: ubuntu-latest
     steps:
