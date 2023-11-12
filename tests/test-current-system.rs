@@ -17,21 +17,11 @@
 
 //! librpm.rs integration tests
 
-use librpm::config::set_db_path;
 use librpm::db::installed_packages;
-use librpm::{config, Package};
-use std::path::{Path, PathBuf};
+use librpm::Package;
 use std::process::Command;
-use std::sync::Once;
 
-static CONFIGURE: Once = Once::new();
-
-// Read the default config
-fn configure() {
-    CONFIGURE.call_once(|| {
-        config::read_file(None).unwrap();
-    });
-}
+mod common;
 
 #[derive(Debug, PartialEq)]
 struct PartialPackage {
@@ -45,7 +35,7 @@ fn fetch_system_packages() -> Vec<PartialPackage> {
     let rpm_info = Command::new("rpm")
         .arg("-qa")
         .arg("--queryformat")
-        .arg("'%{NAME}~%{VERSION}~%{RELEASE}~%{SUMMARY}\n'")
+        .arg("%{NAME}~%{VERSION}~%{RELEASE}~%{SUMMARY}\n")
         .output()
         .unwrap()
         .stdout;
@@ -53,7 +43,6 @@ fn fetch_system_packages() -> Vec<PartialPackage> {
     let text = String::from_utf8(rpm_info).unwrap();
     let mut packages = Vec::new();
     for line in text.lines() {
-        eprintln!("Line: {}", line);
         let mut parts = line.split('~');
         let name = parts.next().unwrap();
         let version = parts.next().unwrap();
@@ -72,7 +61,7 @@ fn fetch_system_packages() -> Vec<PartialPackage> {
 
 #[test]
 fn test_against_installed_packages() {
-    configure();
+    common::configure();
 
     let mut expected_install_packages = fetch_system_packages();
     let mut found_packages: Vec<Package> = installed_packages().collect();
@@ -92,31 +81,4 @@ fn test_against_installed_packages() {
         assert_eq!(expected.release, found.release());
         assert_eq!(expected.summary, found.summary());
     }
-}
-
-fn get_assets_path() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("testdata")
-}
-
-#[test]
-fn test_centos_7_rpm_database() {
-    configure();
-    set_db_path(&get_assets_path().join("centos7")).unwrap();
-
-    let mut packages: Vec<Package> = installed_packages().collect();
-    packages.sort_by_key(|p| p.name().to_string());
-
-    assert_eq!(packages.len(), 148);
-    let sample_package = &packages[0];
-    assert_eq!(sample_package.name(), "acl");
-    assert_eq!(sample_package.epoch(), None);
-    assert_eq!(sample_package.version(), "2.2.51");
-    assert_eq!(sample_package.release(), "15.el7");
-    assert_eq!(sample_package.arch(), Some("x86_64"));
-    assert_eq!(sample_package.license(), "GPLv2+");
-    assert_eq!(sample_package.summary(), "Access control list utilities");
-    assert_eq!(
-        sample_package.description(),
-        "This package contains the getfacl and setfacl utilities needed for\nmanipulating access control lists."
-    );
 }
