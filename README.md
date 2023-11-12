@@ -1,7 +1,7 @@
 # librpm.rs: RPM Package Manager binding for Rust
 
 [![Crate][crate-image]][crate-link]
-[![Build Status][build-image]][build-link]
+[![Build Status](https://github.com/rpm-software-management/librpm.rs/actions/workflows/ci.yml/badge.svg)](https://github.com/rpm-software-management/librpm.rs/actions/workflows/ci.yml)
 [![MPL-2.0 Licensed][license-image]][license-link]
 
 The [librpm] C library (available in the `rpm-devel` RPM package) exposes a

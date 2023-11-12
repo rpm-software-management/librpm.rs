@@ -39,7 +39,8 @@
 //! println!("package version: {}", package.version());
 //! ```
 
-use crate::internal::{iterator::MatchIterator, tag::Tag};
+use crate::internal::iterator::MatchIterator;
+use crate::internal::tag::DBIndexTag;
 use crate::package::Package;
 use streaming_iterator::StreamingIterator;
 
@@ -60,18 +61,6 @@ impl Iterator for Iter {
 pub enum Index {
     /// Search by package name.
     Name,
-
-    /// Search by package version.
-    Version,
-
-    /// Search by package license.
-    License,
-
-    /// Search by package summary.
-    Summary,
-
-    /// Search by package description.
-    Description,
 }
 
 impl Index {
@@ -83,7 +72,7 @@ impl Index {
 
 /// Find all packages installed on the local system.
 pub fn installed_packages() -> Iter {
-    Iter(MatchIterator::new(Tag::NAME, None))
+    Iter(MatchIterator::new(DBIndexTag::PACKAGES, None))
 }
 
 /// Find installed packages with a search key that exactly matches the given tag.

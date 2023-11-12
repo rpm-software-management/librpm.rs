@@ -23,7 +23,7 @@ use std::{fmt, time};
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Package {
     pub(crate) name: String,
-    pub(crate) epoch: Option<String>,
+    pub(crate) epoch: Option<i32>,
     pub(crate) version: String,
     pub(crate) release: String,
     pub(crate) arch: Option<String>,
@@ -40,8 +40,8 @@ impl Package {
     }
 
     /// Epoch of the package
-    pub fn epoch(&self) -> Option<&str> {
-        self.epoch.as_deref()
+    pub fn epoch(&self) -> Option<i32> {
+        self.epoch
     }
 
     /// Version of the package

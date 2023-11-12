@@ -17,7 +17,7 @@
 
 //! Iterators for matches in the RPM database
 
-use super::{header::Header, tag::Tag, ts::GlobalTS};
+use super::{header::Header, tag::DBIndexTag, ts::GlobalTS};
 #[cfg(feature = "regex")]
 use regex::Regex;
 use std::{os::raw::c_void, ptr};
@@ -43,7 +43,7 @@ pub(crate) struct MatchIterator {
 impl MatchIterator {
     /// Create a new `MatchIterator` for the current RPM database, searching
     /// by the (optionally) given search key.
-    pub(crate) fn new(tag: Tag, key_opt: Option<&str>) -> Self {
+    pub(crate) fn new(tag: DBIndexTag, key_opt: Option<&str>) -> Self {
         let mut txn = GlobalTS::create();
         let next_item = None;
         let finished = false;
