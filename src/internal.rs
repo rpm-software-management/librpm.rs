@@ -15,7 +15,6 @@
  * file, You can obtain one at <https://mozilla.org/MPL/2.0/>.
  */
 
-
 //! Internal functionality not exposed outside of this crate
 //!
 //! We hide the guts of how we interact with librpm until we're sure it's safe to expose

@@ -15,7 +15,6 @@
  * file, You can obtain one at <https://mozilla.org/MPL/2.0/>.
  */
 
-
 //! Tag data, i.e. data fields found in RPM headers
 
 // Take this as a sign this code is not properly tested

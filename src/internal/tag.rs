@@ -15,7 +15,6 @@
  * file, You can obtain one at <https://mozilla.org/MPL/2.0/>.
  */
 
-
 //! Tags are identifiers for RPM headers
 
 #![allow(

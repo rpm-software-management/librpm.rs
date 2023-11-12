@@ -15,7 +15,6 @@
  * file, You can obtain one at <https://mozilla.org/MPL/2.0/>.
  */
 
-
 //! Support for configuring RPM, i.e. reading configuration files
 
 use crate::error::{Error, ErrorKind};

@@ -15,7 +15,6 @@
  * file, You can obtain one at <https://mozilla.org/MPL/2.0/>.
  */
 
-
 //! Thread-safe tracking struct for RPM's global mutable state
 //!
 //! librpm has a lot of global mutable state, and depending on what state it

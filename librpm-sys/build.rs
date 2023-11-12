@@ -15,7 +15,6 @@
  * file, You can obtain one at <https://mozilla.org/MPL/2.0/>.
  */
 
-
 //! bindgen configuration for librpm-sys
 //!
 //! For more on using librpm, see "Chapter 15. Programming RPM with C" from the

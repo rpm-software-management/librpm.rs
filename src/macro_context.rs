@@ -15,7 +15,6 @@
  * file, You can obtain one at <https://mozilla.org/MPL/2.0/>.
  */
 
-
 //! RPM macros are configuration parameters that have largely replaced the
 //! previous rpmrc system.
 
