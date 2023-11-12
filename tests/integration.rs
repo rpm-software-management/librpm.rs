@@ -44,6 +44,7 @@ struct PartialPackage {
 fn fetch_system_packages() -> Vec<PartialPackage> {
     let rpm_info = Command::new("rpm")
         .arg("-qa")
+        .arg("--queryformat")
         .arg("'%{NAME}~%{VERSION}~%{RELEASE}~%{SUMMARY}\n'")
         .output()
         .unwrap()
