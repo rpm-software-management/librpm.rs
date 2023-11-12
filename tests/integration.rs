@@ -20,11 +20,9 @@
 use librpm::config::set_db_path;
 use librpm::db::installed_packages;
 use librpm::{config, Package};
-use std::io::BufRead;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Once;
-use std::time::SystemTime;
 
 static CONFIGURE: Once = Once::new();
 
