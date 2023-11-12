@@ -15,7 +15,6 @@
  * file, You can obtain one at <https://mozilla.org/MPL/2.0/>.
  */
 
-
 //! RPM package type: represents `.rpm` files or entries in the RPM database
 use std::convert::TryFrom;
 use std::{fmt, time};
@@ -42,7 +41,7 @@ impl Package {
 
     /// Epoch of the package
     pub fn epoch(&self) -> Option<&str> {
-        self.epoch.as_ref().map(|s| s.as_str())
+        self.epoch.as_deref()
     }
 
     /// Version of the package
@@ -57,7 +56,7 @@ impl Package {
 
     /// Arch of the package
     pub fn arch(&self) -> Option<&str> {
-        self.arch.as_ref().map(|s| s.as_str())
+        self.arch.as_deref()
     }
 
     /// EVR (epoch, version, release) of the package
