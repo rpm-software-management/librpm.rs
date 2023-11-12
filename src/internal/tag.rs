@@ -275,14 +275,10 @@ pub enum Tag {
     FILENLINKS = librpm_sys::rpmTag_e_RPMTAG_FILENLINKS as isize,
 }
 
-impl From<Index> for Tag {
+impl From<Index> for DBIndexTag {
     fn from(i: Index) -> Self {
         match i {
-            Index::Name => Tag::NAME,
-            Index::Version => Tag::VERSION,
-            Index::License => Tag::LICENSE,
-            Index::Summary => Tag::SUMMARY,
-            Index::Description => Tag::DESCRIPTION,
+            Index::Name => DBIndexTag::NAME,
         }
     }
 }

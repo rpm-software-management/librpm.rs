@@ -74,7 +74,9 @@ impl Header {
     pub(crate) fn to_package(&self) -> Package {
         Package {
             name: self.get(Tag::NAME).unwrap().as_str().unwrap().to_owned(),
-            epoch: self.get(Tag::EPOCH).map(|d| d.as_str().unwrap().to_owned()),
+            epoch: self
+                .get(Tag::EPOCH)
+                .map(|d| d.to_int32().unwrap().to_owned()),
             version: self.get(Tag::VERSION).unwrap().as_str().unwrap().to_owned(),
             release: self.get(Tag::RELEASE).unwrap().as_str().unwrap().to_owned(),
             arch: self.get(Tag::ARCH).map(|d| d.as_str().unwrap().to_owned()),

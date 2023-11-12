@@ -17,15 +17,18 @@
 
 //! librpm.rs integration tests
 
-use librpm::{config, Index};
+use librpm::config::set_db_path;
+use librpm::db::installed_packages;
+use librpm::{config, package, Index, Package};
 use std::io::BufRead;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Once;
+use std::time::SystemTime;
 
 static CONFIGURE: Once = Once::new();
 
 // Read the default config
-// TODO: create a mock RPM database for testing
 fn configure() {
     CONFIGURE.call_once(|| {
         config::read_file(None).unwrap();
@@ -46,7 +49,7 @@ fn fetch_package_info(package_name: &str, query_param: &str) -> Option<String> {
 }
 
 #[test]
-fn db_find_test() {
+fn system_installed_find_db_test() {
     configure();
 
     let PACKAGE_NAME = "rpm-devel";
@@ -58,7 +61,10 @@ fn db_find_test() {
         assert_eq!(package.name(), "rpm-devel");
         assert_eq!(
             package.epoch(),
-            fetch_package_info(PACKAGE_NAME, "EPOCH").as_deref()
+            fetch_package_info(PACKAGE_NAME, "EPOCH")
+                .unwrap()
+                .parse::<i32>()
+                .ok()
         );
         assert_eq!(
             package.version(),
@@ -88,4 +94,33 @@ fn db_find_test() {
             panic!("some RPMs installed, but not `rpm-devel`?!");
         }
     }
+}
+
+fn get_assets_path() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests")
+        .join("assets")
+}
+
+#[test]
+fn test_centos_7_rpm_database() {
+    configure();
+    set_db_path(&get_assets_path().join("centos7")).unwrap();
+
+    let mut packages: Vec<Package> = installed_packages().collect();
+    packages.sort_by_key(|p| p.name().to_string());
+
+    assert_eq!(packages.len(), 148);
+    let sample_package = &packages[0];
+    assert_eq!(sample_package.name(), "acl");
+    assert_eq!(sample_package.epoch(), None);
+    assert_eq!(sample_package.version(), "2.2.51");
+    assert_eq!(sample_package.release(), "15.el7");
+    assert_eq!(sample_package.arch(), Some("x86_64"));
+    assert_eq!(sample_package.license(), "GPLv2+");
+    assert_eq!(sample_package.summary(), "Access control list utilities");
+    assert_eq!(
+        sample_package.description(),
+        "This package contains the getfacl and setfacl utilities needed for\nmanipulating access control lists."
+    );
 }
