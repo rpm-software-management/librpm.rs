@@ -3,7 +3,11 @@ name: Compile and run tests
 on: [push, pull_request]
 
 jobs:
+<<<<<<< HEAD
   lint-and-build:
+=======
+  list-and-build:
+>>>>>>> 2e691f4 (Installing Rust myself in the containers as other approaches doesn't seem to work)
     runs-on: ubuntu-latest
     container: "quay.io/centos/centos:stream9"
 
