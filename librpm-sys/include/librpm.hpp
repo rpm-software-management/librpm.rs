@@ -45,6 +45,7 @@
 
 /** RPM data object header files (from Table 16-2) */
 #include <rpm/header.h> // Package headers
+#include <rpm/rpmtag.h> // Accessing RPM tags
 #include <rpm/rpmds.h> // Dependency sets
 #include <rpm/rpmfi.h> // File information
 #include <rpm/rpmts.h> // Transaction sets
