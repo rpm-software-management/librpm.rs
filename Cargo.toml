@@ -15,7 +15,7 @@ edition = "2021"
 maintenance = { status = "passively-maintained" }
 
 [dependencies]
-once_cell = "1.8.0"
+once_cell = "1.21"
 librpm-sys = { version = "0.2.0-pre", path = "librpm-sys" }
 streaming-iterator = "0.1.5"
 
