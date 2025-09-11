@@ -64,7 +64,7 @@ impl Header {
             librpm_sys::rpmTagType_e_RPM_STRING_ARRAY_TYPE => unsafe { TagData::string_array(&td) },
             librpm_sys::rpmTagType_e_RPM_I18NSTRING_TYPE => unsafe { TagData::i18n_string(&td) },
             librpm_sys::rpmTagType_e_RPM_BIN_TYPE => unsafe { TagData::bin(&td) },
-            other => panic!("unsupported rpmtd tag type: {}", other),
+            other => panic!("unsupported rpmtd tag type: {other}"),
         };
 
         Some(data)

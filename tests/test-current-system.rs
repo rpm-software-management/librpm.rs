@@ -70,7 +70,7 @@ fn test_against_installed_packages() {
     found_packages.sort_by_key(|p| p.name().to_string());
 
     assert!(
-        expected_install_packages.len() > 0,
+        !expected_install_packages.is_empty(),
         "Couldn't find any installed packages using the RPM CLI"
     );
     assert_eq!(expected_install_packages.len(), found_packages.len());
