@@ -18,8 +18,6 @@
 //! Iterators for matches in the RPM database
 
 use super::{header::Header, tag::DBIndexTag, ts::GlobalTS};
-#[cfg(feature = "regex")]
-use regex::Regex;
 use std::{os::raw::c_void, ptr};
 use streaming_iterator::StreamingIterator;
 
