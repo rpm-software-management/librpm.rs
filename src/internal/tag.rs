@@ -275,6 +275,18 @@ pub enum Tag {
     FILENLINKS = librpm_sys::rpmTag_e_RPMTAG_FILENLINKS as isize,
 }
 
+impl From<Tag> for i32 {
+    fn from(val: Tag) -> Self {
+        val as i32
+    }
+}
+
+impl From<Tag> for u32 {
+    fn from(val: Tag) -> Self {
+        val as u32
+    }
+}
+
 impl From<Index> for DBIndexTag {
     fn from(i: Index) -> Self {
         match i {

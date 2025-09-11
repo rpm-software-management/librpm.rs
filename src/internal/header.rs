@@ -45,7 +45,7 @@ impl Header {
         let rc = unsafe {
             librpm_sys::headerGet(
                 self.0,
-                tag as i32,
+                tag.into(),
                 &mut td,
                 librpm_sys::headerGetFlags_e_HEADERGET_MINMEM,
             )
