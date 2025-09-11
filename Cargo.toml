@@ -9,7 +9,7 @@ keywords = ["rpm", "linux", "redhat", "fedora", "centos"]
 readme = "README.md"
 homepage = "https://github.com/rpm-software-management/librpm.rs/"
 documentation = "https://rustrpm.org/librpm/"
-edition = "2021"
+edition = "2024"
 
 [badges]
 maintenance = { status = "passively-maintained" }

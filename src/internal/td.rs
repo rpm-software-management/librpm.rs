@@ -64,41 +64,52 @@ impl<'hdr> TagData<'hdr> {
     pub(crate) unsafe fn char(td: &librpm_sys::rpmtd_s) -> Self {
         assert_eq!(td.type_, TagType::CHAR as u32);
         let ix = if td.ix >= 0 { td.ix as isize } else { 0 };
-        TagData::Char(*(td.data as *const char).offset(ix))
+        // Safety: protected by the above two lines
+        let ch = unsafe { *(td.data as *const char).offset(ix) };
+        TagData::Char(ch)
     }
 
     /// Convert an `rpmtd_s` into an `TagData::Int8`
     pub(crate) unsafe fn int8(td: &librpm_sys::rpmtd_s) -> Self {
         assert_eq!(td.type_, TagType::INT8 as u32);
         let ix = if td.ix >= 0 { td.ix as isize } else { 0 };
-        TagData::Int8(*(td.data as *const i8).offset(ix))
+        // Safety: protected by the above two lines
+        let int = unsafe { *(td.data as *const i8).offset(ix) };
+        TagData::Int8(int)
     }
 
     /// Convert an `rpmtd_s` int an `TagData::Int16`
     pub(crate) unsafe fn int16(td: &librpm_sys::rpmtd_s) -> Self {
         assert_eq!(td.type_, TagType::INT16 as u32);
         let ix = if td.ix >= 0 { td.ix as isize } else { 0 };
-        TagData::Int16(*(td.data as *const i16).offset(ix))
+        // Safety: protected by the above two lines
+        let int = unsafe { *(td.data as *const i16).offset(ix) };
+        TagData::Int16(int)
     }
 
     /// Convert an `rpmtd_s` int an `TagData::Int32`
     pub(crate) unsafe fn int32(td: &librpm_sys::rpmtd_s) -> Self {
         assert_eq!(td.type_, TagType::INT32 as u32);
         let ix = if td.ix >= 0 { td.ix as isize } else { 0 };
-        TagData::Int32(*(td.data as *const i32).offset(ix))
+        // Safety: protected by the above two lines
+        let int = unsafe { *(td.data as *const i32).offset(ix) };
+        TagData::Int32(int)
     }
 
     /// Convert an `rpmtd_s` int an `Int64`
     pub(crate) unsafe fn int64(td: &librpm_sys::rpmtd_s) -> Self {
         assert_eq!(td.type_, TagType::INT64 as u32);
         let ix = if td.ix >= 0 { td.ix as isize } else { 0 };
-        TagData::Int64(*(td.data as *const i64).offset(ix))
+        // Safety: protected by the above two lines
+        let int = unsafe { *(td.data as *const i64).offset(ix) };
+        TagData::Int64(int)
     }
 
     /// Convert an `rpmtd_s` into a `Str`
     pub(crate) unsafe fn string(td: &librpm_sys::rpmtd_s) -> Self {
         assert_eq!(td.type_, TagType::STRING as u32);
-        let cstr = CStr::from_ptr(td.data as *const c_char);
+        // Safety: protected by the above line
+        let cstr = unsafe { CStr::from_ptr(td.data as *const c_char) };
 
         // RPM_STRING_TYPE is ASCII-only. We presently treat it as UTF-8.
         TagData::Str(str::from_utf8(cstr.to_bytes()).unwrap_or_else(|e| {
@@ -117,7 +128,8 @@ impl<'hdr> TagData<'hdr> {
     /// Convert an `rpmtd_s` into an `I18NStr`
     pub(crate) unsafe fn i18n_string(td: &librpm_sys::rpmtd_s) -> Self {
         assert_eq!(td.type_, TagType::I18NSTRING as u32);
-        let cstr = CStr::from_ptr(td.data as *const c_char);
+        // Safety: protected by the above line
+        let cstr = unsafe { CStr::from_ptr(td.data as *const c_char) };
 
         TagData::I18NStr(str::from_utf8(cstr.to_bytes()).unwrap_or_else(|e| {
             panic!(
@@ -144,10 +156,9 @@ impl<'hdr> TagData<'hdr> {
             td.tag
         );
 
-        TagData::Bin(slice::from_raw_parts(
-            td.data as *const u8,
-            td.count as usize,
-        ))
+        // Safety: protected by 3 assertions above
+        let bin = unsafe { slice::from_raw_parts(td.data as *const u8, td.count as usize) };
+        TagData::Bin(bin)
     }
 
     /// Is this tag data NULL?

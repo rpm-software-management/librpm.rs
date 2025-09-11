@@ -28,7 +28,9 @@ impl Header {
     pub(crate) unsafe fn from_ptr(ffi_header: librpm_sys::Header) -> Self {
         assert!(!ffi_header.is_null());
         // Increment librpm's internal reference count for this header
-        librpm_sys::headerLink(ffi_header);
+        unsafe {
+            librpm_sys::headerLink(ffi_header);
+        }
         Header(ffi_header)
     }
 
