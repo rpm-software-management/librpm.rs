@@ -5,14 +5,17 @@ on: [push, pull_request]
 jobs:
   lint-and-build:
     runs-on: ubuntu-latest
-    container: "quay.io/centos/centos:stream9"
+    container: "quay.io/centos/centos:stream10"
 
     steps:
       - uses: actions/checkout@v2
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: rustfmt,clippy
 
       - name: 📦 Install librpm dependencies
         run: |
-          dnf install -y rpm-devel gcc clang-devel rustc cargo clippy rustfmt
+          dnf install -y rpm-devel gcc clang-devel
           dnf -y clean all
 
       - name: 📎 Run Linters
@@ -33,15 +36,16 @@ jobs:
   integration-tests:
     strategy:
       matrix:
-        container: ["registry.fedoraproject.org/fedora:38", "quay.io/centos/centos:stream9"]
+        container: ["registry.fedoraproject.org/fedora:42", "quay.io/centos/centos:stream10"]
     container: ${{ matrix.container }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
 
       - name: 📦 Install librpm dependencies
         run: |
-          dnf install -y rpm-devel gcc clang-devel rustc cargo clippy rustfmt
+          dnf install -y rpm-devel gcc clang-devel
           dnf -y clean all
 
       - name: 🧪 Run Integration Tests
