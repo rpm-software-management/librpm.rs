@@ -30,7 +30,7 @@ use crate::Index;
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Tag {
     /// Unknown tag
-    NOT_FOUND = librpm_sys::rpmTag_e_RPMTAG_NOT_FOUND as isize,
+    NOT_FOUND = librpm_sys::Workarounds_W_RPMTAG_NOT_FOUND as isize,
 
     /// Current image
     HEADERIMAGE = librpm_sys::rpmTag_e_RPMTAG_HEADERIMAGE as isize,
