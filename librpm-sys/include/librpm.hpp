@@ -45,7 +45,14 @@
 
 /** RPM data object header files (from Table 16-2) */
 #include <rpm/header.h> // Package headers
+#include <rpm/rpmtag.h> // Accessing RPM tags
 #include <rpm/rpmds.h> // Dependency sets
 #include <rpm/rpmfi.h> // File information
 #include <rpm/rpmts.h> // Transaction sets
 #include <rpm/rpmte.h> // Transaction elements (packages)
+
+/** On some library versions RPMTAG_NOT_FOUND is define rather than enum field,
+ *  and bindgen can't convert it uniformly. Provide a separate constant here: */
+enum Workarounds : int32_t {
+    W_RPMTAG_NOT_FOUND = (int32_t) RPMTAG_NOT_FOUND,
+};

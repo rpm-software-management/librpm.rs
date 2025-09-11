@@ -28,7 +28,9 @@ impl Header {
     pub(crate) unsafe fn from_ptr(ffi_header: librpm_sys::Header) -> Self {
         assert!(!ffi_header.is_null());
         // Increment librpm's internal reference count for this header
-        librpm_sys::headerLink(ffi_header);
+        unsafe {
+            librpm_sys::headerLink(ffi_header);
+        }
         Header(ffi_header)
     }
 
@@ -43,7 +45,7 @@ impl Header {
         let rc = unsafe {
             librpm_sys::headerGet(
                 self.0,
-                tag as i32,
+                tag.into(),
                 &mut td,
                 librpm_sys::headerGetFlags_e_HEADERGET_MINMEM,
             )
@@ -64,7 +66,7 @@ impl Header {
             librpm_sys::rpmTagType_e_RPM_STRING_ARRAY_TYPE => unsafe { TagData::string_array(&td) },
             librpm_sys::rpmTagType_e_RPM_I18NSTRING_TYPE => unsafe { TagData::i18n_string(&td) },
             librpm_sys::rpmTagType_e_RPM_BIN_TYPE => unsafe { TagData::bin(&td) },
-            other => panic!("unsupported rpmtd tag type: {}", other),
+            other => panic!("unsupported rpmtd tag type: {other}"),
         };
 
         Some(data)

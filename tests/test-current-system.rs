@@ -17,8 +17,8 @@
 
 //! librpm.rs integration tests
 
-use librpm::db::installed_packages;
 use librpm::Package;
+use librpm::db::installed_packages;
 use std::process::Command;
 
 mod common;
@@ -70,7 +70,7 @@ fn test_against_installed_packages() {
     found_packages.sort_by_key(|p| p.name().to_string());
 
     assert!(
-        expected_install_packages.len() > 0,
+        !expected_install_packages.is_empty(),
         "Couldn't find any installed packages using the RPM CLI"
     );
     assert_eq!(expected_install_packages.len(), found_packages.len());

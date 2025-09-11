@@ -14,6 +14,7 @@ pub fn configure() {
     });
 }
 
+#[allow(unused)] // Only used in one of tests, suppress the warning
 pub fn get_assets_path() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("testdata")
 }

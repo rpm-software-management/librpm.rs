@@ -18,8 +18,6 @@
 //! Iterators for matches in the RPM database
 
 use super::{header::Header, tag::DBIndexTag, ts::GlobalTS};
-#[cfg(feature = "regex")]
-use regex::Regex;
 use std::{os::raw::c_void, ptr};
 use streaming_iterator::StreamingIterator;
 
@@ -48,24 +46,24 @@ impl MatchIterator {
         let next_item = None;
         let finished = false;
 
-        if let Some(key) = key_opt {
-            if !key.is_empty() {
-                let ptr = unsafe {
-                    librpm_sys::rpmtsInitIterator(
-                        txn.as_mut_ptr(),
-                        tag as librpm_sys::rpm_tag_t,
-                        key.as_ptr() as *const c_void,
-                        key.len(),
-                    )
-                };
+        if let Some(key) = key_opt
+            && !key.is_empty()
+        {
+            let ptr = unsafe {
+                librpm_sys::rpmtsInitIterator(
+                    txn.as_mut_ptr(),
+                    tag as librpm_sys::rpm_tag_t,
+                    key.as_ptr() as *const c_void,
+                    key.len(),
+                )
+            };
 
-                return Self {
-                    ptr,
-                    txn,
-                    next_item,
-                    finished,
-                };
-            }
+            return Self {
+                ptr,
+                txn,
+                next_item,
+                finished,
+            };
         }
 
         let ptr = unsafe {

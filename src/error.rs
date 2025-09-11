@@ -52,7 +52,7 @@ impl Display for Error {
         write!(f, "{}", self.kind)?;
 
         if let Some(msg) = &self.msg {
-            write!(f, ": {}", msg)?;
+            write!(f, ": {msg}")?;
         }
 
         Ok(())

@@ -10,11 +10,12 @@ readme = "README.md"
 homepage = "https://github.com/rpm-software-management/librpm.rs/"
 repository = "https://github.com/rpm-software-management/librpm.rs/tree/master/librpmbuild-sys"
 documentation = "https://rustrpm.org/librpmbuild_sys/"
-edition = "2021"
+edition = "2024"
+rust-version = "1.85"
 
 [badges]
 travis-ci = { repository = "rpm-software-management/librpm.rs" }
 maintenance = { status = "passively-maintained" }
 
 [build-dependencies]
-bindgen = "0.69.1"
+bindgen = "0.72"

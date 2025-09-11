@@ -27,16 +27,18 @@
 //! Finding the "rpm-devel" RPM in the database:
 //!
 //! ```
+//! # fn main() -> Result<(), librpm::error::Error> {
 //! use librpm::Index;
 //!
-//! librpm::config::read_file(None).unwrap();
-//!
+//! librpm::config::read_file(None)?;
 //! let mut matches = Index::Name.find("rpm-devel");
-//! let package = matches.next().unwrap();
-//!
-//! println!("package name: {}", package.name());
-//! println!("package summary: {}", package.summary());
-//! println!("package version: {}", package.version());
+//! if let Some(package) = matches.next() {
+//!     println!("package name: {}", package.name());
+//!     println!("package summary: {}", package.summary());
+//!     println!("package version: {}", package.version());
+//! }
+//! # Ok(())
+//! # }
 //! ```
 
 use crate::internal::iterator::MatchIterator;

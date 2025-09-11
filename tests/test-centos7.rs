@@ -1,4 +1,4 @@
-use librpm::{config::set_db_path, db::installed_packages, Package};
+use librpm::{Package, config::set_db_path, db::installed_packages};
 
 mod common;
 

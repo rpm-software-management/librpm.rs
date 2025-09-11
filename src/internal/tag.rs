@@ -30,7 +30,7 @@ use crate::Index;
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Tag {
     /// Unknown tag
-    NOT_FOUND = librpm_sys::rpmTag_e_RPMTAG_NOT_FOUND as isize,
+    NOT_FOUND = librpm_sys::Workarounds_W_RPMTAG_NOT_FOUND as isize,
 
     /// Current image
     HEADERIMAGE = librpm_sys::rpmTag_e_RPMTAG_HEADERIMAGE as isize,
@@ -273,6 +273,18 @@ pub enum Tag {
     OBSOLETENEVRS = librpm_sys::rpmTag_e_RPMTAG_OBSOLETENEVRS as isize,
     CONFLICTNEVRS = librpm_sys::rpmTag_e_RPMTAG_CONFLICTNEVRS as isize,
     FILENLINKS = librpm_sys::rpmTag_e_RPMTAG_FILENLINKS as isize,
+}
+
+impl From<Tag> for i32 {
+    fn from(val: Tag) -> Self {
+        val as i32
+    }
+}
+
+impl From<Tag> for u32 {
+    fn from(val: Tag) -> Self {
+        val as u32
+    }
 }
 
 impl From<Index> for DBIndexTag {
