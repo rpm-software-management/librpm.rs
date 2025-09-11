@@ -19,6 +19,8 @@
 
 use librpm::Package;
 use librpm::db::installed_packages;
+use std::io::BufRead;
+use std::path::PathBuf;
 use std::process::Command;
 
 mod common;
@@ -29,6 +31,7 @@ struct PartialPackage {
     version: String,
     release: String,
     summary: String,
+    filenames: Vec<PathBuf>,
 }
 
 fn fetch_system_packages() -> Vec<PartialPackage> {
@@ -48,11 +51,30 @@ fn fetch_system_packages() -> Vec<PartialPackage> {
         let version = parts.next().unwrap();
         let release = parts.next().unwrap();
         let summary = parts.next().unwrap();
+        let filenames: Vec<_> = Command::new("rpm")
+            .arg("-ql")
+            .arg(name)
+            .output()
+            .unwrap()
+            .stdout
+            .lines()
+            .filter_map(|line| match line {
+                Ok(l) => {
+                    if l == "(contains no files)" {
+                        None
+                    } else {
+                        Some(PathBuf::from(l))
+                    }
+                }
+                Err(_) => None,
+            })
+            .collect();
         packages.push(PartialPackage {
             name: name.to_string(),
             version: version.to_string(),
             release: release.to_string(),
             summary: summary.to_string(),
+            filenames,
         });
     }
 
@@ -80,5 +102,6 @@ fn test_against_installed_packages() {
         assert_eq!(expected.version, found.version());
         assert_eq!(expected.release, found.release());
         assert_eq!(expected.summary, found.summary());
+        assert_eq!(&expected.filenames, found.filenames());
     }
 }

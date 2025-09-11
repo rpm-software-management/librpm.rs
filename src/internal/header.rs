@@ -19,7 +19,11 @@
 
 use super::{tag::Tag, td::TagData};
 use crate::Package;
+use std::ffi::{CStr, OsStr};
 use std::mem;
+use std::os::unix::ffi::OsStrExt;
+use std::path::PathBuf;
+use std::ptr::null_mut;
 
 /// RPM package header
 pub(crate) struct Header(*mut librpm_sys::headerToken_s);
@@ -86,6 +90,7 @@ impl Header {
             summary: self.get(Tag::SUMMARY).unwrap().as_str().unwrap().into(),
             description: self.get(Tag::DESCRIPTION).unwrap().as_str().unwrap().into(),
             buildtime: self.get(Tag::BUILDTIME).unwrap().to_int32().unwrap(),
+            filenames: FileNameIterator::from_header(self).collect(),
         }
     }
 }
@@ -95,6 +100,59 @@ impl Drop for Header {
         // Decrement librpm's internal reference count for this header
         unsafe {
             librpm_sys::headerFree(self.0);
+        }
+    }
+}
+
+/// Iterator over a single file info query
+struct FileNameIterator {
+    fi: *mut librpm_sys::rpmfi_s,
+}
+
+impl Iterator for FileNameIterator {
+    type Item = PathBuf;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // SAFETY: see `Self::from_header`
+        if unsafe { librpm_sys::rpmfiNext(self.fi) } < 0 {
+            return None;
+        }
+        // SAFETY: see `Self::from_header`. Return value can
+        // be an arbitrary null-terminated byte sequence.
+        // Return value (`name`) stays valid until the next rpmfiFn call.
+        let name = unsafe {
+            let name = librpm_sys::rpmfiFN(self.fi);
+            assert!(!name.is_null());
+            CStr::from_ptr(name).to_bytes()
+        };
+        let name = PathBuf::from(OsStr::from_bytes(name));
+        Some(name)
+    }
+}
+
+impl FileNameIterator {
+    fn from_header(header: &Header) -> Self {
+        // SAFETY: once constructed, rpmfiNew return value stays valid
+        // until rpmfiFree is called. Additionally:
+        // 1. Ensure it is not NULL so that a valid Rust reference can be created
+        // 2. Memory-safety of fi is not dependent on the header per docs, however,
+        //    it does not mean actual file list will be up to date per the latest package
+        //    version. Right now it doesn't matter as we collect file names eagerly during
+        //    construction.
+        let fi = unsafe {
+            let fi = librpm_sys::rpmfiNew(null_mut(), header.0, 0, 0);
+            assert!(!fi.is_null());
+            fi
+        };
+        FileNameIterator { fi }
+    }
+}
+
+impl Drop for FileNameIterator {
+    fn drop(&mut self) {
+        unsafe {
+            // SAFETY: see `Self::from_header`
+            librpm_sys::rpmfiFree(self.fi);
         }
     }
 }

@@ -31,6 +31,7 @@ pub struct Package {
     pub(crate) summary: String,
     pub(crate) description: String,
     pub(crate) buildtime: i32,
+    pub(crate) filenames: Vec<std::path::PathBuf>,
 }
 
 impl Package {
@@ -96,6 +97,11 @@ impl Package {
     pub fn buildtime(&self) -> time::SystemTime {
         let buildtime = u64::try_from(self.buildtime).expect("negative build time");
         time::SystemTime::UNIX_EPOCH + time::Duration::new(buildtime, 0)
+    }
+
+    /// Full paths of all files installed by the package
+    pub fn filenames(&self) -> &Vec<std::path::PathBuf> {
+        &self.filenames
     }
 }
 
