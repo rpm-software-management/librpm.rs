@@ -17,8 +17,8 @@
 
 //! librpm.rs integration tests
 
-use librpm::db::installed_packages;
 use librpm::Package;
+use librpm::db::installed_packages;
 use std::process::Command;
 
 mod common;
