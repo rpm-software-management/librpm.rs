@@ -29,14 +29,16 @@
 //! ```
 //! use librpm::Index;
 //!
-//! librpm::config::read_file(None).unwrap();
-//!
-//! let mut matches = Index::Name.find("rpm-devel");
-//! let package = matches.next().unwrap();
-//!
-//! println!("package name: {}", package.name());
-//! println!("package summary: {}", package.summary());
-//! println!("package version: {}", package.version());
+//! fn main() -> Result<(), librpm::error::Error> {
+//!     librpm::config::read_file(None)?;
+//!     let mut matches = Index::Name.find("rpm-devel");
+//!     if let Some(package) = matches.next() {
+//!         println!("package name: {}", package.name());
+//!         println!("package summary: {}", package.summary());
+//!         println!("package version: {}", package.version());
+//!     }
+//!     Ok(())
+//! }
 //! ```
 
 use crate::internal::iterator::MatchIterator;
