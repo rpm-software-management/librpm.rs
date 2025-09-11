@@ -11,6 +11,7 @@ homepage = "https://github.com/rpm-software-management/librpm.rs/"
 repository = "https://github.com/rpm-software-management/librpm.rs/tree/master/librpmbuild-sys"
 documentation = "https://rustrpm.org/librpmbuild_sys/"
 edition = "2024"
+rust-version = "1.85"
 
 [badges]
 travis-ci = { repository = "rpm-software-management/librpm.rs" }

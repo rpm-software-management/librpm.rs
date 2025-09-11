@@ -10,6 +10,7 @@ readme = "README.md"
 homepage = "https://github.com/rpm-software-management/librpm.rs/"
 documentation = "https://rustrpm.org/librpm/"
 edition = "2024"
+rust-version = "1.85"
 
 [badges]
 maintenance = { status = "passively-maintained" }
