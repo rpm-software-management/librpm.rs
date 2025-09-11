@@ -27,8 +27,6 @@
 //! Finding the "rpm-devel" RPM in the database:
 //!
 //! ```
-//! use librpm::Index;
-//!
 //! # fn main() -> Result<(), librpm::error::Error> {
 //! use librpm::Index;
 //!
