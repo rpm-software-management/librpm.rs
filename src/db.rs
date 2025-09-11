@@ -30,6 +30,8 @@
 //! use librpm::Index;
 //!
 //! # fn main() -> Result<(), librpm::error::Error> {
+//! use librpm::Index;
+//!
 //! librpm::config::read_file(None)?;
 //! let mut matches = Index::Name.find("rpm-devel");
 //! if let Some(package) = matches.next() {
