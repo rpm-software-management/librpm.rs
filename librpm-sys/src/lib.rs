@@ -47,7 +47,7 @@ include!(concat!(env!("OUT_DIR"), "/binding.rs"));
 //
 // To work around the problem, we blacklist the type in `build.rs`, and
 // include a (hopefully) equivalent one which actually compiles, namely by
-// removing the `__BindgenBitfieldUnit` wraper around `[u8; 44]`, which
+// removing the `__BindgenBitfieldUnit` wrapper around `[u8; 44]`, which
 // should hopefully(???) result in an equivalent-sized type.
 //
 // `struct timex` is used only one place in the generated binding: as a
