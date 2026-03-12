@@ -9,7 +9,7 @@ keywords = ["rpm", "linux", "redhat", "fedora", "centos"]
 readme = "README.md"
 homepage = "https://github.com/rpm-software-management/librpm.rs/"
 repository = "https://github.com/rpm-software-management/librpm.rs/tree/master/librpmbuild-sys"
-documentation = "https://rustrpm.org/librpmbuild_sys/"
+documentation = "https://github.com/rpm-software-management/librpm.rs/tree/main/librpmbuild-sys"
 edition = "2024"
 rust-version = "1.85"
 

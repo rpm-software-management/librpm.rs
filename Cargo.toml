@@ -8,7 +8,7 @@ categories = ["api-bindings", "os", "parsing"]
 keywords = ["rpm", "linux", "redhat", "fedora", "centos"]
 readme = "README.md"
 homepage = "https://github.com/rpm-software-management/librpm.rs/"
-documentation = "https://rustrpm.org/librpm/"
+documentation = "https://github.com/rpm-software-management/librpm.rs"
 edition = "2024"
 rust-version = "1.85"
 

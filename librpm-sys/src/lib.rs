@@ -21,7 +21,7 @@
 //! This crate isn't intended to be used directly, but instead provides the
 //! low-level binding which is used by the idiomatic librpm crate.
 
-#![doc(html_root_url = "https://rustrpm.org/librpm_sys/")]
+#![doc(html_root_url = "https://github.com/rpm-software-management/librpm.rs/tree/main/librpm-sys")]
 #![allow(
     non_upper_case_globals,
     non_camel_case_types,

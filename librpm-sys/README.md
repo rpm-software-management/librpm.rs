@@ -12,7 +12,7 @@ This crate isn't intended to be used directly, but instead provides an unsafe,
 low-level binding used by the higher level **librpm** crate, which aims to
 provide a safe, idiomatic, high-level binding to the C library:
 
-https://rustrpm.org/
+https://github.com/rpm-software-management/librpm.rs
 
 If you're intending to add a feature to the **librpm** crate however, you have
 come to the right place. You can find documentation here:
@@ -40,7 +40,7 @@ If a copy of the MPL was not distributed with this file, You can obtain one at <
 
 [//]: # (general links)
 
-[Documentation]: https://rustrpm.org/librpm-sys/
+[Documentation]: https://github.com/rpm-software-management/librpm.rs/tree/main/librpm-sys
 [librpm C library]: http://ftp.rpm.org/api/4.14.0/
 [RPM Package Manager]: http://rpm.org/
 [Mozilla Public License, v. 2.0]: https://github.com/rpm-software-management/librpm.rs/blob/main/LICENSE

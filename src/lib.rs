@@ -26,9 +26,7 @@
 //! See the `librpm::db::Database` type for examples of how to interact with
 //! the RPM database.
 //!
-//! [librpm-sys]: https://rustrpm.org/librpm_sys/index.html
-
-#![doc(html_root_url = "https://rustrpm.org/librpm/")]
+//! [librpm-sys]: https://github.com/rpm-software-management/librpm.rs/tree/main/librpm-sys
 #![warn(missing_docs, trivial_casts, unused_qualifications)]
 
 /// Error types (defined first due to macros)
