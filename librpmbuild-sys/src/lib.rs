@@ -22,7 +22,9 @@
 //! This crate isn't intended to be used directly, but instead provides the
 //! low-level binding which is used by the idiomatic librpm crate.
 
-#![doc(html_root_url = "https://github.com/rpm-software-management/librpm.rs/tree/main/librpmbuild-sys")]
+#![doc(
+    html_root_url = "https://github.com/rpm-software-management/librpm.rs/tree/main/librpmbuild-sys"
+)]
 #![allow(non_upper_case_globals, non_camel_case_types, non_snake_case)]
 
 // Bindings to librpmbuild.so
