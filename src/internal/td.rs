@@ -121,8 +121,25 @@ impl<'hdr> TagData<'hdr> {
     }
 
     /// Convert an `rpmtd_s` into a `StrArray`
-    pub(crate) unsafe fn string_array(_td: &librpm_sys::rpmtd_s) -> Self {
-        panic!("RPM_STRING_ARRAY_TYPE unsupported!");
+    pub(crate) unsafe fn string_array(td: &mut librpm_sys::rpmtd_s) -> Self {
+        assert_eq!(td.type_, TagType::STRING_ARRAY as u32);
+        let mut result = Vec::new();
+        loop {
+            // Always safe with a valid 'td':
+            let cstr = unsafe { librpm_sys::rpmtdNextString(td) };
+            if cstr.is_null() {
+                break;
+            }
+            let cstr = unsafe { CStr::from_ptr(cstr as *const c_char) };
+            // Same as with 'string'
+            result.push(str::from_utf8(cstr.to_bytes()).unwrap_or_else(|e| {
+                panic!(
+                    "failed to decode an item from RPM_STRING_ARRAY as UTF-8 (tag: {}): {}",
+                    td.tag, e
+                );
+            }));
+        }
+        TagData::StrArray(result)
     }
 
     /// Convert an `rpmtd_s` into an `I18NStr`
