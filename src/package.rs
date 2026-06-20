@@ -59,7 +59,7 @@ impl Package {
     pub fn epoch(&self) -> Option<i32> {
         self.header
             .get(Tag::EPOCH)
-            .map(|d| d.to_int32().expect("EPOCH tag is not an int32"))
+            .map(|d| d.as_int32().expect("EPOCH tag is not an int32"))
     }
 
     /// Version of the package
@@ -138,7 +138,7 @@ impl Package {
             .header
             .get(Tag::BUILDTIME)
             .expect("BUILDTIME tag missing")
-            .to_int32()
+            .as_int32()
             .expect("BUILDTIME tag is not an int32");
         let buildtime = u64::try_from(buildtime).expect("negative build time");
         time::SystemTime::UNIX_EPOCH + time::Duration::new(buildtime, 0)
