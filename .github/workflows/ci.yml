@@ -8,8 +8,8 @@ jobs:
     container: "quay.io/centos/centos:stream10"
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt,clippy
 
@@ -36,12 +36,12 @@ jobs:
   integration-tests:
     strategy:
       matrix:
-        container: ["registry.fedoraproject.org/fedora:42", "quay.io/centos/centos:stream10"]
+        container: ["registry.fedoraproject.org/fedora:latest", "quay.io/centos/centos:stream10"]
     container: ${{ matrix.container }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
 
       - name: 📦 Install librpm dependencies
         run: |
