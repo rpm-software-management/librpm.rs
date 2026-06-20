@@ -33,6 +33,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Fixed build failure on some Fedora/glibc versions caused by `struct timex`
   workaround ([#48]). Switched bindgen to allowlist mode so only the functions
   and types actually used are generated.
+* Changed integer `TagData` variants (`Char`, `Int8`, `Int16`, `Int32`, `Int64`)
+  from scalars to slices, correctly representing RPM tags that contain arrays
+  of values (e.g. `FILESIZES`, `FILEMODES`, `REQUIREFLAGS`). The RPM header format
+  stores scalars as arrays of length 1.
 
 ## 0.1.1 (2018-06-10)
 
