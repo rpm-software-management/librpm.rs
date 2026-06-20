@@ -7,7 +7,7 @@
 
 use std::{
     path::{Path, PathBuf},
-    sync::Once,
+    sync::{Once, OnceLock},
 };
 
 use std::time;
@@ -15,11 +15,24 @@ use std::time;
 use librpm::{Index, Package, config};
 
 static CONFIGURE: Once = Once::new();
+static DISTRO: OnceLock<&'static str> = OnceLock::new();
 
 pub fn configure() {
     CONFIGURE.call_once(|| {
         config::read_file(None).unwrap();
     });
+}
+
+pub fn init(distro: &DistroTestCase) {
+    let prev = DISTRO.get_or_init(|| {
+        configure();
+        config::set_db_path(&get_assets_path().join(distro.db_subdir)).unwrap();
+        distro.db_subdir
+    });
+    assert_eq!(
+        *prev, distro.db_subdir,
+        "cannot use two different distro databases in one process"
+    );
 }
 
 pub fn get_assets_path() -> PathBuf {
@@ -44,13 +57,8 @@ pub struct SamplePackage {
     pub description: &'static str,
 }
 
-pub fn setup_distro(distro: &DistroTestCase) {
-    configure();
-    config::set_db_path(&get_assets_path().join(distro.db_subdir)).unwrap();
-}
-
 pub fn assert_distro(distro: &DistroTestCase) {
-    setup_distro(distro);
+    init(distro);
 
     let mut packages: Vec<Package> = librpm::db::installed_packages().collect();
     packages.sort_by_key(|p| p.name().to_string());
@@ -75,7 +83,7 @@ pub fn assert_distro(distro: &DistroTestCase) {
 }
 
 pub fn assert_find_by_name(distro: &DistroTestCase) {
-    setup_distro(distro);
+    init(distro);
 
     let results: Vec<Package> = Index::Name.find(distro.sample.name).collect();
     assert_eq!(
@@ -95,7 +103,7 @@ pub fn assert_find_by_name(distro: &DistroTestCase) {
 }
 
 pub fn assert_find_nonexistent(distro: &DistroTestCase) {
-    setup_distro(distro);
+    init(distro);
 
     let results: Vec<Package> = Index::Name.find("nonexistent-package-xyz").collect();
     assert_eq!(
@@ -107,7 +115,7 @@ pub fn assert_find_nonexistent(distro: &DistroTestCase) {
 }
 
 pub fn assert_buildtimes_valid(distro: &DistroTestCase) {
-    setup_distro(distro);
+    init(distro);
 
     // 2020-01-01 as a reasonable lower bound for all test databases
     let year_2020 = time::SystemTime::UNIX_EPOCH + time::Duration::from_secs(1577836800);

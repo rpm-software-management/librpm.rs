@@ -44,8 +44,6 @@ pub fn read_file(config_file: Option<&Path>) -> Result<(), Error> {
         fail!(ErrorKind::Config, "already configured");
     }
 
-    global_state.configured = true;
-
     let rc = match config_file {
         Some(path) => {
             if !path.exists() {
@@ -79,6 +77,8 @@ pub fn read_file(config_file: Option<&Path>) -> Result<(), Error> {
             ),
         }
     }
+
+    global_state.configured = true;
 
     Ok(())
 }

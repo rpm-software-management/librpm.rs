@@ -27,7 +27,6 @@
 use std::path::Path;
 
 #[test]
-#[ignore = "fails"]
 fn test_config_behavior() {
     // A failed call should not prevent subsequent configuration
     let result = librpm::config::read_file(Some(Path::new("/nonexistent/rpmrc")));
