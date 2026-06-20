@@ -15,13 +15,35 @@
  * file, You can obtain one at <https://mozilla.org/MPL/2.0/>.
  */
 
-//! librpm.rs integration tests
+//! Cross-check librpm output against the `rpm` CLI on the host system.
+//!
+//! Gated behind the `test-current-system` feature because it requires a live
+//! RPM database and the `rpm` binary, which are not available in all CI
+//! environments or on non-RPM-based distributions.
+//!
+//! Run with: `cargo test --features test-current-system --test test-current-system`
+
+#![cfg(feature = "test-current-system")]
 
 use librpm::Package;
 use librpm::db::installed_packages;
 use std::process::Command;
 
 mod common;
+
+#[allow(dead_code)]
+fn fetch_package_info(package_name: &str, query_param: &str) -> Option<String> {
+    let rpm_info = Command::new("rpm")
+        .arg("-q")
+        .arg(package_name)
+        .arg(format!("--queryformat=%{{{}}}", query_param))
+        .output()
+        .unwrap()
+        .stdout;
+
+    let text = String::from_utf8(rpm_info).unwrap();
+    Some(text).filter(|c| c != "(none)" && c != "")
+}
 
 #[derive(Debug, PartialEq)]
 struct PartialPackage {
@@ -35,7 +57,7 @@ fn fetch_system_packages() -> Vec<PartialPackage> {
     let rpm_info = Command::new("rpm")
         .arg("-qa")
         .arg("--queryformat")
-        .arg("%{NAME}~%{VERSION}~%{RELEASE}~%{SUMMARY}\n")
+        .arg("%{NAME}\x1f%{VERSION}\x1f%{RELEASE}\x1f%{SUMMARY}\n")
         .output()
         .unwrap()
         .stdout;
@@ -43,7 +65,7 @@ fn fetch_system_packages() -> Vec<PartialPackage> {
     let text = String::from_utf8(rpm_info).unwrap();
     let mut packages = Vec::new();
     for line in text.lines() {
-        let mut parts = line.split('~');
+        let mut parts = line.split('\x1f');
         let name = parts.next().unwrap();
         let version = parts.next().unwrap();
         let release = parts.next().unwrap();

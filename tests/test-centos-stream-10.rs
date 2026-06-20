@@ -1,29 +1,26 @@
-use librpm::{Package, config::set_db_path, db::installed_packages};
+//! Validate package iteration against an offline CentOS Stream 10 database snapshot.
+//!
+//! This must be a separate binary because librpm caches the database connection
+//! on the global transaction set, so each test database needs its own process.
 
 mod common;
 
 #[test]
 fn test_centos_stream_10_rpm_database() {
-    common::configure();
-    set_db_path(&common::get_assets_path().join("centos-stream-10")).unwrap();
+    common::assert_distro(&common::CENTOS_STREAM_10);
+}
 
-    let mut packages: Vec<Package> = installed_packages().collect();
-    packages.sort_by_key(|p| p.name().to_string());
+#[test]
+fn test_centos_stream_10_find_by_name() {
+    common::assert_find_by_name(&common::CENTOS_STREAM_10);
+}
 
-    assert_eq!(packages.len(), 162);
-    let sample_package = &packages[0];
-    assert_eq!(sample_package.name(), "alternatives");
-    assert_eq!(sample_package.epoch(), None);
-    assert_eq!(sample_package.version(), "1.30");
-    assert_eq!(sample_package.release(), "2.el10");
-    assert_eq!(sample_package.arch(), Some("x86_64"));
-    assert_eq!(sample_package.license(), "GPL-2.0-only");
-    assert_eq!(
-        sample_package.summary(),
-        "A tool to maintain symbolic links determining default commands"
-    );
-    assert_eq!(
-        sample_package.description(),
-        "alternatives creates, removes, maintains and displays information about the\nsymbolic links comprising the alternatives system. It is possible for several\nprograms fulfilling the same or similar functions to be installed on a single\nsystem at the same time."
-    );
+#[test]
+fn test_centos_stream_10_find_nonexistent() {
+    common::assert_find_nonexistent(&common::CENTOS_STREAM_10);
+}
+
+#[test]
+fn test_centos_stream_10_buildtimes() {
+    common::assert_buildtimes_valid(&common::CENTOS_STREAM_10);
 }

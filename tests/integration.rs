@@ -1,82 +1,13 @@
 //! librpm.rs integration tests
 
-use librpm::{Index, config};
-use std::process::Command;
-use std::sync::Once;
+use librpm::{Index, Package, Tag};
 
-static CONFIGURE: Once = Once::new();
-
-// Read the default config
-// TODO: create a mock RPM database for testing
-fn configure() {
-    CONFIGURE.call_once(|| {
-        config::read_file(None).unwrap();
-    });
-}
-
-fn fetch_package_info(package_name: &str, query_param: &str) -> Option<String> {
-    let rpm_info = Command::new("rpm")
-        .arg("-q")
-        .arg(package_name)
-        .arg(format!("--queryformat=%{{{}}}", query_param))
-        .output()
-        .unwrap()
-        .stdout;
-
-    let text = String::from_utf8(rpm_info).unwrap();
-    Some(text).filter(|c| c != "(none)" && c != "")
-}
-
-#[test]
-fn db_find_test() {
-    configure();
-
-    let package_name = "rpm-devel";
-    let package_nevra = fetch_package_info(package_name, "NEVRA").unwrap();
-
-    let mut matches = Index::Name.find(package_name);
-
-    if let Some(package) = matches.next() {
-        assert_eq!(package.name(), "rpm-devel");
-        assert_eq!(
-            package.epoch(),
-            fetch_package_info(package_name, "EPOCH").map(|s| s.parse::<i32>().unwrap())
-        );
-        assert_eq!(
-            package.version(),
-            fetch_package_info(package_name, "VERSION").unwrap()
-        );
-        assert_eq!(
-            package.release(),
-            fetch_package_info(package_name, "RELEASE").unwrap()
-        );
-        assert_eq!(
-            package.summary(),
-            fetch_package_info(package_name, "SUMMARY").unwrap()
-        );
-        assert_eq!(
-            package.license(),
-            fetch_package_info(package_name, "LICENSE").unwrap()
-        );
-
-        assert_eq!(package.nevra(), package_nevra);
-        assert_eq!(package.to_string(), package_nevra);
-
-        assert!(matches.next().is_none(), "expected one result, got more!");
-    } else {
-        if librpm::db::installed_packages().count() == 0 {
-            eprintln!("*** warning: No RPMs installed! Tests skipped!")
-        } else {
-            panic!("some RPMs installed, but not `rpm-devel`?!");
-        }
-    }
-}
+mod common;
 
 // TODO: This will deadlock: https://github.com/rpm-software-management/librpm.rs/issues/15
 // #[test]
 // fn db_find_test_multiple() {
-
-//     configure();
+//     common::configure();
 
 //     let mut matches = Index::Name.find("glibc-common");
 //     if let Some(package) = matches.next() {
@@ -94,3 +25,82 @@ fn db_find_test() {
 //         panic!("glibc package not installed, are you running on RPM hosted system (RHEL, Fedora, CentOS)?");
 //     }
 // }
+
+#[test]
+fn test_centos_stream_9_scalar_int32_tag() {
+    common::setup_distro(&common::CENTOS_STREAM_9);
+
+    let results: Vec<Package> = Index::Name.find("alternatives").collect();
+    let package = &results[0];
+
+    let buildtime = package.get(Tag::BUILDTIME).expect("BUILDTIME should exist");
+    let value = buildtime.as_int32().expect("BUILDTIME should be Int32");
+    assert!(value > 0, "BUILDTIME should be a positive timestamp");
+
+    let values = buildtime
+        .as_int32_array()
+        .expect("BUILDTIME should be Int32");
+    assert_eq!(values.len(), 1, "BUILDTIME is a scalar tag (count=1)");
+}
+
+#[test]
+fn test_centos_stream_9_array_tag_data() {
+    common::setup_distro(&common::CENTOS_STREAM_9);
+
+    let results: Vec<Package> = Index::Name.find("alternatives").collect();
+    let pkg = &results[0];
+
+    let basenames = pkg.get(Tag::BASENAMES).expect("BASENAMES tag missing");
+    let basenames = basenames
+        .as_str_array()
+        .expect("BASENAMES should be a string array");
+    assert_eq!(basenames.len(), 12, "alternatives package has 12 files");
+
+    let filesizes = pkg.get(Tag::FILESIZES).expect("FILESIZES tag missing");
+    let sizes = filesizes
+        .as_int32_array()
+        .expect("FILESIZES should be Int32 array");
+    assert_eq!(
+        sizes.len(),
+        basenames.len(),
+        "FILESIZES and BASENAMES should have the same count",
+    );
+
+    let filemodes = pkg.get(Tag::FILEMODES).expect("FILEMODES tag missing");
+    let modes = filemodes
+        .as_int16_array()
+        .expect("FILEMODES should be Int16 array");
+    assert_eq!(
+        modes.len(),
+        basenames.len(),
+        "FILEMODES and BASENAMES should have the same count",
+    );
+}
+
+#[test]
+fn test_tag_type_mismatch_returns_none() {
+    common::setup_distro(&common::CENTOS_STREAM_9);
+
+    let results: Vec<Package> = Index::Name.find("alternatives").collect();
+    let pkg = &results[0];
+
+    let name = pkg.get(Tag::NAME).expect("NAME should exist");
+    assert!(name.as_int32().is_none());
+    assert!(name.as_int16().is_none());
+    assert!(name.as_int64().is_none());
+    assert!(name.as_bytes().is_none());
+    assert!(name.as_str_array().is_none());
+
+    let buildtime = pkg.get(Tag::BUILDTIME).expect("BUILDTIME should exist");
+    assert!(buildtime.as_str().is_none());
+    assert!(buildtime.as_bytes().is_none());
+    assert!(buildtime.as_str_array().is_none());
+}
+
+#[test]
+fn test_macro_define_and_pop() {
+    common::configure();
+    let ctx = librpm::MacroContext::default();
+    ctx.define("_test_librpm_rs_val 42", 0).unwrap();
+    ctx.pop("_test_librpm_rs_val").unwrap();
+}
