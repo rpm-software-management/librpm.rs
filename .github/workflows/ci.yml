@@ -36,7 +36,11 @@ jobs:
   integration-tests:
     strategy:
       matrix:
-        container: ["registry.fedoraproject.org/fedora:latest", "quay.io/centos/centos:stream10"]
+        container:
+          - "quay.io/centos/centos:stream9"
+          - "quay.io/centos/centos:stream10"
+          - "registry.fedoraproject.org/fedora:latest"
+
     container: ${{ matrix.container }}
     runs-on: ubuntu-latest
     steps:
