@@ -1,3 +1,8 @@
 
 /target
 **/*.rs.bk
+
+# SQLite/RPM runtime artifacts
+testdata/**/*.sqlite-shm
+testdata/**/*.sqlite-wal
+testdata/**/.rpm.lock
