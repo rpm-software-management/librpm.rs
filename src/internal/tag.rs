@@ -90,9 +90,11 @@ pub enum Tag {
     SHA256HEADER = librpm_sys::rpmTag_e_RPMTAG_SHA256HEADER as isize,
 
     /// fsverity signatures (string array)
+    #[cfg(has_rpmtag_veritysignatures)]
     VERITYSIGNATURES = librpm_sys::rpmTag_e_RPMTAG_VERITYSIGNATURES as isize,
 
     /// fsverity signature algorithm (int)
+    #[cfg(has_rpmtag_veritysignaturealgo)]
     VERITYSIGNATUREALGO = librpm_sys::rpmTag_e_RPMTAG_VERITYSIGNATUREALGO as isize,
 
     /// OpenPGP header-only signatures (string array)
@@ -104,6 +106,7 @@ pub enum Tag {
     SHA3_256HEADER = librpm_sys::rpmTag_e_RPMTAG_SHA3_256HEADER as isize,
 
     /// Sentinel for end of signature tag range (999)
+    #[cfg(has_rpmtag_sig_top)]
     SIG_TOP = librpm_sys::rpmTag_e_RPMTAG_SIG_TOP as isize,
 
     // -----------------------------------------------------------------------
@@ -925,36 +928,47 @@ pub enum Tag {
     PAYLOADSHA256ALT = librpm_sys::rpmTag_e_RPMTAG_PAYLOADSHA256ALT as isize,
 
     /// Architecture suffix string (string, extension)
+    #[cfg(has_rpmtag_archsuffix)]
     ARCHSUFFIX = librpm_sys::rpmTag_e_RPMTAG_ARCHSUFFIX as isize,
 
     /// Embedded spec file (string)
+    #[cfg(has_rpmtag_spec)]
     SPEC = librpm_sys::rpmTag_e_RPMTAG_SPEC as isize,
 
     /// URL of upstream translation repository (string)
+    #[cfg(has_rpmtag_translationurl)]
     TRANSLATIONURL = librpm_sys::rpmTag_e_RPMTAG_TRANSLATIONURL as isize,
 
     /// Upstream release monitoring URL or identifier (string)
+    #[cfg(has_rpmtag_upstreamreleases)]
     UPSTREAMRELEASES = librpm_sys::rpmTag_e_RPMTAG_UPSTREAMRELEASES as isize,
 
     /// Pre-uninstall-transaction scriptlet (string)
+    #[cfg(has_rpmtag_preuntrans)]
     PREUNTRANS = librpm_sys::rpmTag_e_RPMTAG_PREUNTRANS as isize,
 
     /// Post-uninstall-transaction scriptlet (string)
+    #[cfg(has_rpmtag_postuntrans)]
     POSTUNTRANS = librpm_sys::rpmTag_e_RPMTAG_POSTUNTRANS as isize,
 
     /// Interpreter for the pre-uninstall-transaction scriptlet (string array)
+    #[cfg(has_rpmtag_preuntransprog)]
     PREUNTRANSPROG = librpm_sys::rpmTag_e_RPMTAG_PREUNTRANSPROG as isize,
 
     /// Interpreter for the post-uninstall-transaction scriptlet (string array)
+    #[cfg(has_rpmtag_postuntransprog)]
     POSTUNTRANSPROG = librpm_sys::rpmTag_e_RPMTAG_POSTUNTRANSPROG as isize,
 
     /// Pre-uninstall-transaction scriptlet flags (RPMSCRIPT_* bitmask, int)
+    #[cfg(has_rpmtag_preuntransflags)]
     PREUNTRANSFLAGS = librpm_sys::rpmTag_e_RPMTAG_PREUNTRANSFLAGS as isize,
 
     /// Post-uninstall-transaction scriptlet flags (RPMSCRIPT_* bitmask, int)
+    #[cfg(has_rpmtag_postuntransflags)]
     POSTUNTRANSFLAGS = librpm_sys::rpmTag_e_RPMTAG_POSTUNTRANSFLAGS as isize,
 
     /// Systemd-sysusers declarations (string array, extension)
+    #[cfg(has_rpmtag_sysusers)]
     SYSUSERS = librpm_sys::rpmTag_e_RPMTAG_SYSUSERS as isize,
 
     /// Uncompressed payload size (int64)
@@ -966,6 +980,7 @@ pub enum Tag {
     PAYLOADSIZEALT = librpm_sys::rpmTag_e_RPMTAG_PAYLOADSIZEALT as isize,
 
     /// RPM format version (int)
+    #[cfg(has_rpmtag_rpmformat)]
     RPMFORMAT = librpm_sys::rpmTag_e_RPMTAG_RPMFORMAT as isize,
 
     /// Per-file index into MIMEDICT (int array)
@@ -1149,9 +1164,11 @@ pub enum SignatureTag {
     SHA256 = librpm_sys::rpmSigTag_e_RPMSIGTAG_SHA256 as isize,
 
     /// fsverity signatures
+    #[cfg(has_rpmsigtag_veritysignatures)]
     VERITYSIGNATURES = librpm_sys::rpmSigTag_e_RPMSIGTAG_VERITYSIGNATURES as isize,
 
     /// fsverity algorithm
+    #[cfg(has_rpmsigtag_veritysignaturealgo)]
     VERITYSIGNATURESALGO = librpm_sys::rpmSigTag_e_RPMSIGTAG_VERITYSIGNATUREALGO as isize,
 
     /// OpenPGP header-only signatures
@@ -1163,6 +1180,7 @@ pub enum SignatureTag {
     SHA3_256 = librpm_sys::rpmSigTag_e_RPMSIGTAG_SHA3_256 as isize,
 
     /// Reserved (sentinel for end of signature tag range)
+    #[cfg(has_rpmsigtag_reserved)]
     RESERVED = librpm_sys::rpmSigTag_e_RPMSIGTAG_RESERVED as isize,
 }
 
