@@ -96,9 +96,11 @@ pub enum Tag {
     VERITYSIGNATUREALGO = librpm_sys::rpmTag_e_RPMTAG_VERITYSIGNATUREALGO as isize,
 
     /// OpenPGP header-only signatures (string array)
+    #[cfg(has_rpmtag_openpgp)]
     OPENPGP = librpm_sys::rpmTag_e_RPMTAG_OPENPGP as isize,
 
     /// SHA3-256 digest of the immutable header region (string)
+    #[cfg(has_rpmtag_sha3_256header)]
     SHA3_256HEADER = librpm_sys::rpmTag_e_RPMTAG_SHA3_256HEADER as isize,
 
     /// Sentinel for end of signature tag range (999)
@@ -481,6 +483,7 @@ pub enum Tag {
     DEPENDSDICT = librpm_sys::rpmTag_e_RPMTAG_DEPENDSDICT as isize,
 
     /// MD5 digest of the source RPM (binary)
+    #[cfg(has_rpmtag_sourcesigmd5)]
     SOURCESIGMD5 = librpm_sys::rpmTag_e_RPMTAG_SOURCESIGMD5 as isize,
 
     /// Per-file SELinux file contexts (string array, obsolete)
@@ -901,9 +904,11 @@ pub enum Tag {
     // Payload digest tags
     // -----------------------------------------------------------------------
     /// SHA-256 digest of the compressed payload (string array)
+    #[cfg(has_rpmtag_payloadsha256)]
     PAYLOADSHA256 = librpm_sys::rpmTag_e_RPMTAG_PAYLOADSHA256 as isize,
 
     /// Algorithm used for PAYLOADSHA256 (int, obsolete)
+    #[cfg(has_rpmtag_payloadsha256algo)]
     PAYLOADSHA256ALGO = librpm_sys::rpmTag_e_RPMTAG_PAYLOADSHA256ALGO as isize,
 
     /// Auto-installed flag — unimplemented reservation (int)
@@ -916,6 +921,7 @@ pub enum Tag {
     MODULARITYLABEL = librpm_sys::rpmTag_e_RPMTAG_MODULARITYLABEL as isize,
 
     /// Alternate SHA-256 digest of the compressed payload (string array)
+    #[cfg(has_rpmtag_payloadsha256alt)]
     PAYLOADSHA256ALT = librpm_sys::rpmTag_e_RPMTAG_PAYLOADSHA256ALT as isize,
 
     /// Architecture suffix string (string, extension)
@@ -952,21 +958,26 @@ pub enum Tag {
     SYSUSERS = librpm_sys::rpmTag_e_RPMTAG_SYSUSERS as isize,
 
     /// Uncompressed payload size (int64)
+    #[cfg(has_rpmtag_payloadsize)]
     PAYLOADSIZE = librpm_sys::rpmTag_e_RPMTAG_PAYLOADSIZE as isize,
 
     /// Alternate uncompressed payload size (int64)
+    #[cfg(has_rpmtag_payloadsizealt)]
     PAYLOADSIZEALT = librpm_sys::rpmTag_e_RPMTAG_PAYLOADSIZEALT as isize,
 
     /// RPM format version (int)
     RPMFORMAT = librpm_sys::rpmTag_e_RPMTAG_RPMFORMAT as isize,
 
     /// Per-file index into MIMEDICT (int array)
+    #[cfg(has_rpmtag_filemimeindex)]
     FILEMIMEINDEX = librpm_sys::rpmTag_e_RPMTAG_FILEMIMEINDEX as isize,
 
     /// MIME type strings referenced by FILEMIMEINDEX (string array)
+    #[cfg(has_rpmtag_mimedict)]
     MIMEDICT = librpm_sys::rpmTag_e_RPMTAG_MIMEDICT as isize,
 
     /// Per-file MIME types, assembled from FILEMIMEINDEX + MIMEDICT (string array, extension)
+    #[cfg(has_rpmtag_filemimes)]
     FILEMIMES = librpm_sys::rpmTag_e_RPMTAG_FILEMIMES as isize,
 
     /// Package header digests (string array)
@@ -976,18 +987,23 @@ pub enum Tag {
     PACKAGEDIGESTALGOS = librpm_sys::rpmTag_e_RPMTAG_PACKAGEDIGESTALGOS as isize,
 
     /// NEVR of the source RPM (string)
+    #[cfg(has_rpmtag_sourcenevr)]
     SOURCENEVR = librpm_sys::rpmTag_e_RPMTAG_SOURCENEVR as isize,
 
     /// SHA-512 digest of the compressed payload (string)
+    #[cfg(has_rpmtag_payloadsha512)]
     PAYLOADSHA512 = librpm_sys::rpmTag_e_RPMTAG_PAYLOADSHA512 as isize,
 
     /// Alternate SHA-512 digest of the compressed payload (string)
+    #[cfg(has_rpmtag_payloadsha512alt)]
     PAYLOADSHA512ALT = librpm_sys::rpmTag_e_RPMTAG_PAYLOADSHA512ALT as isize,
 
     /// SHA3-256 digest of the compressed payload (string)
+    #[cfg(has_rpmtag_payloadsha3_256)]
     PAYLOADSHA3_256 = librpm_sys::rpmTag_e_RPMTAG_PAYLOADSHA3_256 as isize,
 
     /// Alternate SHA3-256 digest of the compressed payload (string)
+    #[cfg(has_rpmtag_payloadsha3_256alt)]
     PAYLOADSHA3_256ALT = librpm_sys::rpmTag_e_RPMTAG_PAYLOADSHA3_256ALT as isize,
 }
 
@@ -1139,9 +1155,11 @@ pub enum SignatureTag {
     VERITYSIGNATURESALGO = librpm_sys::rpmSigTag_e_RPMSIGTAG_VERITYSIGNATUREALGO as isize,
 
     /// OpenPGP header-only signatures
+    #[cfg(has_rpmsigtag_openpgp)]
     OPENPGP = librpm_sys::rpmSigTag_e_RPMSIGTAG_OPENPGP as isize,
 
     /// SHA3-256 header digest
+    #[cfg(has_rpmsigtag_sha3_256)]
     SHA3_256 = librpm_sys::rpmSigTag_e_RPMSIGTAG_SHA3_256 as isize,
 
     /// Reserved (sentinel for end of signature tag range)

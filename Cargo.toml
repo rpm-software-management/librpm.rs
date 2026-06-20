@@ -25,5 +25,11 @@ librpm-4-14 = []
 
 default = ["librpm-4-14"]
 
+[lints.rust]
+# WARNING: this also silences typos in #[cfg(…)] attributes.
+# build.rs sets has_rpmtag_* / has_rpmsigtag_* cfgs dynamically from DEP_RPM_*
+# env vars, which vary by system RPM version and can't be enumerated statically.
+unexpected_cfgs = "allow"
+
 [workspace]
 members = ["librpm-sys", "librpmbuild-sys", "librpmsign-sys"]
