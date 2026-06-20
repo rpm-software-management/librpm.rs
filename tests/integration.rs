@@ -27,8 +27,8 @@ mod common;
 // }
 
 #[test]
-fn test_centos_stream_9_scalar_int32_tag() {
-    common::setup_distro(&common::CENTOS_STREAM_9);
+fn test_scalar_int32_tag() {
+    common::init(&common::CENTOS_STREAM_9);
 
     let results: Vec<Package> = Index::Name.find("alternatives").collect();
     let package = &results[0];
@@ -44,8 +44,8 @@ fn test_centos_stream_9_scalar_int32_tag() {
 }
 
 #[test]
-fn test_centos_stream_9_array_tag_data() {
-    common::setup_distro(&common::CENTOS_STREAM_9);
+fn test_array_tag_data() {
+    common::init(&common::CENTOS_STREAM_9);
 
     let results: Vec<Package> = Index::Name.find("alternatives").collect();
     let pkg = &results[0];
@@ -79,7 +79,7 @@ fn test_centos_stream_9_array_tag_data() {
 
 #[test]
 fn test_tag_type_mismatch_returns_none() {
-    common::setup_distro(&common::CENTOS_STREAM_9);
+    common::init(&common::CENTOS_STREAM_9);
 
     let results: Vec<Package> = Index::Name.find("alternatives").collect();
     let pkg = &results[0];
@@ -99,7 +99,7 @@ fn test_tag_type_mismatch_returns_none() {
 
 #[test]
 fn test_macro_define_and_pop() {
-    common::configure();
+    common::init(&common::CENTOS_STREAM_9);
     let ctx = librpm::MacroContext::default();
     ctx.define("_test_librpm_rs_val 42", 0).unwrap();
     ctx.pop("_test_librpm_rs_val").unwrap();

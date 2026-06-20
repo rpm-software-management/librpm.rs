@@ -37,6 +37,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   from scalars to slices, correctly representing RPM tags that contain arrays
   of values (e.g. `FILESIZES`, `FILEMODES`, `REQUIREFLAGS`). The RPM header format
   stores scalars as arrays of length 1.
+* Fixed `config::read_file()` marking state as configured before
+  `rpmReadConfigFiles` succeeds, which prevented retry on failure
 
 ## 0.1.1 (2018-06-10)
 
