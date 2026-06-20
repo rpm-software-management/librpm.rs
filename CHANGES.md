@@ -7,11 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+
 * Brought the exposed tag constants up to date with RPM 6.0
 * Auto-detect available tag constants at build time for compatibility with older librpm versions
+
+### Fixed
+
 * Fixed undefined behavior in `TagData::char()`: C `char` (1 byte) was
   incorrectly cast to Rust `char` (4 bytes), causing out-of-bounds reads.
   The `Char` variant now holds `u8`.
+* Fixed memory leak: call `rpmtdFreeData` in `Header::get()` to free
+  container data allocated by `headerGet` (e.g. STRING_ARRAY pointer tables)
 
 ## 0.1.1 (2018-06-10)
 

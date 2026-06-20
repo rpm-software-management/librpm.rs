@@ -71,6 +71,15 @@ impl Header {
             other => panic!("unsupported rpmtd tag type: {other}"),
         };
 
+        // Safety: rpmtdFreeData is always safe to call — it only frees data
+        // that was malloc'd by headerGet (e.g. the pointer array for
+        // STRING_ARRAY). With HEADERGET_MINMEM, string/binary data points
+        // directly into the header blob and is not freed, so our TagData
+        // references remain valid.
+        unsafe {
+            librpm_sys::rpmtdFreeData(&mut td);
+        }
+
         Some(data)
     }
 
