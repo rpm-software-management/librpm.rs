@@ -31,8 +31,8 @@ pub(crate) enum TagData<'hdr> {
     /// No data associated with this tag
     Null,
 
-    /// Character
-    Char(char),
+    /// Character (single byte, corresponds to RPM_CHAR_TYPE)
+    Char(u8),
 
     /// 8-bit integer
     Int8(i8),
@@ -65,7 +65,7 @@ impl<'hdr> TagData<'hdr> {
         assert_eq!(td.type_, TagType::CHAR as u32);
         let ix = if td.ix >= 0 { td.ix as isize } else { 0 };
         // Safety: protected by the above two lines
-        let ch = unsafe { *(td.data as *const char).offset(ix) };
+        let ch = unsafe { *(td.data as *const u8).offset(ix) };
         TagData::Char(ch)
     }
 
@@ -184,7 +184,7 @@ impl<'hdr> TagData<'hdr> {
     }
 
     /// Obtain a char value, if this is a char
-    pub fn to_char(&self) -> Option<char> {
+    pub fn to_char(&self) -> Option<u8> {
         match *self {
             TagData::Char(c) => Some(c),
             _ => None,
