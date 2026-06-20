@@ -13,6 +13,22 @@ provide a safe, idiomatic Rust wrapper.
 [librpm]: http://ftp.rpm.org/api/4.14.0/
 [RPM Package Manager]: http://rpm.org/
 
+## Supported Platforms
+
+librpm.rs is tested against the following distributions:
+
+| Distribution | RPM Version | DB Backend |
+| --- | --- | --- |
+| CentOS Stream 9 | 4.16 | SQLite |
+| CentOS Stream 10 | 4.19 | SQLite |
+| Fedora 44 | 6.0 | SQLite |
+
+Older distributions using BerkeleyDB (e.g. CentOS 7, RHEL 7) are no longer
+tested or supported. Other distros (SUSE variants, Fedora versions other than 44)
+should work but are not currently tested.
+
+RHEL 8 support may be added in the future, but is not a current priority.
+
 ## Status
 
 - [X] Search and query RPM database by tag with exact match, glob, and regex
