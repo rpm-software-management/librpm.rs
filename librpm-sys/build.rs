@@ -49,6 +49,21 @@ fn main() {
     builder
         .generate()
         .unwrap()
-        .write_to_file(output_path)
+        .write_to_file(&output_path)
         .unwrap();
+
+    let bindings_src = std::fs::read_to_string(&output_path).unwrap();
+    for line in bindings_src.lines() {
+        let Some(rest) = line.strip_prefix("pub const ") else {
+            continue;
+        };
+        let Some((name, _)) = rest.split_once(':') else {
+            continue;
+        };
+        if let Some(tag) = name.strip_prefix("rpmTag_e_RPMTAG_") {
+            println!("cargo:rpmtag_{}=1", tag.to_lowercase());
+        } else if let Some(tag) = name.strip_prefix("rpmSigTag_e_RPMSIGTAG_") {
+            println!("cargo:rpmsigtag_{}=1", tag.to_lowercase());
+        }
+    }
 }
