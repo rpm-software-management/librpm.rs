@@ -16,15 +16,32 @@
  */
 
 //! RPM package headers
-
-use super::{tag::Tag, td::TagData};
-use crate::Package;
+use std::ffi::CString;
 use std::mem;
+use std::os::unix::prelude::OsStrExt;
+use std::path::Path;
+
+use super::rc::{RpmErrorKind, RpmReturnCode};
+use super::ts::GlobalTS;
+use super::{tag::Tag, td::TagData};
 
 /// RPM package header
-pub(crate) struct Header(*mut librpm_sys::headerToken_s);
+pub(crate) struct Header(librpm_sys::Header); // *mut librpm_sys::headerToken_s
 
 impl Header {
+    pub(crate) fn new() -> Self {
+        let ffi_header = unsafe { librpm_sys::headerNew() };
+        assert!(!ffi_header.is_null());
+
+        // No need to increment refcount, starts with refcount=1
+        Header(ffi_header)
+    }
+
+    /// Create a Header handle in Rust from a raw pointer
+    ///
+    /// SAFETY: The input pointer must not be used after passing ownership from Rust, except for dropping
+    /// the live reference if one existed. Once the original pointer goes out of scope, Rust should own
+    /// the only reference.
     pub(crate) unsafe fn from_ptr(ffi_header: librpm_sys::Header) -> Self {
         assert!(!ffi_header.is_null());
         // Increment librpm's internal reference count for this header
@@ -32,6 +49,73 @@ impl Header {
             librpm_sys::headerLink(ffi_header);
         }
         Header(ffi_header)
+    }
+
+    /// Get a pointer to the original librpm C struct for use by C functions.
+    ///
+    /// SAFETY: This pointer should not be copied and must not passed to headerFree().
+    pub(crate) unsafe fn as_mut_ptr(&mut self) -> &mut librpm_sys::Header {
+        &mut self.0
+    }
+
+    pub(crate) fn from_file(path: &Path) -> Result<Self, RpmErrorKind> {
+        let mut txn = GlobalTS::create();
+
+        let filename = CString::new(path.as_os_str().as_bytes()).unwrap();
+        let fmode = CString::new("r.ufdio").unwrap();
+
+        // Safety: filename and fmode are valid CStrings kept alive for the call
+        let fd: librpm_sys::FD_t = unsafe { librpm_sys::Fopen(filename.as_ptr(), fmode.as_ptr()) };
+        let mut hdr = Header::new();
+
+        let mut vsflags = librpm_sys::rpmVSFlags_e_RPMVSF_NOHDRCHK
+            | librpm_sys::rpmVSFlags_e_RPMVSF_NOSHA1HEADER
+            | librpm_sys::rpmVSFlags_e_RPMVSF_NOSHA256HEADER
+            | librpm_sys::rpmVSFlags_e_RPMVSF_NOMD5
+            | librpm_sys::rpmVSFlags_e_RPMVSF_NODSAHEADER
+            | librpm_sys::rpmVSFlags_e_RPMVSF_NORSAHEADER
+            | librpm_sys::rpmVSFlags_e_RPMVSF_NODSA
+            | librpm_sys::rpmVSFlags_e_RPMVSF_NORSA;
+
+        #[cfg(has_rpmvsflag_nosha256payload)]
+        {
+            vsflags |= librpm_sys::rpmVSFlags_e_RPMVSF_NOSHA256PAYLOAD;
+        }
+        #[cfg(has_rpmvsflag_nosha512payload)]
+        {
+            vsflags |= librpm_sys::rpmVSFlags_e_RPMVSF_NOSHA512PAYLOAD;
+        }
+        #[cfg(has_rpmvsflag_nosha3_256payload)]
+        {
+            vsflags |= librpm_sys::rpmVSFlags_e_RPMVSF_NOSHA3_256PAYLOAD;
+        }
+        #[cfg(has_rpmvsflag_nosha3_256header)]
+        {
+            vsflags |= librpm_sys::rpmVSFlags_e_RPMVSF_NOSHA3_256HEADER;
+        }
+        #[cfg(has_rpmvsflag_noopenpgp)]
+        {
+            vsflags |= librpm_sys::rpmVSFlags_e_RPMVSF_NOOPENPGP;
+        }
+
+        // Safety: raw_ts and fd are valid pointers obtained above; hdr is
+        // initialized by headerNew(). Fclose is called on all paths after
+        // rpmReadPackageFile returns, regardless of success or failure.
+        unsafe {
+            let raw_ts = txn.as_mut_ptr();
+            librpm_sys::rpmtsSetVSFlags(raw_ts, vsflags);
+
+            let rc = librpm_sys::rpmReadPackageFile(raw_ts, fd, std::ptr::null(), hdr.as_mut_ptr());
+            librpm_sys::Fclose(fd);
+
+            match RpmReturnCode::from_raw(rc) {
+                Some(RpmReturnCode::Ok) => Ok(hdr),
+                Some(RpmReturnCode::NotFound) => Err(RpmErrorKind::NotFound),
+                Some(RpmReturnCode::NotTrusted) => Err(RpmErrorKind::NotTrusted),
+                Some(RpmReturnCode::NoKey) => Err(RpmErrorKind::NoKey),
+                _ => Err(RpmErrorKind::Fail),
+            }
+        }
     }
 
     /// Get the data that corresponds to the given header tag.
@@ -82,22 +166,17 @@ impl Header {
 
         Some(data)
     }
+}
 
-    /// Convert this `Header` into a `Package`
-    pub(crate) fn to_package(&self) -> Package {
-        Package {
-            name: self.get(Tag::NAME).unwrap().as_str().unwrap().to_owned(),
-            epoch: self
-                .get(Tag::EPOCH)
-                .map(|d| d.to_int32().unwrap().to_owned()),
-            version: self.get(Tag::VERSION).unwrap().as_str().unwrap().to_owned(),
-            release: self.get(Tag::RELEASE).unwrap().as_str().unwrap().to_owned(),
-            arch: self.get(Tag::ARCH).map(|d| d.as_str().unwrap().to_owned()),
-            license: self.get(Tag::LICENSE).unwrap().as_str().unwrap().to_owned(),
-            summary: self.get(Tag::SUMMARY).unwrap().as_str().unwrap().into(),
-            description: self.get(Tag::DESCRIPTION).unwrap().as_str().unwrap().into(),
-            buildtime: self.get(Tag::BUILDTIME).unwrap().to_int32().unwrap(),
+impl Clone for Header {
+    fn clone(&self) -> Self {
+        // Safety: self.0 is a valid header pointer (invariant of Header).
+        // headerLink increments the refcount; Drop calls headerFree to
+        // decrement it, so the new Header owns one reference.
+        unsafe {
+            librpm_sys::headerLink(self.0);
         }
+        Header(self.0)
     }
 }
 

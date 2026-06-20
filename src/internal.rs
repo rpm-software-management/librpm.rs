@@ -22,8 +22,9 @@
 pub(crate) mod global_state;
 pub(crate) mod header;
 pub(crate) mod iterator;
-pub(crate) mod tag;
-pub(crate) mod td;
+pub mod rc;
+pub mod tag;
+pub mod td;
 pub(crate) mod ts;
 
 pub(crate) use self::global_state::GlobalState;

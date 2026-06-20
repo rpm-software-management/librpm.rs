@@ -7,10 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+* `Package::from_file()` reads an `.rpm` file directly into a `Package`
+* `Package::get()` exposes raw tag data access via `Tag` and `TagData`,
+  both of which are now part of the public API
+
 ### Changed
 
 * Brought the exposed tag constants up to date with RPM 6.0
 * Auto-detect available tag constants at build time for compatibility with older librpm versions
+* `Package` is now a thin wrapper around librpm's refcounted header instead
+  of eagerly copying all tag values into owned `String` fields. Accessors
+  perform tag lookups on demand. `PartialEq` and `Hash` compare by NEVRA.
 
 ### Fixed
 

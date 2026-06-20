@@ -44,7 +44,7 @@ impl TransactionSet {
 impl Drop for TransactionSet {
     fn drop(&mut self) {
         unsafe {
-            librpm_sys::rpmtsFree(*self.0.get_mut());
+            librpm_sys::rpmtsFree(*self.as_mut_ptr());
         }
     }
 }

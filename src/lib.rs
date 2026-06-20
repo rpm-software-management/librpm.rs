@@ -51,3 +51,8 @@ pub mod macro_context;
 pub mod package;
 
 pub use self::{db::Index, error::Error, macro_context::MacroContext, package::Package};
+
+// Re-export types used in public API
+pub use self::internal::rc::RpmErrorKind;
+pub use self::internal::tag::Tag;
+pub use self::internal::td::TagData;

@@ -27,7 +27,7 @@ use std::{slice, str};
 
 /// Data found in RPM headers, associated with a particular `Tag` value.
 #[derive(Debug)]
-pub(crate) enum TagData<'hdr> {
+pub enum TagData<'hdr> {
     /// No data associated with this tag
     Null,
 
