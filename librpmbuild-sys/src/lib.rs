@@ -27,4 +27,3 @@
 
 // Bindings to librpmbuild.so
 include!(concat!(env!("OUT_DIR"), "/binding.rs"));
-

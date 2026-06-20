@@ -24,12 +24,23 @@ use std::{env, path::PathBuf};
 fn main() {
     println!("cargo:rustc-link-lib=rpmsign");
 
+    // No functions are consumed from this crate yet.
+    // Uncomment as safe wrappers are added.
+    let builder = Builder::default()
+        .header("include/librpmsign.hpp")
+        // rpmsign.h
+        // .allowlist_function("rpmPkgSign")
+        // .allowlist_function("rpmPkgDelSign")
+        // .allowlist_function("rpmPkgDelFileSign")
+        // rpmsign.h — sign args and flags
+        // .allowlist_type("rpmSignArgs")
+        // .allowlist_type("rpmSignFlags_e")
+        .allowlist_function("__librpmsign_sys_placeholder__");
+
     // Write generated bindings to OUT_DIR (to be included in the crate)
     let output_path = PathBuf::from(env::var("OUT_DIR").unwrap()).join("binding.rs");
 
-    // TODO: whitelist types and functions we actually use
-    Builder::default()
-        .header("include/librpmsign.hpp")
+    builder
         .generate()
         .unwrap()
         .write_to_file(output_path)
