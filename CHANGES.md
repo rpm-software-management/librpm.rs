@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The `Char` variant now holds `u8`.
 * Fixed memory leak: call `rpmtdFreeData` in `Header::get()` to free
   container data allocated by `headerGet` (e.g. STRING_ARRAY pointer tables)
+* Synchronized `MacroContext::define()`, `pop()`, and `delete()` through
+  the global state lock to prevent data races on RPM's macro table
 
 ## 0.1.1 (2018-06-10)
 

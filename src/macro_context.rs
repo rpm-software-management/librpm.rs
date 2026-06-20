@@ -19,6 +19,7 @@
 //! previous rpmrc system.
 
 use crate::error::{Error, ErrorKind};
+use crate::internal::GlobalState;
 use librpm_sys;
 use std::ffi::CString;
 
@@ -28,6 +29,8 @@ pub struct MacroContext(librpm_sys::rpmMacroContext);
 /// Obtain the default global context
 impl Default for MacroContext {
     fn default() -> MacroContext {
+        // Safety: rpmGlobalMacroContext is a process-wide static pointer
+        // provided by librpm. It is valid for the lifetime of the process.
         unsafe { MacroContext(librpm_sys::rpmGlobalMacroContext) }
     }
 }
@@ -42,6 +45,13 @@ impl MacroContext {
         let cstr =
             CString::new(macro_string).map_err(|e| format_err!(ErrorKind::Config, "{}", e))?;
 
+        // Aggressively synchronize all macro operations through the global
+        // lock. This serializes even non-global context operations, but these
+        // are not hot paths and correctness is more important here.
+        let _lock = GlobalState::lock();
+        // Safety: cstr is a valid null-terminated C string, and self.0 is a
+        // valid rpmMacroContext obtained from librpm. The global lock ensures
+        // exclusive access to librpm's macro state.
         unsafe {
             librpm_sys::rpmDefineMacro(self.0, cstr.as_ptr(), level as i32);
         }
@@ -52,8 +62,11 @@ impl MacroContext {
     #[cfg(feature = "librpm-4-14")]
     /// Delete a macro from this context.
     pub fn pop(&self, name: &str) -> Result<(), Error> {
-        let cstr = CString::new(name).unwrap();
+        let cstr = CString::new(name).map_err(|e| format_err!(ErrorKind::Config, "{}", e))?;
 
+        let _lock = GlobalState::lock();
+        // Safety: cstr is a valid null-terminated C string, and self.0 is a
+        // valid rpmMacroContext. The global lock ensures exclusive access.
         unsafe {
             librpm_sys::rpmPopMacro(self.0, cstr.as_ptr());
         }
@@ -64,8 +77,11 @@ impl MacroContext {
     #[cfg(not(feature = "librpm-4-14"))]
     /// Delete a macro from this context.
     pub fn delete(&self, name: &str) -> Result<(), Error> {
-        let cstr = CString::new(name).unwrap();
+        let cstr = CString::new(name).map_err(|e| format_err!(ErrorKind::Config, "{}", e))?;
 
+        let _lock = GlobalState::lock();
+        // Safety: cstr is a valid null-terminated C string, and self.0 is a
+        // valid rpmMacroContext. The global lock ensures exclusive access.
         unsafe {
             librpm_sys::delMacro(self.0, cstr.as_ptr());
         }
