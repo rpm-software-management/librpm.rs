@@ -47,7 +47,7 @@ fn main() {
         // to uncomment as safe Rust wrappers are added.
         // ----------------------------------------------------------
         // header.h — package header access
-        // .allowlist_function("headerNew")
+        .allowlist_function("headerNew")
         .allowlist_function("headerFree")
         .allowlist_function("headerLink")
         // .allowlist_function("headerExport")
@@ -119,7 +119,8 @@ fn main() {
         // .allowlist_function("rpmfiFree")
         // .allowlist_function("rpmfiNext")
         // rpmio.h — I/O routines
-        // .allowlist_function("Fopen")
+        .allowlist_function("Fopen")
+        .allowlist_function("Fclose")
         // .allowlist_function("Fdopen")
         // .allowlist_function("Fclose")
         // .allowlist_function("Fflush")
@@ -138,7 +139,7 @@ fn main() {
         // .allowlist_function("rpmFreeRpmrc")
         // .allowlist_function("rpmVersionCompare")
         // .allowlist_function("headerCheck")
-        // .allowlist_function("rpmReadPackageFile")
+        .allowlist_function("rpmReadPackageFile")
         // rpmmacro.h — macro system
         .allowlist_function("rpmDefineMacro")
         .allowlist_function("rpmPopMacro")
@@ -226,7 +227,7 @@ fn main() {
         // .allowlist_function("rpmtsProblems")
         // .allowlist_function("rpmtsEmpty")
         // .allowlist_function("rpmtsVSFlags")
-        // .allowlist_function("rpmtsSetVSFlags")
+        .allowlist_function("rpmtsSetVSFlags")
         // .allowlist_function("rpmtsVfyFlags")
         // .allowlist_function("rpmtsSetVfyFlags")
         // .allowlist_function("rpmtsVfyLevel")
@@ -372,6 +373,8 @@ fn main() {
         .allowlist_type("rpmSigTag_e")
         .allowlist_type("rpmTagType_e")
         .allowlist_type("rpmTagClass_e")
+        // rpmtypes.h — return codes
+        .allowlist_type("rpmRC_e")
         // header.h — header access flags
         .allowlist_type("headerGetFlags_e")
         // .allowlist_type("headerPutFlags_e")
@@ -379,7 +382,7 @@ fn main() {
         // .allowlist_type("hMagic")
         // rpmts.h — transaction control flags
         // .allowlist_type("rpmtransFlags_e")
-        // .allowlist_type("rpmVSFlags_e")
+        .allowlist_type("rpmVSFlags_e")
         // .allowlist_type("rpmtxnFlags_e")
         // rpmte.h — transaction element type
         // .allowlist_type("rpmElementType_e")
@@ -424,6 +427,8 @@ fn main() {
             println!("cargo:rpmtag_{}=1", tag.to_lowercase());
         } else if let Some(tag) = name.strip_prefix("rpmSigTag_e_RPMSIGTAG_") {
             println!("cargo:rpmsigtag_{}=1", tag.to_lowercase());
+        } else if let Some(flag) = name.strip_prefix("rpmVSFlags_e_RPMVSF_") {
+            println!("cargo:rpmvsflag_{}=1", flag.to_lowercase());
         }
     }
 }
