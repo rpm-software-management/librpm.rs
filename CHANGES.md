@@ -33,11 +33,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Configuration is done via top-level `librpm::init()` / `librpm::init_with()`.
   This ensures at compile time that RPM configuration has been loaded before
   any database queries are made ([#13]).
+* Removed `AtomicPtr` in `TransactionSet`, making `TransactionSet` `Send`-only rather than
+  `Send + Sync`
 
 ### Fixed
 
-* Fixed deadlock when creating multiple database iterators from the same
-  thread ([#15]).
+* Fixed deadlock when creating multiple database iterators from the same thread ([#15]).
 * Fixed undefined behavior in `TagData::char()`: C `char` (1 byte) was
   incorrectly cast to Rust `char` (4 bytes), causing out-of-bounds reads.
   The `Char` variant now holds `u8`.

@@ -18,7 +18,6 @@
 //! Transaction sets: librpm's transaction API
 
 use super::GlobalState;
-use std::sync::atomic::AtomicPtr;
 
 /// librpm transactions, a.k.a. "transaction sets" (or `rpmts` librpm type)
 ///
@@ -28,7 +27,13 @@ use std::sync::atomic::AtomicPtr;
 /// This library opens a single global transaction set on command, and all
 /// operations which require one acquire it, use it, and then release it.
 /// This allows us to keep them out of the public API.
-pub(crate) struct TransactionSet(AtomicPtr<librpm_sys::rpmts_s>);
+pub(crate) struct TransactionSet(*mut librpm_sys::rpmts_s);
+
+// Safety: TransactionSet lives inside `Lazy<Mutex<GlobalState>>` and its
+// methods are only called while holding the GlobalState mutex. A copy of the
+// pointer escapes via `GlobalTS` for use after the lock is released, but that
+// is safe — see the safety argument on `GlobalTS` and `MatchIterator`.
+unsafe impl Send for TransactionSet {}
 
 impl TransactionSet {
     /// Create a transaction set (i.e. begin a transaction)
@@ -36,21 +41,23 @@ impl TransactionSet {
     /// This is not intended to be invoked directly, but instead obtained
     /// from `GlobalState`.
     pub(crate) fn create() -> Self {
-        TransactionSet(AtomicPtr::new(unsafe { librpm_sys::rpmtsCreate() }))
+        // Safety: rpmtsCreate returns a valid, non-null transaction set pointer.
+        TransactionSet(unsafe { librpm_sys::rpmtsCreate() })
     }
 }
 
 impl Drop for TransactionSet {
     fn drop(&mut self) {
+        // Safety: self.0 was created by rpmtsCreate and has not been freed.
         unsafe {
-            librpm_sys::rpmtsFree(*self.as_mut_ptr());
+            librpm_sys::rpmtsFree(self.0);
         }
     }
 }
 
 impl TransactionSet {
-    pub(crate) fn as_mut_ptr(&mut self) -> &mut *mut librpm_sys::rpmts_s {
-        self.0.get_mut()
+    pub(crate) fn as_mut_ptr(&mut self) -> *mut librpm_sys::rpmts_s {
+        self.0
     }
 }
 
@@ -66,7 +73,7 @@ impl GlobalTS {
     /// Briefly acquire the global state lock and snapshot the transaction set pointer.
     pub fn create() -> Self {
         let mut state = GlobalState::lock();
-        GlobalTS(*state.ts.as_mut_ptr())
+        GlobalTS(state.ts.as_mut_ptr())
     }
 
     /// Obtain the internal pointer to the transaction set
