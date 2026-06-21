@@ -59,7 +59,6 @@ impl MacroContext {
         Ok(())
     }
 
-    #[cfg(feature = "librpm-4-14")]
     /// Delete a macro from this context.
     pub fn pop(&self, name: &str) -> Result<(), Error> {
         let cstr = CString::new(name).map_err(|e| format_err!(ErrorKind::Config, "{}", e))?;
@@ -69,21 +68,6 @@ impl MacroContext {
         // valid rpmMacroContext. The global lock ensures exclusive access.
         unsafe {
             librpm_sys::rpmPopMacro(self.0, cstr.as_ptr());
-        }
-
-        Ok(())
-    }
-
-    #[cfg(not(feature = "librpm-4-14"))]
-    /// Delete a macro from this context.
-    pub fn delete(&self, name: &str) -> Result<(), Error> {
-        let cstr = CString::new(name).map_err(|e| format_err!(ErrorKind::Config, "{}", e))?;
-
-        let _lock = GlobalState::lock();
-        // Safety: cstr is a valid null-terminated C string, and self.0 is a
-        // valid rpmMacroContext. The global lock ensures exclusive access.
-        unsafe {
-            librpm_sys::delMacro(self.0, cstr.as_ptr());
         }
 
         Ok(())
