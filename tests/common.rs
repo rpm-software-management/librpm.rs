@@ -7,23 +7,21 @@
 
 use std::{
     path::{Path, PathBuf},
-    sync::{Once, OnceLock},
+    sync::OnceLock,
 };
 
 use std::time;
 
-use librpm::{Index, Package, config};
+use librpm::{Db, Index, Package, config};
 
-static CONFIGURE: Once = Once::new();
+static DB: OnceLock<Db> = OnceLock::new();
 static DISTRO: OnceLock<&'static str> = OnceLock::new();
 
-pub fn configure() {
-    CONFIGURE.call_once(|| {
-        config::read_file(None).unwrap();
-    });
+pub fn configure() -> &'static Db {
+    DB.get_or_init(|| config::read_file(None).unwrap())
 }
 
-pub fn init(distro: &DistroTestCase) {
+pub fn init(distro: &DistroTestCase) -> &'static Db {
     let prev = DISTRO.get_or_init(|| {
         configure();
         config::set_db_path(&get_assets_path().join(distro.db_subdir)).unwrap();
@@ -33,6 +31,7 @@ pub fn init(distro: &DistroTestCase) {
         *prev, distro.db_subdir,
         "cannot use two different distro databases in one process"
     );
+    DB.get().unwrap()
 }
 
 pub fn get_assets_path() -> PathBuf {
@@ -58,9 +57,9 @@ pub struct SamplePackage {
 }
 
 pub fn assert_distro(distro: &DistroTestCase) {
-    init(distro);
+    let db = init(distro);
 
-    let mut packages: Vec<Package> = librpm::db::installed_packages().collect();
+    let mut packages: Vec<Package> = db.installed_packages().collect();
     packages.sort_by_key(|p| p.name().to_string());
 
     assert_eq!(
@@ -83,9 +82,9 @@ pub fn assert_distro(distro: &DistroTestCase) {
 }
 
 pub fn assert_find_by_name(distro: &DistroTestCase) {
-    init(distro);
+    let db = init(distro);
 
-    let results: Vec<Package> = Index::Name.find(distro.sample.name).collect();
+    let results: Vec<Package> = db.find(Index::Name, distro.sample.name).collect();
     assert_eq!(
         results.len(),
         1,
@@ -103,9 +102,9 @@ pub fn assert_find_by_name(distro: &DistroTestCase) {
 }
 
 pub fn assert_find_nonexistent(distro: &DistroTestCase) {
-    init(distro);
+    let db = init(distro);
 
-    let results: Vec<Package> = Index::Name.find("nonexistent-package-xyz").collect();
+    let results: Vec<Package> = db.find(Index::Name, "nonexistent-package-xyz").collect();
     assert_eq!(
         results.len(),
         0,
@@ -115,12 +114,12 @@ pub fn assert_find_nonexistent(distro: &DistroTestCase) {
 }
 
 pub fn assert_buildtimes_valid(distro: &DistroTestCase) {
-    init(distro);
+    let db = init(distro);
 
     // 2020-01-01 as a reasonable lower bound for all test databases
     let year_2020 = time::SystemTime::UNIX_EPOCH + time::Duration::from_secs(1577836800);
 
-    for pkg in librpm::db::installed_packages() {
+    for pkg in db.installed_packages() {
         let bt = pkg.buildtime();
         assert!(
             bt > year_2020,
