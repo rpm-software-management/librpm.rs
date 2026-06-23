@@ -18,15 +18,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-* **Breaking:** Database query functions (`Index::find()`, `installed_packages()`,
-  `db::find()`) are now methods on a new `Db` handle type returned by
-  `config::read_file()`. This ensures at compile time that RPM configuration has
-  been loaded before any database queries are made ([#13]).
 * Brought the exposed tag constants up to date with RPM 6.0
 * Auto-detect available tag constants at build time for compatibility with older librpm versions
 * `Package` is now a thin wrapper around librpm's refcounted header instead
   of eagerly copying all tag values into owned `String` fields. Accessors
   perform tag lookups on demand. `PartialEq` and `Hash` compare by NEVRA.
+* **Breaking:** Database query functions (`Index::find()`, `installed_packages()`,
+  `db::find()`) are now methods on a new `Db` handle obtained via `Db::open()`.
+  Configuration is done via top-level `librpm::init()` / `librpm::init_with()`.
+  This ensures at compile time that RPM configuration has been loaded before
+  any database queries are made ([#13]).
 
 ### Fixed
 

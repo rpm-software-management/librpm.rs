@@ -15,9 +15,9 @@
  * file, You can obtain one at <https://mozilla.org/MPL/2.0/>.
  */
 
-//! Tests that config::read_file() handles failure and retry correctly.
+//! Tests that librpm::init() handles failure and retry correctly.
 //!
-//! This is a separate test binary because read_file() modifies
+//! This is a separate test binary because init() modifies
 //! process-global state — it must run in isolation from other tests
 //! that call configure().
 //!
@@ -29,20 +29,28 @@ use std::path::Path;
 #[test]
 fn test_config_behavior() {
     // A failed call should not prevent subsequent configuration
-    let result = librpm::config::read_file(Some(Path::new("/nonexistent/rpmrc")));
+    let result = librpm::init_with(Some(Path::new("/nonexistent/rpmrc")), None);
     assert!(result.is_err(), "should fail for nonexistent path");
 
-    // Retry with default config should succeed and return a usable Db handle
-    let db = librpm::config::read_file(None)
-        .expect("should succeed after prior failure, not get 'already configured'");
+    // Db::open() should fail before configuration
+    let result = librpm::Db::open();
+    assert!(result.is_err(), "Db::open() should fail before config");
 
-    // The returned Db handle should be usable for queries
+    // Retry with default config should succeed
+    let result = librpm::init();
+    assert!(
+        result.is_ok(),
+        "should succeed after prior failure, not get 'already configured': {result:?}"
+    );
+
+    // Db::open() should succeed after configuration
+    let db = librpm::Db::open().expect("Db::open() should succeed after config");
     let results: Vec<librpm::Package> = db
         .find(librpm::Index::Name, "nonexistent-pkg-xyz")
         .collect();
     assert_eq!(results.len(), 0);
 
     // But a second successful configure should be rejected
-    let result = librpm::config::read_file(None);
+    let result = librpm::init();
     assert!(result.is_err(), "double configure should fail");
 }
