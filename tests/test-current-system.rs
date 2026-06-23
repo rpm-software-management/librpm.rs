@@ -26,7 +26,6 @@
 #![cfg(feature = "test-current-system")]
 
 use librpm::Package;
-use librpm::db::installed_packages;
 use std::process::Command;
 
 mod common;
@@ -83,10 +82,10 @@ fn fetch_system_packages() -> Vec<PartialPackage> {
 
 #[test]
 fn test_against_installed_packages() {
-    common::configure();
+    let db = common::configure();
 
     let mut expected_install_packages = fetch_system_packages();
-    let mut found_packages: Vec<Package> = installed_packages().collect();
+    let mut found_packages: Vec<Package> = db.installed_packages().collect();
 
     expected_install_packages.sort_by_key(|p| p.name.to_string());
     found_packages.sort_by_key(|p| p.name().to_string());

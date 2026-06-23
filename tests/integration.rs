@@ -1,23 +1,23 @@
 //! librpm.rs integration tests
 
-use librpm::{Index, Package, Tag};
+use librpm::{Package, Tag};
 
 mod common;
 
 // TODO: This will deadlock: https://github.com/rpm-software-management/librpm.rs/issues/15
 // #[test]
 // fn db_find_test_multiple() {
-//     common::configure();
-
-//     let mut matches = Index::Name.find("glibc-common");
+//     let db = common::configure();
+//
+//     let mut matches = db.find(librpm::Index::Name, "glibc-common");
 //     if let Some(package) = matches.next() {
 //         assert_eq!(package.name(), "glibc-common");
 //         assert!(matches.next().is_none(), "expected one result, got more!");
 //     } else {
 //         panic!("glibc-common package not installed, are you running on RPM hosted system (RHEL, Fedora, CentOS)?");
 //     }
-
-//     let mut matches = Index::Name.find("glibc");
+//
+//     let mut matches = db.find(librpm::Index::Name, "glibc");
 //     if let Some(package) = matches.next() {
 //         assert_eq!(package.name(), "glibc");
 //         assert!(matches.next().is_none(), "expected one result, got more!");
@@ -28,9 +28,9 @@ mod common;
 
 #[test]
 fn test_scalar_int32_tag() {
-    common::init(&common::CENTOS_STREAM_9);
+    let db = common::init(&common::CENTOS_STREAM_9);
 
-    let results: Vec<Package> = Index::Name.find("alternatives").collect();
+    let results: Vec<Package> = db.find(librpm::Index::Name, "alternatives").collect();
     let package = &results[0];
 
     let buildtime = package.get(Tag::BUILDTIME).expect("BUILDTIME should exist");
@@ -45,9 +45,9 @@ fn test_scalar_int32_tag() {
 
 #[test]
 fn test_array_tag_data() {
-    common::init(&common::CENTOS_STREAM_9);
+    let db = common::init(&common::CENTOS_STREAM_9);
 
-    let results: Vec<Package> = Index::Name.find("alternatives").collect();
+    let results: Vec<Package> = db.find(librpm::Index::Name, "alternatives").collect();
     let pkg = &results[0];
 
     let basenames = pkg.get(Tag::BASENAMES).expect("BASENAMES tag missing");
@@ -79,9 +79,9 @@ fn test_array_tag_data() {
 
 #[test]
 fn test_tag_type_mismatch_returns_none() {
-    common::init(&common::CENTOS_STREAM_9);
+    let db = common::init(&common::CENTOS_STREAM_9);
 
-    let results: Vec<Package> = Index::Name.find("alternatives").collect();
+    let results: Vec<Package> = db.find(librpm::Index::Name, "alternatives").collect();
     let pkg = &results[0];
 
     let name = pkg.get(Tag::NAME).expect("NAME should exist");
@@ -99,7 +99,7 @@ fn test_tag_type_mismatch_returns_none() {
 
 #[test]
 fn test_macro_define_and_pop() {
-    common::init(&common::CENTOS_STREAM_9);
+    let _db = common::init(&common::CENTOS_STREAM_9);
     let ctx = librpm::MacroContext::default();
     ctx.define("_test_librpm_rs_val 42", 0).unwrap();
     ctx.pop("_test_librpm_rs_val").unwrap();

@@ -32,12 +32,15 @@ fn test_config_behavior() {
     let result = librpm::config::read_file(Some(Path::new("/nonexistent/rpmrc")));
     assert!(result.is_err(), "should fail for nonexistent path");
 
-    // Retry with default config should succeed
-    let result = librpm::config::read_file(None);
-    assert!(
-        result.is_ok(),
-        "should succeed after prior failure, not get 'already configured': {result:?}"
-    );
+    // Retry with default config should succeed and return a usable Db handle
+    let db = librpm::config::read_file(None)
+        .expect("should succeed after prior failure, not get 'already configured'");
+
+    // The returned Db handle should be usable for queries
+    let results: Vec<librpm::Package> = db
+        .find(librpm::Index::Name, "nonexistent-pkg-xyz")
+        .collect();
+    assert_eq!(results.len(), 0);
 
     // But a second successful configure should be rejected
     let result = librpm::config::read_file(None);

@@ -54,7 +54,8 @@ pub mod package;
 pub mod version;
 
 pub use self::{
-    db::Index, error::Error, macro_context::MacroContext, package::Package, version::Version,
+    db::Db, db::Index, error::Error, macro_context::MacroContext, package::Package,
+    version::Version,
 };
 
 // Re-export types used in public API
