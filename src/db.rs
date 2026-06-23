@@ -19,9 +19,8 @@
 //!
 //! The database used is whichever one is configured as the `_dbpath` in the
 //! in the global macro context. By default this is unset: you will need to
-//! call [`librpm::config::read_file(None)`](crate::config::read_file) to read
-//! the default "rpmrc" configuration, which returns a [`Db`] handle for
-//! querying.
+//! call [`librpm::init()`](crate::init) to read the default "rpmrc"
+//! configuration, then [`Db::open()`] to obtain a handle for querying.
 //!
 //! # Example
 //!
@@ -29,9 +28,10 @@
 //!
 //! ```no_run
 //! # fn main() -> Result<(), librpm::error::Error> {
-//! use librpm::Index;
+//! use librpm::{Db, Index};
 //!
-//! let db = librpm::config::read_file(None)?;
+//! librpm::init()?;
+//! let db = Db::open()?;
 //! let mut matches = db.find(Index::Name, "rpm-devel");
 //! if let Some(package) = matches.next() {
 //!     println!("package name: {}", package.name());
@@ -42,23 +42,36 @@
 //! # }
 //! ```
 
+use crate::error::Error;
 use crate::internal::iterator::MatchIterator;
 use crate::internal::tag::DBIndexTag;
 use crate::package::Package;
 use streaming_iterator::StreamingIterator;
 
-/// Handle to the RPM database, obtained by calling [`crate::config::read_file`].
+/// Handle to the RPM database.
 ///
 /// All database query methods are on this type, ensuring that configuration
-/// has been loaded before any queries are made.
+/// has been loaded before any queries are made. Call [`librpm::init`](crate::init)
+/// first, then [`Db::open`] to obtain a handle.
 #[derive(Debug)]
 pub struct Db {
     _private: (),
 }
 
 impl Db {
-    pub(crate) fn new() -> Self {
-        Db { _private: () }
+    /// Return a database handle if RPM has already been configured via
+    /// [`librpm::init`](crate::init) or [`librpm::init_with`](crate::init_with).
+    ///
+    /// Returns an error if configuration has not been loaded yet.
+    pub fn open() -> Result<Self, Error> {
+        let global_state = crate::internal::GlobalState::lock();
+        if !global_state.configured {
+            fail!(
+                crate::error::ErrorKind::Config,
+                "RPM has not been configured; call librpm::init() first"
+            );
+        }
+        Ok(Db { _private: () })
     }
 
     /// Find an exact match for `key` in the given `index`.

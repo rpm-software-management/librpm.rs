@@ -17,11 +17,9 @@
 
 //! Support for configuring RPM, i.e. reading configuration files
 
-use crate::db::Db;
 use crate::error::{Error, ErrorKind};
 use crate::internal::GlobalState;
 use crate::macro_context::MacroContext;
-use librpm_sys;
 use std::ffi::CString;
 use std::os::unix::ffi::OsStrExt;
 use std::path::Path;
@@ -30,14 +28,13 @@ use std::ptr;
 /// Name of the macro which defines the path to the database
 const DB_PATH_MACRO: &str = "_dbpath";
 
-/// Read RPM configuration (a.k.a. rpmrc) and return a [`Db`] handle for
-/// querying the RPM database.
+/// Read RPM configuration (a.k.a. rpmrc).
 ///
 /// If `None` is passed, the default configuration will be used.
 ///
 /// Configuration is global to the process; this function can only be called
 /// once.
-pub fn read_file(config_file: Option<&Path>) -> Result<Db, Error> {
+pub(crate) fn read_file(config_file: Option<&Path>) -> Result<(), Error> {
     let mut global_state = GlobalState::lock();
 
     // Avoid invoking `rpmReadConfigFiles` more than once. This vicariously
@@ -83,10 +80,10 @@ pub fn read_file(config_file: Option<&Path>) -> Result<Db, Error> {
 
     global_state.configured = true;
 
-    Ok(Db::new())
+    Ok(())
 }
 
 /// Set the path to the global RPM database.
-pub fn set_db_path(path: &Path) -> Result<(), Error> {
+pub(crate) fn set_db_path(path: &Path) -> Result<(), Error> {
     MacroContext::default().define(&format!("{} {}", DB_PATH_MACRO, path.display()), 0)
 }

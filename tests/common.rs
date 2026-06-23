@@ -12,26 +12,28 @@ use std::{
 
 use std::time;
 
-use librpm::{Db, Index, Package, config};
+use librpm::{Db, Index, Package};
 
 static DB: OnceLock<Db> = OnceLock::new();
 static DISTRO: OnceLock<&'static str> = OnceLock::new();
 
 pub fn configure() -> &'static Db {
-    DB.get_or_init(|| config::read_file(None).unwrap())
+    DB.get_or_init(|| {
+        librpm::init().unwrap();
+        Db::open().unwrap()
+    })
 }
 
 pub fn init(distro: &DistroTestCase) -> &'static Db {
     let prev = DISTRO.get_or_init(|| {
-        configure();
-        config::set_db_path(&get_assets_path().join(distro.db_subdir)).unwrap();
+        librpm::init_with(None, Some(&get_assets_path().join(distro.db_subdir))).unwrap();
         distro.db_subdir
     });
     assert_eq!(
         *prev, distro.db_subdir,
         "cannot use two different distro databases in one process"
     );
-    DB.get().unwrap()
+    DB.get_or_init(|| Db::open().unwrap())
 }
 
 pub fn get_assets_path() -> PathBuf {
