@@ -74,7 +74,7 @@ impl Drop for TransactionSet {
         // rpmtsFree -> rpmtsCloseDB -> rpmdbClose removes from the
         // process-global rpmdbRock linked list (RPM <= 4.18) without
         // synchronization. See docs/threading.md.
-        let _lock = super::rpmdb_lock();
+        let _lock = super::rpm_global_lock();
         unsafe {
             librpm_sys::rpmtsFree(self.0);
         }

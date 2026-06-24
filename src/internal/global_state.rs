@@ -24,11 +24,11 @@ use std::sync::{Mutex, MutexGuard, OnceLock};
 
 static CONFIG_STATE: OnceLock<Mutex<ConfigState>> = OnceLock::new();
 
-// Serializes FFI calls that mutate librpm's process-global iterator/database
-// tracking lists (rpmmiRock, rpmdbRock, rpmiiRock in RPM <= 4.18). These
-// unsynchronized linked lists are removed in RPM 4.19+, but the lock is
-// harmless there (uncontended, ~25ns).
-static RPMDB_GLOBAL_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+// Serializes FFI calls that mutate librpm's process-global state: database/
+// iterator tracking lists (rpmmiRock, rpmdbRock, rpmiiRock in RPM <= 4.18),
+// spec parsing, and package building. The tracking lists are removed in
+// RPM 4.19+, but the lock remains necessary for spec/build serialization.
+static RPM_GLOBAL_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
 
 /// Tracking struct for process-global configuration in RPM
 pub(crate) struct ConfigState {
@@ -48,9 +48,9 @@ impl ConfigState {
 }
 
 /// Acquire the process-wide lock that serializes librpm FFI calls touching
-/// global iterator/database tracking state.
-pub fn rpmdb_lock() -> MutexGuard<'static, ()> {
-    RPMDB_GLOBAL_LOCK
+/// global state (database iterators, spec parsing, package building).
+pub fn rpm_global_lock() -> MutexGuard<'static, ()> {
+    RPM_GLOBAL_LOCK
         .get_or_init(|| Mutex::new(()))
         .lock()
         .unwrap()

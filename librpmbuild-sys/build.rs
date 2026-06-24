@@ -24,38 +24,37 @@ use std::{env, path::PathBuf};
 fn main() {
     println!("cargo:rustc-link-lib=rpmbuild");
 
-    // No functions are consumed from this crate yet.
-    // Uncomment as safe wrappers are added.
     let builder = Builder::default()
         .header("include/librpmbuild.hpp")
         // rpmbuild.h
-        // .allowlist_function("rpmSpecParse")
-        // .allowlist_function("rpmSpecBuild")
+        .allowlist_function("rpmSpecParse")
+        .allowlist_function("rpmSpecBuild")
         // .allowlist_function("rpmSpecCheckDeps")
         // .allowlist_function("rpmSpecDS")
-        // .allowlist_function("rpmSpecSourceHeader")
+        .allowlist_function("rpmSpecSourceHeader")
         // rpmspec.h (included transitively by rpmbuild.h)
-        // .allowlist_function("rpmSpecFree")
-        // .allowlist_function("rpmSpecGetSection")
-        // .allowlist_function("rpmSpecPkgGetSection")
-        // .allowlist_function("rpmSpecPkgHeader")
-        // .allowlist_function("rpmSpecPkgIterInit")
-        // .allowlist_function("rpmSpecPkgIterNext")
-        // .allowlist_function("rpmSpecPkgIterFree")
+        .allowlist_function("rpmSpecFree")
+        .allowlist_function("rpmSpecGetSection")
+        .allowlist_function("rpmSpecPkgGetSection")
+        .allowlist_function("rpmSpecPkgHeader")
+        .allowlist_function("rpmSpecPkgIterInit")
+        .allowlist_function("rpmSpecPkgIterNext")
+        .allowlist_function("rpmSpecPkgIterFree")
         // .allowlist_function("rpmspecQuery")
-        // .allowlist_function("rpmSpecSrcFilename")
-        // .allowlist_function("rpmSpecSrcFlags")
-        // .allowlist_function("rpmSpecSrcIterInit")
-        // .allowlist_function("rpmSpecSrcIterNext")
-        // .allowlist_function("rpmSpecSrcIterFree")
-        // .allowlist_function("rpmSpecSrcNum")
+        .allowlist_function("rpmSpecSrcFilename")
+        .allowlist_function("rpmSpecSrcFlags")
+        .allowlist_function("rpmSpecSrcIterInit")
+        .allowlist_function("rpmSpecSrcIterNext")
+        .allowlist_function("rpmSpecSrcIterFree")
+        .allowlist_function("rpmSpecSrcNum")
         // rpmbuild.h — build flags
-        // .allowlist_type("rpmBuildFlags_e")
-        // .allowlist_type("rpmBuildPkgFlags_e")
+        .allowlist_type("rpmBuildFlags_e")
+        .allowlist_type("rpmBuildPkgFlags_e")
         // rpmspec.h — source/spec flags
-        // .allowlist_type("rpmSourceFlags_e")
-        // .allowlist_type("rpmSpecFlags_e")
-        .allowlist_function("__librpmbuild_sys_placeholder__");
+        .allowlist_type("rpmSourceFlags_e")
+        .allowlist_type("rpmSpecFlags_e")
+        // rpmbuild.h — return codes
+        .allowlist_var("RPMRC_MISSINGBUILDREQUIRES");
 
     // Write generated bindings to OUT_DIR (to be included in the crate)
     let output_path = PathBuf::from(env::var("OUT_DIR").unwrap()).join("binding.rs");
@@ -63,6 +62,21 @@ fn main() {
     builder
         .generate()
         .unwrap()
-        .write_to_file(output_path)
+        .write_to_file(&output_path)
         .unwrap();
+
+    let bindings_src = std::fs::read_to_string(&output_path).unwrap();
+    for line in bindings_src.lines() {
+        let Some(rest) = line.strip_prefix("pub const ") else {
+            continue;
+        };
+        let Some((name, _)) = rest.split_once(':') else {
+            continue;
+        };
+        if let Some(flag) = name.strip_prefix("rpmSpecFlags_e_RPMSPEC_") {
+            println!("cargo:rpmspecflag_{}=1", flag.to_lowercase());
+        } else if let Some(flag) = name.strip_prefix("rpmBuildFlags_e_RPMBUILD_") {
+            println!("cargo:rpmbuildflag_{}=1", flag.to_lowercase());
+        }
+    }
 }

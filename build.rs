@@ -15,20 +15,28 @@
  * file, You can obtain one at <https://mozilla.org/MPL/2.0/>.
  */
 
-// Forward librpm constant availability as cfg flags.
+// Forward librpm/librpmbuild/librpmsign constant availability as cfg flags.
 //
-// librpm-sys (links = "rpm") scans its bindgen output and emits Cargo metadata
-// for every rpmTag / rpmSigTag constant found in the system headers.  Cargo
-// surfaces these as DEP_RPM_<KEY> environment variables here.  We re-export each
-// one as a rustc-cfg so that enum variants in tag.rs can be gated with e.g.
-// #[cfg(has_rpmtag_payloadsha3_256)], allowing the crate to build against older
-// librpm versions that lack newer constants.
+// Each -sys crate scans its bindgen output and emits Cargo metadata for every
+// relevant constant found in the system headers.  Cargo surfaces these as
+// DEP_<LINKS>_<KEY> environment variables here.  We re-export each one as a
+// rustc-cfg so that enum variants can be gated with e.g.
+// #[cfg(has_rpmtag_payloadsha3_256)] or #[cfg(has_rpmsignflag_rpmv6)],
+// allowing the crate to build against older librpm versions that lack newer
+// constants.
 fn main() {
     for (key, _) in std::env::vars() {
-        if let Some(name) = key.strip_prefix("DEP_RPM_") {
-            let cfg = format!("has_{}", name.to_lowercase());
-            println!("cargo:rustc-check-cfg=cfg({cfg})");
-            println!("cargo:rustc-cfg={cfg}");
-        }
+        let name = if let Some(n) = key.strip_prefix("DEP_RPMBUILD_") {
+            n
+        } else if let Some(n) = key.strip_prefix("DEP_RPMSIGN_") {
+            n
+        } else if let Some(n) = key.strip_prefix("DEP_RPM_") {
+            n
+        } else {
+            continue;
+        };
+        let cfg = format!("has_{}", name.to_lowercase());
+        println!("cargo:rustc-check-cfg=cfg({cfg})");
+        println!("cargo:rustc-cfg={cfg}");
     }
 }
