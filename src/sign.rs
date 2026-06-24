@@ -133,9 +133,20 @@ impl SignArgs {
         self
     }
 
+    /// Re-sign an already-signed package. Default: `false`.
+    #[cfg(has_rpmsignflag_resign)]
+    pub fn resign(mut self, yes: bool) -> Self {
+        if yes {
+            self.signflags |= SignFlags::RESIGN.0;
+        } else {
+            self.signflags &= !SignFlags::RESIGN.0;
+        }
+        self
+    }
+
     /// Set signing flags.
     pub fn flags(mut self, flags: SignFlags) -> Self {
-        self.signflags = flags.0;
+        self.signflags |= flags.0;
         self
     }
 

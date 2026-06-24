@@ -75,6 +75,9 @@ pub mod macro_context;
 /// RPM packages
 pub mod package;
 
+/// RPM spec parsing and building (requires the `build` feature)
+#[cfg(feature = "build")]
+pub mod build;
 /// RPM version parsing and comparison
 pub mod version;
 

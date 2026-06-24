@@ -6,9 +6,11 @@ the binding internals.
 
 ## librpm's threading model
 
-librpm was designed for single-threaded use. Its C API has no internal
-synchronization and relies on the caller to avoid concurrent access. The
-following sections describe the specific areas of process-global state that
+librpm was not designed with thread safety as a primary concern. Some
+internal synchronization exists (e.g. the macro context has a recursive mutex
+since RPM 4.12), but coverage is incomplete and inconsistent — other
+process-global state has no protection at all, and the protection that exists
+varies across versions. The following sections describe the specific areas that
 affect librpm.rs.
 
 ### Macro context
@@ -77,7 +79,7 @@ no longer exist.
 
 #### librpm.rs mitigation
 
-librpm.rs uses a process-wide `Mutex<()>` (`rpmdb_lock()` in
+librpm.rs uses a process-wide `Mutex<()>` (`rpm_global_lock()` in
 `src/internal/global_state.rs`) to serialize the specific FFI calls that
 touch these global lists:
 
@@ -86,12 +88,49 @@ touch these global lists:
 | `MatchIterator::new()` | `rpmtsInitIterator` | `rpmmiRock` (+ `rpmdbRock` via lazy DB open) |
 | `MatchIterator::drop()` | `rpmdbFreeIterator` | `rpmmiRock` |
 | `TransactionSet::drop()` | `rpmtsFree` | `rpmdbRock` (via `rpmtsCloseDB` -> `rpmdbClose`) |
+| `Spec::parse()` | `rpmSpecParse` | Macro context, global rpmts |
+| `Spec::build()` | `rpmSpecBuild` | Macro context, global rpmts |
 
 The lock is held only for the duration of each FFI call, not for the lifetime
 of iterators or transaction sets. Database iteration (`rpmdbNextIterator`) and
 all read-only header operations run entirely without the lock.
 
-On RPM 4.19+, the lock is harmless — uncontended mutex acquisition is ~25ns.
+On RPM 4.19+, the lock remains necessary for spec/build serialization (see
+below) even though the global tracking lists no longer exist.
+
+### Spec parsing and package building
+
+`rpmSpecParse` and `rpmSpecBuild` interact with process-global state in several
+ways that make concurrent calls unsafe:
+
+- **Macro context side effects**: Both functions read and modify the global
+  macro table. `rpmSpecParse` expands macros like `%{_topdir}`, `%{_sourcedir}`,
+  and `%{_builddir}` to resolve paths, and spec directives like `%define` /
+  `%global` add or modify entries. `rpmSpecBuild` expands macros during script
+  generation and may define build-time macros. While the macro table itself has
+  an internal lock (since RPM 4.12), the *semantic* consistency of macro values
+  across a parse-then-build sequence is not guaranteed if another thread
+  redefines `%{_topdir}` between the two calls.
+
+- **Internal transaction set**: `rpmSpecBuild` creates and uses its own
+  `rpmts` internally. On RPM <= 4.18, this touches the global `rpmdbRock`
+  tracking list (see above).
+
+- **Filesystem side effects**: Both functions create directories, write
+  temporary scripts to `/var/tmp`, and execute shell commands. Concurrent
+  builds that share a `%{_topdir}` would collide on these paths.
+
+`Spec::parse()` and `Spec::build()` both acquire `rpm_global_lock()`,
+serializing them against each other and against database operations. This
+prevents the internal state corruption described above.
+
+However, callers that set up macros (`%{_topdir}`, `%{_sourcedir}`) before
+parsing must ensure those macros remain consistent through the build. Since
+`MacroContext::define()` acquires and releases the lock for each call, there
+is a window between macro setup and `Spec::parse()` where another thread
+could overwrite the values. Callers performing concurrent builds should use
+their own higher-level synchronization to cover the entire
+define → parse → build sequence.
 
 ### Process-global state affecting write operations (future)
 
@@ -120,7 +159,8 @@ operations at a time.
 | `MatchIterator` | No (default) | No (default) | Contains raw pointer |
 | `Header` | No (default) | No (default) | Contains raw pointer |
 | `Package` | No (inherited) | No (inherited) | Contains `Header` |
+| `Spec` | Yes | No (default) | Heap-allocated, refcounted handle; global-state FFI calls serialized by `rpm_global_lock()` |
 
 Multiple `Db` instances on separate threads are safe for read-only queries.
-The `rpmdb_lock` serializes the global-state-touching FFI calls; iteration
+The `rpm_global_lock` serializes the global-state-touching FFI calls; iteration
 and header access are fully concurrent.

@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+* Spec file parsing and package building via `librpmbuild` - `Spec::parse()`,
+  source/package iteration, `Spec::build()` for building packages, etc.
+* `SignArgs::resign()` convenience method for re-signing packages
 * `PackageHeader::format()` applies an RPM query format string to a package header using
   `%{TAG}` syntax, equivalent to `rpm --queryformat` or librpm's `headerFormat()`.
 * `Index` enum expanded with `Basenames`, `Dirnames`, `Instfilenames`,

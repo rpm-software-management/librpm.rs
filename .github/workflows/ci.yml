@@ -49,7 +49,7 @@ jobs:
 
       - name: 📦 Install librpm dependencies
         run: |
-          dnf install -y rpm-devel gcc clang-devel
+          dnf install -y rpm-devel rpm-build gcc clang-devel
           dnf -y clean all
 
       - name: 🧪 Run Integration Tests

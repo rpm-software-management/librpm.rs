@@ -44,7 +44,7 @@
 
 use crate::error::Error;
 use crate::internal::iterator::{MatchIterator, MireMode};
-use crate::internal::rpmdb_lock;
+use crate::internal::rpm_global_lock;
 use crate::internal::tag::DBIndexTag;
 use crate::internal::ts::TransactionSet;
 use crate::package::PackageHeader;
@@ -140,7 +140,7 @@ impl Db {
     ///
     /// This is the equivalent of `rpm --initdb`.
     pub fn init_db(&self, perms: i32) -> Result<(), Error> {
-        let _lock = rpmdb_lock();
+        let _lock = rpm_global_lock();
         let rc = unsafe { librpm_sys::rpmtsInitDB(self.ts.as_ptr(), perms) };
         if rc != 0 {
             fail!(
@@ -156,7 +156,7 @@ impl Db {
     /// This is the equivalent of `rpm --rebuilddb`. It recreates the
     /// database indices from the installed package headers.
     pub fn rebuild(&self) -> Result<(), Error> {
-        let _lock = rpmdb_lock();
+        let _lock = rpm_global_lock();
         let rc = unsafe { librpm_sys::rpmtsRebuildDB(self.ts.as_ptr()) };
         if rc != 0 {
             fail!(
@@ -172,7 +172,7 @@ impl Db {
     /// This is the equivalent of `rpmdb --verifydb`. Returns an error
     /// if the database has integrity problems.
     pub fn verify(&self) -> Result<(), Error> {
-        let _lock = rpmdb_lock();
+        let _lock = rpm_global_lock();
         let rc = unsafe { librpm_sys::rpmtsVerifyDB(self.ts.as_ptr()) };
         if rc != 0 {
             fail!(
