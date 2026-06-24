@@ -21,7 +21,7 @@
 use crate::error::{Error, ErrorKind};
 use crate::internal::GlobalState;
 use librpm_sys;
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 
 /// Scopes in which macros are defined
 pub struct MacroContext(librpm_sys::rpmMacroContext);
@@ -43,7 +43,7 @@ impl MacroContext {
     /// Level defines the macro recursion level (0 is the entry API)
     pub fn define(&self, macro_string: &str, level: isize) -> Result<(), Error> {
         let cstr =
-            CString::new(macro_string).map_err(|e| format_err!(ErrorKind::Config, "{}", e))?;
+            CString::new(macro_string).map_err(|e| format_err!(ErrorKind::InvalidArg, "{}", e))?;
 
         // Aggressively synchronize all macro operations through the global
         // lock. This serializes even non-global context operations, but these
@@ -61,7 +61,7 @@ impl MacroContext {
 
     /// Delete a macro from this context.
     pub fn pop(&self, name: &str) -> Result<(), Error> {
-        let cstr = CString::new(name).map_err(|e| format_err!(ErrorKind::Config, "{}", e))?;
+        let cstr = CString::new(name).map_err(|e| format_err!(ErrorKind::InvalidArg, "{}", e))?;
 
         let _lock = GlobalState::lock();
         // Safety: cstr is a valid null-terminated C string, and self.0 is a
@@ -72,4 +72,79 @@ impl MacroContext {
 
         Ok(())
     }
+
+    /// Expand a macro expression and return the result as a string.
+    ///
+    /// The expression is expanded using this context's macro definitions.
+    /// Macro references use `%{name}` syntax.
+    ///
+    /// ```no_run
+    /// use librpm::MacroContext;
+    ///
+    /// librpm::init();
+    /// let ctx = MacroContext::default();
+    /// let arch = ctx.expand("%{_arch}").unwrap();
+    /// println!("build arch: {arch}");
+    /// ```
+    pub fn expand(&self, expr: &str) -> Result<String, Error> {
+        let cstr = CString::new(expr).map_err(|e| format_err!(ErrorKind::InvalidArg, "{}", e))?;
+
+        let _lock = GlobalState::lock();
+        let mut obuf: *mut std::os::raw::c_char = std::ptr::null_mut();
+        let rc = unsafe { librpm_sys::rpmExpandMacros(self.0, cstr.as_ptr(), &mut obuf, 0) };
+
+        if rc < 0 || obuf.is_null() {
+            if !obuf.is_null() {
+                unsafe { free(obuf.cast()) };
+            }
+            fail!(ErrorKind::Macro, "macro expansion failed: {}", expr);
+        }
+
+        let result = unsafe { CStr::from_ptr(obuf) }
+            .to_string_lossy()
+            .into_owned();
+        unsafe { free(obuf.cast()) };
+        Ok(result)
+    }
+
+    /// Test whether a macro is defined in this context.
+    ///
+    /// ```no_run
+    /// use librpm::MacroContext;
+    ///
+    /// librpm::init();
+    /// let ctx = MacroContext::default();
+    /// assert!(ctx.is_defined("_arch"));
+    /// ```
+    pub fn is_defined(&self, name: &str) -> bool {
+        let Ok(cstr) = CString::new(name) else {
+            return false;
+        };
+
+        let _lock = GlobalState::lock();
+        unsafe { librpm_sys::rpmMacroIsDefined(self.0, cstr.as_ptr()) != 0 }
+    }
+}
+
+/// Expand a macro expression and return its numeric value.
+///
+/// Uses the global macro context. Boolean values (`Y`/`y` return 1,
+/// `N`/`n` return 0) are accepted. An undefined or non-numeric macro
+/// returns 0.
+///
+/// ```no_run
+/// librpm::init();
+/// let uid = librpm::macro_context::expand_numeric("%{_root_uid}");
+/// ```
+pub fn expand_numeric(expr: &str) -> i32 {
+    let Ok(cstr) = CString::new(expr) else {
+        return 0;
+    };
+
+    let _lock = GlobalState::lock();
+    unsafe { librpm_sys::rpmExpandNumeric(cstr.as_ptr()) }
+}
+
+unsafe extern "C" {
+    fn free(ptr: *mut std::ffi::c_void);
 }

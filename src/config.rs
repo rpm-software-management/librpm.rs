@@ -52,7 +52,7 @@ pub(crate) fn read_file(config_file: Option<&Path>) -> Result<(), Error> {
 
             let cstr = CString::new(path.as_os_str().as_bytes()).map_err(|e| {
                 format_err!(
-                    ErrorKind::Config,
+                    ErrorKind::InvalidArg,
                     "invalid path: {} ({})",
                     path.display(),
                     e

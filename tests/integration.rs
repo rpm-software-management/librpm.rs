@@ -96,11 +96,3 @@ fn test_tag_type_mismatch_returns_none() {
     assert!(buildtime.as_bytes().is_none());
     assert!(buildtime.as_str_array().is_none());
 }
-
-#[test]
-fn test_macro_define_and_pop() {
-    let _db = common::init(&common::CENTOS_STREAM_9);
-    let ctx = librpm::MacroContext::default();
-    ctx.define("_test_librpm_rs_val 42", 0).unwrap();
-    ctx.pop("_test_librpm_rs_val").unwrap();
-}

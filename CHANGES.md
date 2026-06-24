@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Version comparison utilities - `version::vercmp()` compares two version/release
   strings, `version::Version` parses `[epoch:]version[-release]` strings and
   supports full Rust-native `Ord`/`Eq` comparison via librpm's `rpmverCmp`
+* Macro expansion utilities - `MacroContext::expand()` expands `%{name}` expressions,
+  `MacroContext::is_defined()` tests for macro existence, and
+  `macro_context::expand_numeric()` returns macro values as integers
 
 ### Changed
 

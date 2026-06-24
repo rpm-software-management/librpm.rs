@@ -63,15 +63,22 @@ impl std::error::Error for Error {}
 
 /// Kinds of errors
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
+#[non_exhaustive]
 pub enum ErrorKind {
     /// Configuration errors
     Config,
+    /// Invalid argument (e.g. interior null byte in a string)
+    InvalidArg,
+    /// Macro expansion failure
+    Macro,
 }
 
 impl Display for ErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ErrorKind::Config => write!(f, "configuration error"),
+            ErrorKind::InvalidArg => write!(f, "invalid argument"),
+            ErrorKind::Macro => write!(f, "macro expansion error"),
         }
     }
 }
