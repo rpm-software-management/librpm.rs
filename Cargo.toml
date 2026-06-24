@@ -42,8 +42,12 @@ streaming-iterator = "0.1.5"
 
 [features]
 test-current-system = []
+sign = ["dep:librpmsign-sys"]
 
-default = []
+default = ["sign"]
+
+[dev-dependencies]
+tempfile = "3"
 
 [lints.rust]
 # WARNING: this also silences typos in #[cfg(…)] attributes.

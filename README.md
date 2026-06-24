@@ -35,7 +35,7 @@ RHEL 8 support may be added in the future, but is not a current priority.
 - [x] Version comparison support (i.e. dependency sets)
 - [x] RPM reader API (i.e. for `.rpm` files)
 - [ ] RPM builder API (i.e. `librpmbuild`)
-- [ ] RPM signing API (i.e. `librpmsign`)
+- [x] RPM signing API (i.e. `librpmsign`)
 
 ## License
 

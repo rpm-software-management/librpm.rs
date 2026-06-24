@@ -54,6 +54,10 @@ pub mod package;
 /// RPM version parsing and comparison
 pub mod version;
 
+/// RPM package signing (requires the `sign` feature)
+#[cfg(feature = "sign")]
+pub mod sign;
+
 pub use self::{
     db::Db, db::Index, error::Error, macro_context::MacroContext, package::Package,
     version::Version,
