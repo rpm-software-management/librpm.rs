@@ -68,6 +68,7 @@ impl Header {
         let fd: librpm_sys::FD_t = unsafe { librpm_sys::Fopen(filename.as_ptr(), fmode.as_ptr()) };
         let mut hdr = Header::new();
 
+        #[allow(unused_mut)]
         let mut vsflags = librpm_sys::rpmVSFlags_e_RPMVSF_NOHDRCHK
             | librpm_sys::rpmVSFlags_e_RPMVSF_NOSHA1HEADER
             | librpm_sys::rpmVSFlags_e_RPMVSF_NOSHA256HEADER

@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Macro expansion utilities - `MacroContext::expand()` expands `%{name}` expressions,
   `MacroContext::is_defined()` tests for macro existence, and
   `macro_context::expand_numeric()` returns macro values as integers
+* `sign` feature: package signing and signature removal via `librpmsign` -
+  `sign_package()`, `del_sign()`, `del_file_sign()` with builder-style `SignArgs`
 
 ### Changed
 

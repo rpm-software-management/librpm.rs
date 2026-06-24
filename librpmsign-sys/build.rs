@@ -24,18 +24,15 @@ use std::{env, path::PathBuf};
 fn main() {
     println!("cargo:rustc-link-lib=rpmsign");
 
-    // No functions are consumed from this crate yet.
-    // Uncomment as safe wrappers are added.
     let builder = Builder::default()
         .header("include/librpmsign.hpp")
         // rpmsign.h
-        // .allowlist_function("rpmPkgSign")
-        // .allowlist_function("rpmPkgDelSign")
-        // .allowlist_function("rpmPkgDelFileSign")
+        .allowlist_function("rpmPkgSign")
+        .allowlist_function("rpmPkgDelSign")
+        .allowlist_function("rpmPkgDelFileSign")
         // rpmsign.h — sign args and flags
-        // .allowlist_type("rpmSignArgs")
-        // .allowlist_type("rpmSignFlags_e")
-        .allowlist_function("__librpmsign_sys_placeholder__");
+        .allowlist_type("rpmSignArgs")
+        .allowlist_type("rpmSignFlags_e");
 
     // Write generated bindings to OUT_DIR (to be included in the crate)
     let output_path = PathBuf::from(env::var("OUT_DIR").unwrap()).join("binding.rs");
@@ -43,6 +40,26 @@ fn main() {
     builder
         .generate()
         .unwrap()
-        .write_to_file(output_path)
+        .write_to_file(&output_path)
         .unwrap();
+
+    let bindings_src = std::fs::read_to_string(&output_path).unwrap();
+    for line in bindings_src.lines() {
+        let trimmed = line.trim();
+        if let Some(rest) = trimmed.strip_prefix("pub const ") {
+            let Some((name, _)) = rest.split_once(':') else {
+                continue;
+            };
+            if let Some(flag) = name.strip_prefix("rpmSignFlags_e_RPMSIGN_FLAG_") {
+                println!("cargo:rpmsignflag_{}=1", flag.to_lowercase());
+            } else if let Some(algo) = name.strip_prefix("pgpHashAlgo_e_PGPHASHALGO_") {
+                println!("cargo:pgphashalgo_{}=1", algo.to_lowercase());
+            }
+        } else if let Some(rest) = trimmed.strip_prefix("pub fn ") {
+            let name = rest.split(&['(', ' '][..]).next().unwrap_or("");
+            if let Some(func) = name.strip_prefix("rpmPkg") {
+                println!("cargo:rpmpkg_{}=1", func.to_lowercase());
+            }
+        }
+    }
 }
