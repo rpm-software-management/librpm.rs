@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * `Package::from_file()` reads an `.rpm` file directly into a `Package`
 * `Package::get()` exposes raw tag data access via `Tag` and `TagData`,
   both of which are now part of the public API
+* Version comparison utilities - `version::vercmp()` compares two version/release
+  strings, `version::Version` parses `[epoch:]version[-release]` strings and
+  supports full Rust-native `Ord`/`Eq` comparison via librpm's `rpmverCmp`
 
 ### Changed
 
