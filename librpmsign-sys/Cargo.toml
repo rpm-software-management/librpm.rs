@@ -13,9 +13,5 @@ documentation = "https://rustrpm.org/librpmsign_sys/"
 edition = "2024"
 rust-version = "1.85"
 
-[badges]
-travis-ci = { repository = "rpm-software-management/librpm.rs" }
-maintenance = { status = "passively-maintained" }
-
 [build-dependencies]
 bindgen = "0.72"
