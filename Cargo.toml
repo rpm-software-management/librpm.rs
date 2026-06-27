@@ -4,7 +4,10 @@ members = ["librpm-sys", "librpmbuild-sys", "librpmsign-sys"]
 [workspace.package]
 version = "0.2.0-pre"
 license = "MPL-2.0"
-authors = ["Tony Arcieri <tony@iqlusion.io>"]
+authors = [
+    "Tony Arcieri <tony@iqlusion.io>",
+    "Daniel Alley <dalley@redhat.com>"
+]
 edition = "2024"
 rust-version = "1.85"
 homepage = "https://github.com/rpm-software-management/librpm.rs/"
