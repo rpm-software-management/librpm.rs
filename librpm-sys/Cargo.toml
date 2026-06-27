@@ -1,22 +1,18 @@
 [package]
 name = "librpm-sys"
 description = "RPM Package Manager library FFI bindings (librpm.so)"
-version = "0.2.0-pre"
-license = "MPL-2.0"
-authors = ["Tony Arcieri <tony@iqlusion.io>"]
+version.workspace = true
+license.workspace = true
+authors.workspace = true
 categories = ["external-ffi-bindings", "os"]
-keywords = ["rpm", "linux", "redhat", "fedora", "centos"]
+keywords.workspace = true
 readme = "README.md"
-homepage = "https://github.com/rpm-software-management/librpm.rs/"
+homepage.workspace = true
 repository = "https://github.com/rpm-software-management/librpm.rs/tree/master/librpm-sys"
 documentation = "https://rustrpm.org/librpm_sys/"
 links = "rpm"
-edition = "2024"
-rust-version = "1.85"
-
-[badges]
-travis-ci = { repository = "rpm-software-management/librpm.rs" }
-maintenance = { status = "passively-maintained" }
+edition.workspace = true
+rust-version.workspace = true
 
 [build-dependencies]
-bindgen = "0.72"
+bindgen.workspace = true

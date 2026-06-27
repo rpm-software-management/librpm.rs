@@ -1,20 +1,40 @@
-[package]
-name = "librpm"
+[workspace]
+members = ["librpm-sys", "librpmbuild-sys", "librpmsign-sys"]
+
+[workspace.package]
 version = "0.2.0-pre"
-description = "RPM Package Manager library binding with an idiomatic Rust API"
 license = "MPL-2.0"
 authors = ["Tony Arcieri <tony@iqlusion.io>"]
-categories = ["api-bindings", "os", "parsing"]
-keywords = ["rpm", "linux", "redhat", "fedora", "centos"]
-readme = "README.md"
-homepage = "https://github.com/rpm-software-management/librpm.rs/"
-documentation = "https://rustrpm.org/librpm/"
 edition = "2024"
 rust-version = "1.85"
+homepage = "https://github.com/rpm-software-management/librpm.rs/"
+keywords = ["rpm", "linux", "redhat", "fedora", "centos"]
+
+[workspace.dependencies]
+bindgen = "0.72"
+librpm-sys = { version = "0.2.0-pre", path = "librpm-sys" }
+librpmbuild-sys = { version = "0.2.0-pre", path = "librpmbuild-sys" }
+librpmsign-sys = { version = "0.2.0-pre", path = "librpmsign-sys" }
+
+[package]
+name = "librpm"
+version.workspace = true
+description = "RPM Package Manager library binding with an idiomatic Rust API"
+license.workspace = true
+authors.workspace = true
+categories = ["api-bindings", "os", "parsing"]
+keywords.workspace = true
+readme = "README.md"
+homepage.workspace = true
+documentation = "https://rustrpm.org/librpm/"
+edition.workspace = true
+rust-version.workspace = true
 
 [dependencies]
 once_cell = "1.21"
-librpm-sys = { version = "0.2.0-pre", path = "librpm-sys" }
+librpm-sys = { workspace = true }
+librpmbuild-sys = { workspace = true, optional = true }
+librpmsign-sys = { workspace = true, optional = true }
 streaming-iterator = "0.1.5"
 
 [features]
@@ -27,6 +47,3 @@ default = []
 # build.rs sets has_rpmtag_* / has_rpmsigtag_* cfgs dynamically from DEP_RPM_*
 # env vars, which vary by system RPM version and can't be enumerated statically.
 unexpected_cfgs = "allow"
-
-[workspace]
-members = ["librpm-sys", "librpmbuild-sys", "librpmsign-sys"]

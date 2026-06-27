@@ -1,17 +1,18 @@
 [package]
 name = "librpmbuild-sys"
 description = "rpmbuild library FFI bindings (librpmbuild.so)"
-version = "0.2.0-pre"
-license = "MPL-2.0"
-authors = ["Tony Arcieri <tony@iqlusion.io>"]
+version.workspace = true
+license.workspace = true
+authors.workspace = true
 categories = ["external-ffi-bindings", "os"]
-keywords = ["rpm", "linux", "redhat", "fedora", "centos"]
+keywords.workspace = true
 readme = "README.md"
-homepage = "https://github.com/rpm-software-management/librpm.rs/"
+homepage.workspace = true
 repository = "https://github.com/rpm-software-management/librpm.rs/tree/master/librpmbuild-sys"
 documentation = "https://rustrpm.org/librpmbuild_sys/"
-edition = "2024"
-rust-version = "1.85"
+edition.workspace = true
+rust-version.workspace = true
+links = "rpmbuild"
 
 [build-dependencies]
-bindgen = "0.72"
+bindgen.workspace = true
