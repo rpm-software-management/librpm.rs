@@ -12,6 +12,7 @@ use std::{
 
 use std::time;
 
+use librpm::db::MatchMode;
 use librpm::{Db, Index, Package};
 
 static INIT: OnceLock<()> = OnceLock::new();
@@ -113,6 +114,141 @@ pub fn assert_find_nonexistent(distro: &DistroTestCase) {
         "{}: expected no results for nonexistent package",
         distro.name,
     );
+}
+
+pub fn assert_find_by_providename(distro: &DistroTestCase) {
+    let db = init(distro);
+
+    let results: Vec<Package> = db.find(Index::Providename, distro.sample.name).collect();
+    assert!(
+        results.iter().any(|p| p.name() == distro.sample.name),
+        "{}: '{}' should provide itself",
+        distro.name,
+        distro.sample.name,
+    );
+}
+
+pub fn assert_find_by_requirename(distro: &DistroTestCase) {
+    let db = init(distro);
+
+    let results: Vec<Package> = db.find(Index::Requirename, "glibc").collect();
+    assert!(
+        !results.is_empty(),
+        "{}: at least one package should require glibc",
+        distro.name,
+    );
+}
+
+pub fn assert_find_by_dirnames(distro: &DistroTestCase) {
+    let db = init(distro);
+
+    let results: Vec<Package> = db.find(Index::Dirnames, "/etc/").collect();
+    assert!(
+        !results.is_empty(),
+        "{}: at least one package should own files in /etc/",
+        distro.name,
+    );
+}
+
+// NOTE: We intentionally do not test `Index::Basenames` or `Index::Instfilenames`
+// with exact-match lookups (`Db::find`) against offline database snapshots.
+//
+// These indices use `rpmdbFindByFile` internally, which performs filesystem
+// fingerprinting via `stat()` / `fpLookup()` to resolve symlinks before matching
+// (see rpm/lib/rpmdb.cc:rpmdbFindByFile).  When the files referenced by the
+// package headers do not exist on the local filesystem — as is the case with our
+// offline test databases captured from container images — the fingerprint
+// comparison always fails and the lookup silently returns zero results.
+//
+// The `find_re` (glob/regex) path works because `rpmdbSetIteratorRE` filters
+// headers purely by tag string comparison without filesystem access.  However,
+// this iterates every matching header and is too slow for CI when applied to
+// file-based indices.
+//
+// `Index::Dirnames` exact-match lookups work fine because they use simple string
+// index lookups without fingerprinting.
+
+pub fn assert_find_re_glob(distro: &DistroTestCase) {
+    let db = init(distro);
+
+    let results: Vec<Package> = db
+        .find_re(Index::Name, "alternatives*", MatchMode::Glob)
+        .collect();
+    assert!(
+        results.iter().any(|p| p.name() == "alternatives"),
+        "{}: glob 'alternatives*' should match the alternatives package",
+        distro.name,
+    );
+}
+
+pub fn assert_find_re_regex(distro: &DistroTestCase) {
+    let db = init(distro);
+
+    let results: Vec<Package> = db
+        .find_re(Index::Name, "^alternatives$", MatchMode::Regex)
+        .collect();
+    assert_eq!(
+        results.len(),
+        1,
+        "{}: regex '^alternatives$' should match exactly one package",
+        distro.name,
+    );
+    assert_eq!(results[0].name(), "alternatives", "{}", distro.name);
+}
+
+pub fn assert_find_re_no_match(distro: &DistroTestCase) {
+    let db = init(distro);
+
+    let results: Vec<Package> = db
+        .find_re(Index::Name, "zzz-nonexistent*", MatchMode::Glob)
+        .collect();
+    assert_eq!(
+        results.len(),
+        0,
+        "{}: glob should return no results for nonexistent pattern",
+        distro.name,
+    );
+}
+
+pub fn assert_iter_match_count(distro: &DistroTestCase) {
+    let db = init(distro);
+
+    let iter = db.find(Index::Name, distro.sample.name);
+    assert_eq!(
+        iter.match_count(),
+        1,
+        "{}: '{}' should have match_count 1",
+        distro.name,
+        distro.sample.name,
+    );
+
+    let iter = db.find(Index::Name, "nonexistent-xyz");
+    assert_eq!(
+        iter.match_count(),
+        0,
+        "{}: nonexistent package should have match_count 0",
+        distro.name,
+    );
+}
+
+pub fn assert_iter_offset(distro: &DistroTestCase) {
+    let db = init(distro);
+
+    let mut iter = db.find(Index::Name, distro.sample.name);
+    assert_eq!(
+        iter.offset(),
+        0,
+        "{}: offset should be 0 before first next()",
+        distro.name,
+    );
+    if let Some(_pkg) = iter.next() {
+        assert_ne!(
+            iter.offset(),
+            0,
+            "{}: offset should be non-zero after next()",
+            distro.name,
+        );
+    }
 }
 
 pub fn assert_buildtimes_valid(distro: &DistroTestCase) {

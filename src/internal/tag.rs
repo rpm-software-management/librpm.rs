@@ -1040,6 +1040,21 @@ impl From<Index> for DBIndexTag {
     fn from(i: Index) -> Self {
         match i {
             Index::Name => DBIndexTag::NAME,
+            Index::Basenames => DBIndexTag::BASENAMES,
+            Index::Dirnames => DBIndexTag::DIRNAMES,
+            Index::Instfilenames => DBIndexTag::INSTFILENAMES,
+            Index::Providename => DBIndexTag::PROVIDENAME,
+            Index::Requirename => DBIndexTag::REQUIRENAME,
+            Index::Conflictname => DBIndexTag::CONFLICTNAME,
+            Index::Obsoletename => DBIndexTag::OBSOLETENAME,
+            Index::Group => DBIndexTag::GROUP,
+            Index::Triggername => DBIndexTag::TRIGGERNAME,
+            Index::Recommendname => DBIndexTag::RECOMMENDNAME,
+            Index::Suggestname => DBIndexTag::SUGGESTNAME,
+            Index::Supplementname => DBIndexTag::SUPPLEMENTNAME,
+            Index::Enhancename => DBIndexTag::ENHANCENAME,
+            Index::Filetriggername => DBIndexTag::FILETRIGGERNAME,
+            Index::Transfiletriggername => DBIndexTag::TRANSFILETRIGGERNAME,
         }
     }
 }

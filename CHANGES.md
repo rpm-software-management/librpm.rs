@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * `Package::format()` applies an RPM query format string to a package header using
   `%{TAG}` syntax, equivalent to `rpm --queryformat` or librpm's `headerFormat()`.
+* `Index` enum expanded with `Basenames`, `Dirnames`, `Instfilenames`,
+  `Providename`, `Requirename`, `Conflictname`, `Obsoletename`, `Group`,
+  `Triggername`, `Recommendname`, `Suggestname`, `Supplementname`,
+  `Enhancename`, `Filetriggername`, and `Transfiletriggername` variants
+* `Db::find_re()` searches by glob or regex pattern via `rpmdbSetIteratorRE`,
+  with a new `MatchMode` enum (`Glob`, `Regex`)
+* `Iter::match_count()` and `Iter::offset()` expose the iterator's index
+  snapshot count and current record offset (`rpmdbGetIteratorCount`,
+  `rpmdbGetIteratorOffset`)
 
 ### Fixed
 
@@ -30,7 +39,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## 0.2.0 -- July 2, 2026
 
 ### Added
-
 * `Package::from_file()` reads an `.rpm` file directly into a `Package`
 * `Package::get()` exposes raw tag data access via `Tag` and `TagData`,
   both of which are now part of the public API

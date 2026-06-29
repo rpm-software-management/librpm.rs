@@ -65,8 +65,8 @@ pub mod version;
 pub mod sign;
 
 pub use self::{
-    db::Db, db::Index, dep::DepFlags, dep::Dependencies, dep::Dependency, error::Error,
-    files::FileAttrs, files::FileEntry, files::Files, macro_context::MacroContext,
+    db::Db, db::Index, db::MatchMode, dep::DepFlags, dep::Dependencies, dep::Dependency,
+    error::Error, files::FileAttrs, files::FileEntry, files::Files, macro_context::MacroContext,
     package::Package, version::Version,
 };
 

@@ -43,7 +43,7 @@
 //! ```
 
 use crate::error::Error;
-use crate::internal::iterator::MatchIterator;
+use crate::internal::iterator::{MatchIterator, MireMode};
 use crate::internal::tag::DBIndexTag;
 use crate::internal::ts::TransactionSet;
 use crate::package::Package;
@@ -105,6 +105,24 @@ impl Db {
         ))
     }
 
+    /// Find packages where `index` matches `pattern` using glob or regex.
+    ///
+    /// The pattern is applied as a secondary filter on an initial full-index
+    /// scan: librpm's `rpmdbSetIteratorRE` narrows the result set after the
+    /// iterator is created over all entries for the given tag.
+    pub fn find_re<S: AsRef<str>>(&self, index: Index, pattern: S, mode: MatchMode) -> Iter {
+        let mire = match mode {
+            MatchMode::Glob => MireMode::Glob,
+            MatchMode::Regex => MireMode::Regex,
+        };
+        Iter(MatchIterator::new_re(
+            self.ts.as_ptr(),
+            index.into(),
+            pattern.as_ref(),
+            mire,
+        ))
+    }
+
     /// Find all packages installed on the local system.
     pub fn installed_packages(&self) -> Iter {
         Iter(MatchIterator::new(
@@ -124,6 +142,22 @@ impl Db {
 /// dropped.
 pub struct Iter(MatchIterator);
 
+impl Iter {
+    /// Return the number of packages matched by this iterator's index query.
+    ///
+    /// This is the snapshot count established when the iterator was created,
+    /// not the number of remaining items.
+    pub fn match_count(&self) -> usize {
+        self.0.match_count()
+    }
+
+    /// Return the database offset (record number) of the most recently
+    /// returned package header, or `0` before the first call to `next()`.
+    pub fn offset(&self) -> u32 {
+        self.0.offset()
+    }
+}
+
 impl Iterator for Iter {
     type Item = Package;
 
@@ -137,4 +171,43 @@ impl Iterator for Iter {
 pub enum Index {
     /// Search by package name.
     Name,
+    /// Search by file basename.
+    Basenames,
+    /// Search by directory name.
+    Dirnames,
+    /// Search by installed file path.
+    Instfilenames,
+    /// Search by provided capability name.
+    Providename,
+    /// Search by required dependency name.
+    Requirename,
+    /// Search by conflict name.
+    Conflictname,
+    /// Search by obsoleted package name.
+    Obsoletename,
+    /// Search by package group.
+    Group,
+    /// Search by trigger dependency name.
+    Triggername,
+    /// Search by recommend dependency name.
+    Recommendname,
+    /// Search by suggest dependency name.
+    Suggestname,
+    /// Search by supplement dependency name.
+    Supplementname,
+    /// Search by enhance dependency name.
+    Enhancename,
+    /// Search by file trigger dependency name.
+    Filetriggername,
+    /// Search by transactional file trigger dependency name.
+    Transfiletriggername,
+}
+
+/// Pattern matching mode for [`Db::find_re`].
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum MatchMode {
+    /// POSIX glob pattern (fnmatch-style).
+    Glob,
+    /// POSIX extended regular expression.
+    Regex,
 }

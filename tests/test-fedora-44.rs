@@ -24,3 +24,43 @@ fn test_fedora_44_find_nonexistent() {
 fn test_fedora_44_buildtimes() {
     common::assert_buildtimes_valid(&common::FEDORA_44);
 }
+
+#[test]
+fn test_fedora_44_find_by_providename() {
+    common::assert_find_by_providename(&common::FEDORA_44);
+}
+
+#[test]
+fn test_fedora_44_find_by_requirename() {
+    common::assert_find_by_requirename(&common::FEDORA_44);
+}
+
+#[test]
+fn test_fedora_44_find_by_dirnames() {
+    common::assert_find_by_dirnames(&common::FEDORA_44);
+}
+
+#[test]
+fn test_fedora_44_find_re_glob() {
+    common::assert_find_re_glob(&common::FEDORA_44);
+}
+
+#[test]
+fn test_fedora_44_find_re_regex() {
+    common::assert_find_re_regex(&common::FEDORA_44);
+}
+
+#[test]
+fn test_fedora_44_find_re_no_match() {
+    common::assert_find_re_no_match(&common::FEDORA_44);
+}
+
+#[test]
+fn test_fedora_44_iter_match_count() {
+    common::assert_iter_match_count(&common::FEDORA_44);
+}
+
+#[test]
+fn test_fedora_44_iter_offset() {
+    common::assert_iter_offset(&common::FEDORA_44);
+}
