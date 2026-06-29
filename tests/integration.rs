@@ -1,6 +1,11 @@
 //! librpm.rs integration tests
+//!
+//! Tests here exercise functionality that doesn't fit neatly into the
+//! per-distro assertion pattern in common.rs — either because they depend
+//! on specific CS9 package contents, or because they test tag data access
+//! and macro operations rather than index queries.
 
-use librpm::db::Index;
+use librpm::db::{Index, MatchMode};
 use librpm::{Db, Package, Tag};
 
 mod common;
@@ -9,7 +14,7 @@ mod common;
 fn test_scalar_int32_tag() {
     let db = common::init(&common::CENTOS_STREAM_9);
 
-    let results: Vec<Package> = db.find(librpm::Index::Name, "alternatives").collect();
+    let results: Vec<Package> = db.find(Index::Name, "alternatives").collect();
     let package = &results[0];
 
     let buildtime = package.get(Tag::BUILDTIME).expect("BUILDTIME should exist");
@@ -26,7 +31,7 @@ fn test_scalar_int32_tag() {
 fn test_array_tag_data() {
     let db = common::init(&common::CENTOS_STREAM_9);
 
-    let results: Vec<Package> = db.find(librpm::Index::Name, "alternatives").collect();
+    let results: Vec<Package> = db.find(Index::Name, "alternatives").collect();
     let pkg = &results[0];
 
     let basenames = pkg.get(Tag::BASENAMES).expect("BASENAMES tag missing");
@@ -60,7 +65,7 @@ fn test_array_tag_data() {
 fn test_tag_type_mismatch_returns_none() {
     let db = common::init(&common::CENTOS_STREAM_9);
 
-    let results: Vec<Package> = db.find(librpm::Index::Name, "alternatives").collect();
+    let results: Vec<Package> = db.find(Index::Name, "alternatives").collect();
     let pkg = &results[0];
 
     let name = pkg.get(Tag::NAME).expect("NAME should exist");
@@ -102,6 +107,25 @@ fn db_find_test_multiple() {
 }
 
 #[test]
+fn find_re_glob_returns_superset() {
+    let db = common::init(&common::CENTOS_STREAM_9);
+
+    let results: Vec<Package> = db.find_re(Index::Name, "glibc*", MatchMode::Glob).collect();
+    assert!(
+        results.len() >= 2,
+        "glob 'glibc*' should match glibc and glibc-common (got {})",
+        results.len(),
+    );
+    for pkg in &results {
+        assert!(
+            pkg.name().starts_with("glibc"),
+            "all results should start with 'glibc', got '{}'",
+            pkg.name(),
+        );
+    }
+}
+
+#[test]
 fn db_find_test_multiple_packages() {
     let db = common::init(&common::CENTOS_STREAM_9);
 
@@ -120,6 +144,27 @@ fn iterator_outlives_db() {
     assert!(!packages.is_empty());
     for pkg in &packages {
         assert!(!pkg.name().is_empty());
+    }
+}
+
+#[test]
+fn find_re_regex_returns_superset() {
+    let db = common::init(&common::CENTOS_STREAM_9);
+
+    let results: Vec<Package> = db
+        .find_re(Index::Name, "^glibc", MatchMode::Regex)
+        .collect();
+    assert!(
+        results.len() >= 2,
+        "regex '^glibc' should match glibc and glibc-common (got {})",
+        results.len(),
+    );
+    for pkg in &results {
+        assert!(
+            pkg.name().starts_with("glibc"),
+            "all results should start with 'glibc', got '{}'",
+            pkg.name(),
+        );
     }
 }
 
@@ -155,4 +200,30 @@ fn concurrent_db_instances() {
 
     let counts: Vec<usize> = handles.into_iter().map(|h| h.join().unwrap()).collect();
     assert!(counts.windows(2).all(|w| w[0] == w[1]));
+}
+
+#[test]
+fn find_re_glob_by_providename() {
+    let db = common::init(&common::CENTOS_STREAM_9);
+
+    let results: Vec<Package> = db
+        .find_re(Index::Providename, "glibc*", MatchMode::Glob)
+        .collect();
+    assert!(
+        !results.is_empty(),
+        "glob on Providename for 'glibc*' should match at least one package",
+    );
+}
+
+#[test]
+fn iter_match_count_agrees_with_iteration() {
+    let db = common::init(&common::CENTOS_STREAM_9);
+
+    let mut iter = db.find(Index::Providename, "bash");
+    let count = iter.match_count();
+    let actual = std::iter::from_fn(|| iter.next()).count();
+    assert_eq!(
+        count, actual,
+        "match_count should equal actual iteration count"
+    );
 }

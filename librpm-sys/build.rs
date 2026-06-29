@@ -73,9 +73,9 @@ fn main() {
         // .allowlist_function("headerConvert")
         // .allowlist_function("headerCheck")
         // rpmdb.h — database access
-        // .allowlist_function("rpmdbGetIteratorOffset")
-        // .allowlist_function("rpmdbGetIteratorCount")
-        // .allowlist_function("rpmdbSetIteratorRE")
+        .allowlist_function("rpmdbGetIteratorOffset")
+        .allowlist_function("rpmdbGetIteratorCount")
+        .allowlist_function("rpmdbSetIteratorRE")
         .allowlist_function("rpmdbNextIterator")
         .allowlist_function("rpmdbFreeIterator")
         // .allowlist_function("rpmdbIndexIteratorInit")
@@ -390,7 +390,7 @@ fn main() {
         // rpmds.h — dependency flags
         .allowlist_type("rpmsenseFlags_e")
         // rpmdb.h — iterator match mode
-        // .allowlist_type("rpmMireMode_e")
+        .allowlist_type("rpmMireMode_e")
         // ----------------------------------------------------------
         // Headers not yet included in librpm.hpp
         // ----------------------------------------------------------

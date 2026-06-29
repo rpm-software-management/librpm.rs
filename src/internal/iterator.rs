@@ -18,8 +18,15 @@
 //! Iterators for matches in the RPM database
 
 use super::{header::Header, rpmdb_lock, tag::DBIndexTag};
-use std::{os::raw::c_void, ptr};
+use std::{ffi::CString, os::raw::c_void, ptr};
 use streaming_iterator::StreamingIterator;
+
+/// Match mode for `rpmdbSetIteratorRE`.
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub(crate) enum MireMode {
+    Glob,
+    Regex,
+}
 
 /// Iterator over the matches from a database query.
 ///
@@ -57,9 +64,6 @@ impl MatchIterator {
         tag: DBIndexTag,
         key_opt: Option<&str>,
     ) -> Self {
-        let next_item = None;
-        let finished = false;
-
         // rpmtsInitIterator inserts into the process-global rpmmiRock linked
         // list (RPM <= 4.18) without synchronization. See docs/threading.md.
         let _lock = rpmdb_lock();
@@ -67,31 +71,108 @@ impl MatchIterator {
         if let Some(key) = key_opt
             && !key.is_empty()
         {
+            // SAFETY: `ts` is a valid rpmts pointer owned by the caller's
+            // `Db` (each `Db` owns its own `TransactionSet`).  `c_key` is a
+            // NUL-terminated CString kept alive for the duration of this call;
+            // rpmtsInitIterator copies the key internally.  We pass keylen = 0
+            // so librpm uses strlen(), matching the convention of all upstream
+            // callers.  The returned pointer is either a valid
+            // rpmdbMatchIterator or NULL (no match); both are safe to store —
+            // all librpm iterator functions accept NULL.
+            let c_key = CString::new(key).expect("search key must not contain NUL bytes");
             let ptr = unsafe {
                 librpm_sys::rpmtsInitIterator(
                     ts,
                     tag as librpm_sys::rpm_tag_t,
-                    key.as_ptr() as *const c_void,
-                    key.len(),
+                    c_key.as_ptr() as *const c_void,
+                    0,
                 )
             };
 
             return Self {
                 ptr,
-                next_item,
-                finished,
+                next_item: None,
+                finished: false,
             };
         }
 
+        // SAFETY: NULL keyp with keylen 0 requests all entries from the
+        // given index.  Same pointer-validity argument as above.
         let ptr = unsafe {
             librpm_sys::rpmtsInitIterator(ts, tag as librpm_sys::rpm_tag_t, ptr::null(), 0)
         };
 
         Self {
             ptr,
-            next_item,
-            finished,
+            next_item: None,
+            finished: false,
         }
+    }
+
+    /// Create a `MatchIterator` that filters results using a glob or regex
+    /// pattern via `rpmdbSetIteratorRE`.
+    pub(crate) fn new_re(
+        ts: *mut librpm_sys::rpmts_s,
+        tag: DBIndexTag,
+        pattern: &str,
+        mode: MireMode,
+    ) -> Self {
+        // rpmtsInitIterator inserts into the process-global rpmmiRock linked
+        // list (RPM <= 4.18) without synchronization. See docs/threading.md.
+        let _lock = rpmdb_lock();
+
+        let ptr = unsafe {
+            librpm_sys::rpmtsInitIterator(ts, tag as librpm_sys::rpm_tag_t, ptr::null(), 0)
+        };
+
+        if !ptr.is_null() {
+            let c_pattern = CString::new(pattern).expect("pattern must not contain NUL bytes");
+            let mire_mode = match mode {
+                MireMode::Glob => librpm_sys::rpmMireMode_e_RPMMIRE_GLOB,
+                MireMode::Regex => librpm_sys::rpmMireMode_e_RPMMIRE_REGEX,
+            };
+            // SAFETY: `ptr` is non-null and was just created above.
+            // `c_pattern` is a NUL-terminated CString that outlives this
+            // call; rpmdbSetIteratorRE copies the pattern internally (into
+            // mi->mi_re via mireDup) and compiles it (regcomp for regex,
+            // stored fnmatch flags for glob), so `c_pattern` need not
+            // outlive the iterator.
+            unsafe {
+                librpm_sys::rpmdbSetIteratorRE(
+                    ptr,
+                    tag as librpm_sys::rpm_tag_t,
+                    mire_mode,
+                    c_pattern.as_ptr(),
+                );
+            }
+        }
+
+        Self {
+            ptr,
+            next_item: None,
+            finished: false,
+        }
+    }
+
+    /// Return the total match count from the index snapshot.
+    pub(crate) fn match_count(&self) -> usize {
+        if self.ptr.is_null() {
+            return 0;
+        }
+        // SAFETY: `self.ptr` is non-null (checked above) and valid for the
+        // lifetime of this `MatchIterator` — it is only freed in `Drop`.
+        // rpmdbGetIteratorCount is a read-only accessor on the iterator.
+        unsafe { librpm_sys::rpmdbGetIteratorCount(self.ptr) as usize }
+    }
+
+    /// Return the database offset of the most recently returned header.
+    pub(crate) fn offset(&self) -> u32 {
+        if self.ptr.is_null() {
+            return 0;
+        }
+        // SAFETY: Same as `match_count` — read-only accessor, `self.ptr`
+        // is non-null and valid.
+        unsafe { librpm_sys::rpmdbGetIteratorOffset(self.ptr) }
     }
 }
 
@@ -100,17 +181,27 @@ impl StreamingIterator for MatchIterator {
     type Item = Header;
 
     fn advance(&mut self) {
-        // Underlying rpmdb iterator has been consumed
         if self.finished {
             return;
         }
 
+        // SAFETY: `self.ptr` is valid (or NULL, which rpmdbNextIterator
+        // handles by returning NULL).  The returned Header pointer is
+        // borrowed from the iterator's internal buffer and is only valid
+        // until the next call to rpmdbNextIterator — this is why we use
+        // StreamingIterator rather than Iterator, preventing the caller
+        // from holding a reference across advance() calls.
         let header_ptr = unsafe { librpm_sys::rpmdbNextIterator(self.ptr) };
 
         if header_ptr.is_null() {
             self.finished = true;
             self.next_item = None;
         } else {
+            // SAFETY: `header_ptr` is non-null and points to a valid
+            // header owned by the iterator.  `Header::from_ptr` calls
+            // `headerLink` to take its own refcounted reference, so the
+            // Header remains valid even after the next rpmdbNextIterator
+            // call invalidates the iterator's internal pointer.
             self.next_item = Some(unsafe { Header::from_ptr(header_ptr) })
         }
     }
