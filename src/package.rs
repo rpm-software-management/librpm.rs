@@ -16,6 +16,7 @@
  */
 
 //! RPM package type: represents `.rpm` files or entries in the RPM database
+use crate::files::Files;
 use crate::internal::header::Header;
 use crate::{RpmErrorKind, Tag, TagData};
 use std::convert::TryFrom;
@@ -130,6 +131,11 @@ impl Package {
             .expect("DESCRIPTION tag missing")
             .as_str()
             .expect("DESCRIPTION tag is not a string")
+    }
+
+    /// File information for the package.
+    pub fn files(&self) -> Files {
+        Files::from_header(&self.header)
     }
 
     /// Buildtime of the package

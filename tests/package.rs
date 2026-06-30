@@ -143,6 +143,85 @@ fn test_tag_missing_returns_none() {
     assert!(empty.get(Tag::EPOCH).is_none());
 }
 
+// Package::files
+
+#[test]
+fn test_files_count_and_paths() {
+    let pkg = load_basic();
+    let files = pkg.files();
+
+    assert_eq!(files.len(), 11);
+    assert!(!files.is_empty());
+
+    let paths: Vec<String> = files.iter().map(|f| f.path()).collect();
+    assert_eq!(paths.len(), 11);
+    assert!(paths.contains(&"/etc/rpm-basic/example_config.toml".to_string()));
+    assert!(paths.contains(&"/usr/bin/rpm-basic".to_string()));
+    assert!(paths.contains(&"/usr/share/doc/rpm-basic/README".to_string()));
+    assert!(paths.contains(&"/var/log/rpm-basic/basic.log".to_string()));
+}
+
+#[test]
+fn test_file_entry_metadata() {
+    let pkg = load_basic();
+    let files = pkg.files();
+
+    let config = files
+        .iter()
+        .find(|f| f.path() == "/etc/rpm-basic/example_config.toml")
+        .expect("config file should exist");
+    assert_eq!(config.size(), 31);
+    assert_eq!(config.user(), "root");
+    assert_eq!(config.group(), "root");
+    assert!(config.flags().is_config());
+    assert!(!config.flags().is_doc());
+}
+
+#[test]
+fn test_file_flags() {
+    let pkg = load_basic();
+    let files = pkg.files();
+
+    let readme = files
+        .iter()
+        .find(|f| f.path() == "/usr/share/doc/rpm-basic/README")
+        .expect("README should exist");
+    assert!(readme.flags().is_doc());
+    assert!(!readme.flags().is_config());
+
+    let ghost = files
+        .iter()
+        .find(|f| f.path() == "/var/log/rpm-basic/basic.log")
+        .expect("ghost file should exist");
+    assert!(ghost.flags().is_ghost());
+}
+
+#[test]
+fn test_file_digest() {
+    let pkg = load_basic();
+    let files = pkg.files();
+
+    assert!(files.digest_algo() > 0);
+
+    let config = files
+        .iter()
+        .find(|f| f.path() == "/etc/rpm-basic/example_config.toml")
+        .expect("config file should exist");
+    let digest = config.digest().expect("regular file should have a digest");
+    assert!(!digest.is_empty());
+}
+
+#[test]
+fn test_files_empty_package() {
+    common::configure();
+    let pkg = Package::from_file(&assets_path().join("rpm-empty-0-0.x86_64.rpm")).unwrap();
+    let files = pkg.files();
+
+    assert_eq!(files.len(), 0);
+    assert!(files.is_empty());
+    assert_eq!(files.iter().count(), 0);
+}
+
 // Package trait implementations
 
 #[test]
