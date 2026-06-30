@@ -42,6 +42,9 @@ mod config;
 /// RPM database access
 pub mod db;
 
+/// File information for RPM packages
+pub mod files;
+
 /// Internal functionality not to be exposed outside of this crate
 mod internal;
 
@@ -59,8 +62,8 @@ pub mod version;
 pub mod sign;
 
 pub use self::{
-    db::Db, db::Index, error::Error, macro_context::MacroContext, package::Package,
-    version::Version,
+    db::Db, db::Index, error::Error, files::FileAttrs, files::FileEntry, files::Files,
+    macro_context::MacroContext, package::Package, version::Version,
 };
 
 // Re-export types used in public API

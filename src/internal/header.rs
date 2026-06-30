@@ -58,6 +58,11 @@ impl Header {
         &mut self.0
     }
 
+    /// Get the raw librpm Header pointer for passing to C functions.
+    pub(crate) fn as_ptr(&self) -> librpm_sys::Header {
+        self.0
+    }
+
     pub(crate) fn from_file(path: &Path) -> Result<Self, RpmErrorKind> {
         let mut txn = GlobalTS::create();
 
