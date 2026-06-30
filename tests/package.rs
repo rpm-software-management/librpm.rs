@@ -175,6 +175,8 @@ fn test_file_entry_metadata() {
     assert_eq!(config.group(), "root");
     assert!(config.flags().is_config());
     assert!(!config.flags().is_doc());
+    assert_eq!(config.basename(), "example_config.toml");
+    assert_eq!(config.dirname(), "/etc/rpm-basic/");
 }
 
 #[test]
