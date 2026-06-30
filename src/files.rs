@@ -135,6 +135,25 @@ impl FileEntry<'_> {
         s
     }
 
+    /// Base name of the file (filename without directory).
+    pub fn basename(&self) -> &str {
+        let p = unsafe { librpm_sys::rpmfilesBN(self.ptr.as_ptr(), self.index) };
+        assert!(!p.is_null());
+        unsafe { CStr::from_ptr(p) }
+            .to_str()
+            .expect("file basename is not UTF-8")
+    }
+
+    /// Directory name of the file (including trailing slash).
+    pub fn dirname(&self) -> &str {
+        let di = unsafe { librpm_sys::rpmfilesDI(self.ptr.as_ptr(), self.index) };
+        let p = unsafe { librpm_sys::rpmfilesDN(self.ptr.as_ptr(), di as i32) };
+        assert!(!p.is_null());
+        unsafe { CStr::from_ptr(p) }
+            .to_str()
+            .expect("file dirname is not UTF-8")
+    }
+
     /// File size in bytes.
     pub fn size(&self) -> u64 {
         unsafe { librpm_sys::rpmfilesFSize(self.ptr.as_ptr(), self.index) }
