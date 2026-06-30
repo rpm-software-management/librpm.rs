@@ -33,7 +33,7 @@ pub struct Dependencies {
 
 impl Dependencies {
     pub(crate) fn from_header(header: &Header, tag: Tag) -> Self {
-        let ds = unsafe { librpm_sys::rpmdsNew(header.as_ptr(), u32::from(tag), 0) };
+        let ds = unsafe { librpm_sys::rpmdsNew(header.as_ptr(), tag as librpm_sys::rpmTagVal, 0) };
 
         if ds.is_null() {
             return Dependencies {

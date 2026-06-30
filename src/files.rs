@@ -46,7 +46,7 @@ impl Files {
             librpm_sys::rpmfilesNew(
                 std::ptr::null_mut(),
                 header.as_ptr(),
-                u32::from(Tag::BASENAMES),
+                Tag::BASENAMES as librpm_sys::rpmTagVal,
                 0,
             )
         };
