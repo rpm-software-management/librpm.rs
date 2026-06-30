@@ -15,50 +15,29 @@
  * file, You can obtain one at <https://mozilla.org/MPL/2.0/>.
  */
 
-//! Thread-safe tracking struct for RPM's global mutable state.
+//! Thread-safe tracking of librpm's process-global configuration state.
 //!
-//! librpm has a lot of global mutable state, and depending on what state it
-//! is in various calls are safe (or not).
-//!
-//! This struct tracks changes to librpm's global state based on functions we
-//! have (or have not) invoked.
-//!
-//! The global state lock serializes operations that mutate the `rpmts` itself
-//! (configuration, lazy DB/keyring initialization). Read-only database
-//! iteration does not require holding the lock because `rpmtsInitIterator`
-//! takes its own refcounted link to the transaction set and each iterator
-//! carries independent cursor state.
+//! librpm's `rpmReadConfigFiles` / `rpmInitCrypto` must only be called once
+//! per process. This module tracks whether that has happened and serializes
+//! macro operations that mutate the global macro context.
 
-use super::ts::TransactionSet;
-use once_cell::sync::Lazy;
-use std::sync::{Mutex, MutexGuard};
+use std::sync::{Mutex, MutexGuard, OnceLock};
 
-static RPM_GLOBAL_STATE: Lazy<Mutex<GlobalState>> =
-    Lazy::new(|| Mutex::new(GlobalState::default()));
+static CONFIG_STATE: OnceLock<Mutex<ConfigState>> = OnceLock::new();
 
-/// Tracking struct for mutable global state in RPM
-pub(crate) struct GlobalState {
+/// Tracking struct for process-global configuration in RPM
+pub(crate) struct ConfigState {
     /// Have any configuration functions been called? (Specifically any ones
     /// which invoke `rpmInitCrypto`, which it seems should only be called once)
     pub configured: bool,
-
-    /// Global shared transaction set created the first time librpm's global
-    /// state is accessed.
-    pub ts: TransactionSet,
 }
 
-impl Default for GlobalState {
-    fn default() -> GlobalState {
-        GlobalState {
-            configured: false,
-            ts: TransactionSet::create(),
-        }
-    }
-}
-
-impl GlobalState {
-    /// Obtain an exclusive lock to the global state
+impl ConfigState {
+    /// Obtain an exclusive lock to the config state
     pub fn lock() -> MutexGuard<'static, Self> {
-        RPM_GLOBAL_STATE.lock().unwrap()
+        CONFIG_STATE
+            .get_or_init(|| Mutex::new(ConfigState { configured: false }))
+            .lock()
+            .unwrap()
     }
 }

@@ -45,43 +45,56 @@
 use crate::error::Error;
 use crate::internal::iterator::MatchIterator;
 use crate::internal::tag::DBIndexTag;
+use crate::internal::ts::TransactionSet;
 use crate::package::Package;
 use streaming_iterator::StreamingIterator;
 
 /// Handle to the RPM database.
 ///
-/// All database query methods are on this type, ensuring that configuration
-/// has been loaded before any queries are made. Call [`librpm::init`](crate::init)
-/// first, then [`Db::open`] to obtain a handle.
+/// Each `Db` owns its own librpm transaction set (`rpmts`). When dropped,
+/// the transaction set and any associated database connection are freed.
+///
+/// Call [`librpm::init`](crate::init) first, then [`Db::open`] to obtain
+/// a handle.
 #[derive(Debug)]
 pub struct Db {
-    _private: (),
+    ts: TransactionSet,
 }
 
 impl Db {
-    /// Return a database handle if RPM has already been configured via
-    /// [`librpm::init`](crate::init) or [`librpm::init_with`](crate::init_with).
+    /// Open the default RPM database.
     ///
-    /// Returns an error if configuration has not been loaded yet.
+    /// Returns an error if configuration has not been loaded yet via
+    /// [`librpm::init`](crate::init) or [`librpm::init_with`](crate::init_with).
     pub fn open() -> Result<Self, Error> {
-        let global_state = crate::internal::GlobalState::lock();
+        let global_state = crate::internal::ConfigState::lock();
         if !global_state.configured {
             fail!(
                 crate::error::ErrorKind::Config,
                 "RPM has not been configured; call librpm::init() first"
             );
         }
-        Ok(Db { _private: () })
+        Ok(Db {
+            ts: TransactionSet::create(),
+        })
     }
 
     /// Find an exact match for `key` in the given `index`.
     pub fn find<S: AsRef<str>>(&self, index: Index, key: S) -> Iter {
-        Iter(MatchIterator::new(index.into(), Some(key.as_ref())))
+        Iter(MatchIterator::new(
+            self.ts.as_ptr(),
+            index.into(),
+            Some(key.as_ref()),
+        ))
     }
 
     /// Find all packages installed on the local system.
     pub fn installed_packages(&self) -> Iter {
-        Iter(MatchIterator::new(DBIndexTag::PACKAGES, None))
+        Iter(MatchIterator::new(
+            self.ts.as_ptr(),
+            DBIndexTag::PACKAGES,
+            None,
+        ))
     }
 }
 

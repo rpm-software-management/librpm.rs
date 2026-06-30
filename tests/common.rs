@@ -14,17 +14,17 @@ use std::time;
 
 use librpm::{Db, Index, Package};
 
-static DB: OnceLock<Db> = OnceLock::new();
+static INIT: OnceLock<()> = OnceLock::new();
 static DISTRO: OnceLock<&'static str> = OnceLock::new();
 
-pub fn configure() -> &'static Db {
-    DB.get_or_init(|| {
+pub fn configure() -> Db {
+    INIT.get_or_init(|| {
         librpm::init().unwrap();
-        Db::open().unwrap()
-    })
+    });
+    Db::open().unwrap()
 }
 
-pub fn init(distro: &DistroTestCase) -> &'static Db {
+pub fn init(distro: &DistroTestCase) -> Db {
     let prev = DISTRO.get_or_init(|| {
         librpm::init_with(None, Some(&get_assets_path().join(distro.db_subdir))).unwrap();
         distro.db_subdir
@@ -33,7 +33,7 @@ pub fn init(distro: &DistroTestCase) -> &'static Db {
         *prev, distro.db_subdir,
         "cannot use two different distro databases in one process"
     );
-    DB.get_or_init(|| Db::open().unwrap())
+    Db::open().unwrap()
 }
 
 pub fn get_assets_path() -> PathBuf {

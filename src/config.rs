@@ -18,7 +18,7 @@
 //! Support for configuring RPM, i.e. reading configuration files
 
 use crate::error::{Error, ErrorKind};
-use crate::internal::GlobalState;
+use crate::internal::ConfigState;
 use crate::macro_context::MacroContext;
 use std::ffi::CString;
 use std::os::unix::ffi::OsStrExt;
@@ -35,7 +35,7 @@ const DB_PATH_MACRO: &str = "_dbpath";
 /// Configuration is global to the process; this function can only be called
 /// once.
 pub(crate) fn read_file(config_file: Option<&Path>) -> Result<(), Error> {
-    let mut global_state = GlobalState::lock();
+    let mut global_state = ConfigState::lock();
 
     // Avoid invoking `rpmReadConfigFiles` more than once. This vicariously
     // invokes `rpmInitCrypto` which causes segfaults (NULL struct pointer
