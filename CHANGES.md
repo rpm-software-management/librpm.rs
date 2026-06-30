@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   mode, owner, group, digest, flags, link target, capabilities) via the
   `rpmfiles` API. Includes `FileEntry` accessors and `FileAttrs` flag helpers
   (`is_config`, `is_doc`, `is_ghost`, `is_license`, etc.)
+* `Package::requires()`, `provides()`, `conflicts()`, `obsoletes()`,
+  `recommends()`, `suggests()`, `supplements()`, `enhances()` return a
+  `Dependencies` set built from librpm's `rpmds` API. Each `Dependency`
+  exposes `name()`, `evr()`, and `flags()` (`DepFlags` with version-comparison
+  helpers and sense-flag checks)
 * Version comparison utilities - `version::vercmp()` compares two version/release
   strings, `version::Version` parses `[epoch:]version[-release]` strings and
   supports full Rust-native `Ord`/`Eq` comparison via librpm's `rpmverCmp`

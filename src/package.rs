@@ -16,6 +16,7 @@
  */
 
 //! RPM package type: represents `.rpm` files or entries in the RPM database
+use crate::dep::Dependencies;
 use crate::files::Files;
 use crate::internal::header::Header;
 use crate::{RpmErrorKind, Tag, TagData};
@@ -136,6 +137,46 @@ impl Package {
     /// File information for the package.
     pub fn files(&self) -> Files {
         Files::from_header(&self.header)
+    }
+
+    /// `Requires` dependencies.
+    pub fn requires(&self) -> Dependencies {
+        Dependencies::from_header(&self.header, Tag::REQUIRENAME)
+    }
+
+    /// `Provides` dependencies.
+    pub fn provides(&self) -> Dependencies {
+        Dependencies::from_header(&self.header, Tag::PROVIDENAME)
+    }
+
+    /// `Conflicts` dependencies.
+    pub fn conflicts(&self) -> Dependencies {
+        Dependencies::from_header(&self.header, Tag::CONFLICTNAME)
+    }
+
+    /// `Obsoletes` dependencies.
+    pub fn obsoletes(&self) -> Dependencies {
+        Dependencies::from_header(&self.header, Tag::OBSOLETENAME)
+    }
+
+    /// `Recommends` (weak) dependencies.
+    pub fn recommends(&self) -> Dependencies {
+        Dependencies::from_header(&self.header, Tag::RECOMMENDNAME)
+    }
+
+    /// `Suggests` (weak) dependencies.
+    pub fn suggests(&self) -> Dependencies {
+        Dependencies::from_header(&self.header, Tag::SUGGESTNAME)
+    }
+
+    /// `Supplements` (weak) dependencies.
+    pub fn supplements(&self) -> Dependencies {
+        Dependencies::from_header(&self.header, Tag::SUPPLEMENTNAME)
+    }
+
+    /// `Enhances` (weak) dependencies.
+    pub fn enhances(&self) -> Dependencies {
+        Dependencies::from_header(&self.header, Tag::ENHANCENAME)
     }
 
     /// Buildtime of the package

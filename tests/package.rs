@@ -224,6 +224,150 @@ fn test_files_empty_package() {
     assert_eq!(files.iter().count(), 0);
 }
 
+// Package::requires / provides / conflicts / obsoletes / recommends / suggests
+
+#[test]
+fn test_requires() {
+    let pkg = load_basic();
+    let requires = pkg.requires();
+
+    assert!(!requires.is_empty());
+
+    let names: Vec<&str> = requires.iter().map(|d| d.name()).collect();
+    assert!(names.contains(&"methylamine"));
+    assert!(names.contains(&"morality"));
+    assert!(names.contains(&"regret"));
+    assert!(names.contains(&"rpmlib(CompressedFileNames)"));
+
+    let methylamine = requires.iter().find(|d| d.name() == "methylamine").unwrap();
+    assert_eq!(methylamine.evr(), Some("1.0.0-1"));
+    assert!(methylamine.flags().is_greater());
+    assert!(methylamine.flags().is_equal());
+    assert!(!methylamine.flags().is_less());
+    assert_eq!(methylamine.flags().version_cmp_str(), ">=");
+
+    let morality = requires.iter().find(|d| d.name() == "morality").unwrap();
+    assert_eq!(morality.evr(), Some("2"));
+    assert_eq!(morality.flags().version_cmp_str(), "<=");
+
+    let regret = requires.iter().find(|d| d.name() == "regret").unwrap();
+    assert_eq!(regret.evr(), None);
+    assert_eq!(regret.flags().version_cmp_str(), "");
+
+    let rpmlib_dep = requires
+        .iter()
+        .find(|d| d.name() == "rpmlib(CompressedFileNames)")
+        .unwrap();
+    assert!(rpmlib_dep.flags().is_rpmlib());
+    assert_eq!(rpmlib_dep.flags().version_cmp_str(), "<=");
+}
+
+#[test]
+fn test_provides() {
+    let pkg = load_basic();
+    let provides = pkg.provides();
+
+    assert!(!provides.is_empty());
+
+    let names: Vec<&str> = provides.iter().map(|d| d.name()).collect();
+    assert!(names.contains(&"rpm-basic"));
+    assert!(names.contains(&"aaronpaul"));
+    assert!(names.contains(&"shock"));
+
+    let shock = provides.iter().find(|d| d.name() == "shock").unwrap();
+    assert_eq!(shock.evr(), Some("33"));
+    assert_eq!(shock.flags().version_cmp_str(), "=");
+}
+
+#[test]
+fn test_conflicts() {
+    let pkg = load_basic();
+    let conflicts = pkg.conflicts();
+
+    assert_eq!(conflicts.len(), 1);
+
+    let hank = conflicts.iter().find(|d| d.name() == "hank").unwrap();
+    assert_eq!(hank.evr(), Some("35"));
+    assert_eq!(hank.flags().version_cmp_str(), ">");
+}
+
+#[test]
+fn test_obsoletes() {
+    let pkg = load_basic();
+    let obsoletes = pkg.obsoletes();
+
+    assert_eq!(obsoletes.len(), 2);
+
+    let names: Vec<&str> = obsoletes.iter().map(|d| d.name()).collect();
+    assert!(names.contains(&"gusfring"));
+    assert!(names.contains(&"tucosalamanca"));
+
+    let gusfring = obsoletes.iter().find(|d| d.name() == "gusfring").unwrap();
+    assert_eq!(gusfring.evr(), Some("32.1-0"));
+    assert_eq!(gusfring.flags().version_cmp_str(), "<");
+}
+
+#[test]
+fn test_recommends() {
+    let pkg = load_basic();
+    let recommends = pkg.recommends();
+
+    assert!(!recommends.is_empty());
+
+    let names: Vec<&str> = recommends.iter().map(|d| d.name()).collect();
+    assert!(names.contains(&"huel"));
+    assert!(names.contains(&"SaulGoodman(CriminalLawyer)"));
+
+    let huel = recommends.iter().find(|d| d.name() == "huel").unwrap();
+    assert_eq!(huel.evr(), Some("9:11.0-0"));
+    assert_eq!(huel.flags().version_cmp_str(), ">");
+}
+
+#[test]
+fn test_suggests() {
+    let pkg = load_basic();
+    let suggests = pkg.suggests();
+
+    assert_eq!(suggests.len(), 1);
+
+    let chili = suggests.iter().find(|d| d.name() == "chilipowder").unwrap();
+    assert_eq!(chili.evr(), None);
+}
+
+#[test]
+fn test_dependencies_empty_package() {
+    common::configure();
+    let pkg = Package::from_file(&assets_path().join("rpm-empty-0-0.x86_64.rpm")).unwrap();
+
+    assert!(pkg.requires().iter().all(|d| d.flags().is_rpmlib()));
+    assert!(pkg.provides().len() >= 1); // self-provide always exists
+    assert!(pkg.conflicts().is_empty());
+    assert!(pkg.obsoletes().is_empty());
+    assert!(pkg.recommends().is_empty());
+    assert!(pkg.suggests().is_empty());
+}
+
+#[test]
+fn test_dependency_display() {
+    let pkg = load_basic();
+    let requires = pkg.requires();
+
+    let methylamine = requires.iter().find(|d| d.name() == "methylamine").unwrap();
+    assert_eq!(format!("{methylamine}"), "methylamine >= 1.0.0-1");
+
+    let regret = requires.iter().find(|d| d.name() == "regret").unwrap();
+    assert_eq!(format!("{regret}"), "regret");
+}
+
+#[test]
+fn test_dependencies_into_iter() {
+    let pkg = load_basic();
+    let conflicts = pkg.conflicts();
+
+    let names: Vec<String> = conflicts.into_iter().map(|d| d.name().to_owned()).collect();
+    assert_eq!(names, vec!["hank"]);
+}
+
 // Package trait implementations
 
 #[test]
