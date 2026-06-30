@@ -27,4 +27,4 @@ pub mod tag;
 pub mod td;
 pub(crate) mod ts;
 
-pub(crate) use self::global_state::GlobalState;
+pub(crate) use self::global_state::ConfigState;

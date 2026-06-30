@@ -34,7 +34,6 @@ edition.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-once_cell = "1.21"
 librpm-sys = { workspace = true }
 librpmbuild-sys = { workspace = true, optional = true }
 librpmsign-sys = { workspace = true, optional = true }

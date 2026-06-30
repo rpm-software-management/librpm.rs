@@ -22,7 +22,7 @@ use std::os::unix::prelude::OsStrExt;
 use std::path::Path;
 
 use super::rc::{RpmErrorKind, RpmReturnCode};
-use super::ts::GlobalTS;
+use super::ts::TransactionSet;
 use super::{tag::Tag, td::TagData};
 
 /// RPM package header
@@ -64,7 +64,7 @@ impl Header {
     }
 
     pub(crate) fn from_file(path: &Path) -> Result<Self, RpmErrorKind> {
-        let mut txn = GlobalTS::create();
+        let txn = TransactionSet::create();
 
         let filename = CString::new(path.as_os_str().as_bytes()).unwrap();
         let fmode = CString::new("r.ufdio").unwrap();
@@ -108,7 +108,7 @@ impl Header {
         // initialized by headerNew(). Fclose is called on all paths after
         // rpmReadPackageFile returns, regardless of success or failure.
         unsafe {
-            let raw_ts = txn.as_mut_ptr();
+            let raw_ts = txn.as_ptr();
             librpm_sys::rpmtsSetVSFlags(raw_ts, vsflags);
 
             let rc = librpm_sys::rpmReadPackageFile(raw_ts, fd, std::ptr::null(), hdr.as_mut_ptr());

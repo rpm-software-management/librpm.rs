@@ -17,28 +17,19 @@
 
 //! Iterators for matches in the RPM database
 
-use super::{header::Header, tag::DBIndexTag, ts::GlobalTS};
+use super::{header::Header, tag::DBIndexTag};
 use std::{os::raw::c_void, ptr};
 use streaming_iterator::StreamingIterator;
 
 /// Iterator over the matches from a database query.
 ///
-/// # Locking
+/// # Safety
 ///
-/// The global state lock is held only during construction (to safely access
-/// the global `rpmts` for `rpmtsInitIterator`). It is *not* held for the
-/// iterator's lifetime. This is safe because:
-///
-/// - `rpmtsInitIterator` takes its own refcounted link (`rpmtsLink`) to the
-///   transaction set, keeping it alive independently of our lock.
-/// - Index query results are snapshotted into a `dbiIndexSet` at creation
-///   time; iteration walks this snapshot, not a live cursor on the index.
-/// - Each iterator has its own `rpmdbMatchIterator` / database cursor.
-/// - During iteration, the only access back to the `rpmts` is read-only
-///   header signature verification (`mi_hdrchk`).
-///
-/// This design allows multiple iterators to coexist on the same thread
-/// without deadlocking (see issue #15).
+/// `rpmtsInitIterator` takes its own refcounted link (`rpmtsLink`) to the
+/// transaction set and a refcounted link (`rpmdbLink`) to the database,
+/// keeping both alive independently. Each iterator has its own
+/// `rpmdbMatchIterator` / database cursor and walks a snapshot of the
+/// index taken at creation time.
 pub(crate) struct MatchIterator {
     /// Pointer to librpm's match iterator.
     ptr: *mut librpm_sys::rpmdbMatchIterator_s,
@@ -51,10 +42,13 @@ pub(crate) struct MatchIterator {
 }
 
 impl MatchIterator {
-    /// Create a new `MatchIterator` for the current RPM database, searching
-    /// by the (optionally) given search key.
-    pub(crate) fn new(tag: DBIndexTag, key_opt: Option<&str>) -> Self {
-        let mut txn = GlobalTS::create();
+    /// Create a new `MatchIterator` for the given transaction set's database,
+    /// searching by the (optionally) given search key.
+    pub(crate) fn new(
+        ts: *mut librpm_sys::rpmts_s,
+        tag: DBIndexTag,
+        key_opt: Option<&str>,
+    ) -> Self {
         let next_item = None;
         let finished = false;
 
@@ -63,7 +57,7 @@ impl MatchIterator {
         {
             let ptr = unsafe {
                 librpm_sys::rpmtsInitIterator(
-                    txn.as_mut_ptr(),
+                    ts,
                     tag as librpm_sys::rpm_tag_t,
                     key.as_ptr() as *const c_void,
                     key.len(),
@@ -78,12 +72,7 @@ impl MatchIterator {
         }
 
         let ptr = unsafe {
-            librpm_sys::rpmtsInitIterator(
-                txn.as_mut_ptr(),
-                tag as librpm_sys::rpm_tag_t,
-                ptr::null(),
-                0,
-            )
+            librpm_sys::rpmtsInitIterator(ts, tag as librpm_sys::rpm_tag_t, ptr::null(), 0)
         };
 
         Self {

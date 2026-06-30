@@ -134,7 +134,6 @@ dependencies = [
  "librpm-sys",
  "librpmbuild-sys",
  "librpmsign-sys",
- "once_cell",
  "streaming-iterator",
  "tempfile",
 ]
