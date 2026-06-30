@@ -37,6 +37,11 @@ pub struct Files {
     ptr: Option<NonNull<librpm_sys::rpmfiles_s>>,
 }
 
+// Safety: `rpmfiles_s` is a self-contained, immutable-after-construction
+// data structure. All fields are populated during `rpmfilesNew` and all
+// accessor functions (`rpmfilesFN`, `rpmfilesBN`, etc.) are pure index
+// lookups with no internal mutation. The reference count (`nrefs`) is
+// `std::atomic_int`, making refcount operations safe across threads.
 unsafe impl Send for Files {}
 unsafe impl Sync for Files {}
 

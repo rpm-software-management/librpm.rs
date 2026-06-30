@@ -56,6 +56,23 @@ use streaming_iterator::StreamingIterator;
 ///
 /// Call [`librpm::init`](crate::init) first, then [`Db::open`] to obtain
 /// a handle.
+///
+/// # Thread safety
+///
+/// `Db` is `Send` (can be moved to another thread) but `!Sync` (cannot be
+/// shared by reference across threads). This matches the underlying
+/// `rpmts`, which performs unsynchronized lazy-init mutations on first
+/// database access. Multiple `Db` instances on different threads are safe
+/// because each has an independent transaction set and database connection.
+///
+/// # Iterator lifetime
+///
+/// Iterators returned by [`find`](Db::find) and
+/// [`installed_packages`](Db::installed_packages) do not borrow the `Db`.
+/// The `Db` can be dropped while iterators are still alive because
+/// `rpmtsInitIterator` takes its own refcounted links to the `rpmts` and
+/// `rpmdb` internally. Collected [`Package`] values are also independent
+/// — each owns a refcounted header.
 #[derive(Debug)]
 pub struct Db {
     ts: TransactionSet,
@@ -99,12 +116,17 @@ impl Db {
 }
 
 /// Iterator over the RPM database which returns `Package` structs.
+///
+/// Wraps an internal `StreamingIterator` (whose items are borrowed from
+/// the C-level cursor) and clones each header into an owned `Package`
+/// before the cursor advances. This makes `Package` values safe to
+/// collect and use after the iterator — and even after the `Db` — is
+/// dropped.
 pub struct Iter(MatchIterator);
 
 impl Iterator for Iter {
     type Item = Package;
 
-    /// Obtain the next header from the iterator.
     fn next(&mut self) -> Option<Package> {
         self.0.next().map(Package::from_header)
     }

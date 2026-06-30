@@ -117,6 +117,16 @@ impl Header {
     }
 
     /// Get the data that corresponds to the given header tag.
+    ///
+    /// # Safety invariant: `HEADERGET_MINMEM`
+    ///
+    /// We use `HEADERGET_MINMEM`, which returns pointers directly into
+    /// the header's in-memory blob rather than copying. The returned
+    /// `TagData<'_>` borrows from `&self`, so the header (and its blob)
+    /// stays alive as long as the `TagData` exists. `rpmtdFreeData` is
+    /// called before returning, but with `HEADERGET_MINMEM` it only
+    /// frees the pointer array allocated for `STRING_ARRAY` types —
+    /// the string data itself points into the blob and is not freed.
     pub(crate) fn get(&self, tag: Tag) -> Option<TagData<'_>> {
         // Create a zeroed `rpmtd_s` and then immediately initialize it
         let mut td: librpm_sys::rpmtd_s = unsafe { mem::zeroed() };
