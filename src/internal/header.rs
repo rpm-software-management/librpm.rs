@@ -29,14 +29,6 @@ use super::{tag::Tag, td::TagData};
 pub(crate) struct Header(librpm_sys::Header); // *mut librpm_sys::headerToken_s
 
 impl Header {
-    pub(crate) fn new() -> Self {
-        let ffi_header = unsafe { librpm_sys::headerNew() };
-        assert!(!ffi_header.is_null());
-
-        // No need to increment refcount, starts with refcount=1
-        Header(ffi_header)
-    }
-
     /// Create a Header handle in Rust from a raw pointer
     ///
     /// SAFETY: The input pointer must not be used after passing ownership from Rust, except for dropping
@@ -49,13 +41,6 @@ impl Header {
             librpm_sys::headerLink(ffi_header);
         }
         Header(ffi_header)
-    }
-
-    /// Get a pointer to the original librpm C struct for use by C functions.
-    ///
-    /// SAFETY: This pointer should not be copied and must not passed to headerFree().
-    pub(crate) unsafe fn as_mut_ptr(&mut self) -> &mut librpm_sys::Header {
-        &mut self.0
     }
 
     /// Get the raw librpm Header pointer for passing to C functions.
@@ -71,7 +56,6 @@ impl Header {
 
         // Safety: filename and fmode are valid CStrings kept alive for the call
         let fd: librpm_sys::FD_t = unsafe { librpm_sys::Fopen(filename.as_ptr(), fmode.as_ptr()) };
-        let mut hdr = Header::new();
 
         #[allow(unused_mut)]
         let mut vsflags = librpm_sys::rpmVSFlags_e_RPMVSF_NOHDRCHK
@@ -104,18 +88,26 @@ impl Header {
             vsflags |= librpm_sys::rpmVSFlags_e_RPMVSF_NOOPENPGP;
         }
 
-        // Safety: raw_ts and fd are valid pointers obtained above; hdr is
-        // initialized by headerNew(). Fclose is called on all paths after
-        // rpmReadPackageFile returns, regardless of success or failure.
+        // Safety: rpmReadPackageFile takes a `Header *hdrp` out-parameter.
+        // It sets `*hdrp = NULL`, then on success sets `*hdrp = headerLink(h)`.
+        // We pass a null pointer — not a headerNew() result — to avoid leaking
+        // the overwritten header. Fclose is called on all paths.
         unsafe {
             let raw_ts = txn.as_ptr();
             librpm_sys::rpmtsSetVSFlags(raw_ts, vsflags);
 
-            let rc = librpm_sys::rpmReadPackageFile(raw_ts, fd, std::ptr::null(), hdr.as_mut_ptr());
+            let mut hdr_ptr: librpm_sys::Header = std::ptr::null_mut();
+            let rc = librpm_sys::rpmReadPackageFile(raw_ts, fd, std::ptr::null(), &mut hdr_ptr);
             librpm_sys::Fclose(fd);
 
             match RpmReturnCode::from_raw(rc) {
-                Some(RpmReturnCode::Ok) => Ok(hdr),
+                Some(RpmReturnCode::Ok) => {
+                    assert!(!hdr_ptr.is_null());
+                    // rpmReadPackageFile already called headerLink; the header
+                    // has refcount 1. Wrap it directly — do NOT call headerLink
+                    // again (Header::from_ptr would double-link).
+                    Ok(Header(hdr_ptr))
+                }
                 Some(RpmReturnCode::NotFound) => Err(RpmErrorKind::NotFound),
                 Some(RpmReturnCode::NotTrusted) => Err(RpmErrorKind::NotTrusted),
                 Some(RpmReturnCode::NoKey) => Err(RpmErrorKind::NoKey),
