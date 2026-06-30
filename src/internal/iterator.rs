@@ -23,13 +23,21 @@ use streaming_iterator::StreamingIterator;
 
 /// Iterator over the matches from a database query.
 ///
-/// # Safety
+/// # Lifetime independence from `Db`
 ///
-/// `rpmtsInitIterator` takes its own refcounted link (`rpmtsLink`) to the
-/// transaction set and a refcounted link (`rpmdbLink`) to the database,
-/// keeping both alive independently. Each iterator has its own
-/// `rpmdbMatchIterator` / database cursor and walks a snapshot of the
-/// index taken at creation time.
+/// A `MatchIterator` does not borrow the `Db` or `TransactionSet` that
+/// created it. This is safe because `rpmtsInitIterator` internally calls
+/// `rpmtsLink` and `rpmdbLink`, giving the C-level iterator its own
+/// reference-counted links to both the transaction set and the database.
+/// The iterator walks a snapshot of the index taken at creation time.
+/// When dropped, `rpmdbFreeIterator` releases those links.
+///
+/// # Header ownership
+///
+/// `rpmdbNextIterator` returns a pointer to an internal header that is
+/// only valid until the next call. We use `StreamingIterator` to enforce
+/// this, then the public `Iter` adapter clones each header (via
+/// `Header::from_ptr` → `headerLink`) before it can be invalidated.
 pub(crate) struct MatchIterator {
     /// Pointer to librpm's match iterator.
     ptr: *mut librpm_sys::rpmdbMatchIterator_s,

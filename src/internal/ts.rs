@@ -21,6 +21,23 @@
 ///
 /// Nearly all access to librpm, including actions which don't necessarily
 /// involve operations on the RPM database, require a transaction set.
+///
+/// # Ownership
+///
+/// Each `TransactionSet` owns exactly one refcounted reference to an
+/// `rpmts`. When dropped, `rpmtsFree` decrements the refcount. The
+/// underlying `rpmts` may outlive this wrapper if C-level consumers
+/// (e.g. `rpmdbMatchIterator` via `rpmtsLink`) hold additional references.
+///
+/// # Thread safety
+///
+/// `TransactionSet` is `Send` but intentionally `!Sync`:
+///
+/// - **`Send`**: the `rpmts` is a self-contained heap allocation with no
+///   thread-local state. Moving it between threads is safe.
+/// - **`!Sync`**: `rpmtsInitIterator` performs lazy-init mutations (DB
+///   open, keyring load) that are not synchronized internally. Concurrent
+///   `&TransactionSet` access from multiple threads would be a data race.
 pub(crate) struct TransactionSet(*mut librpm_sys::rpmts_s);
 
 impl std::fmt::Debug for TransactionSet {
@@ -29,9 +46,7 @@ impl std::fmt::Debug for TransactionSet {
     }
 }
 
-// Safety: TransactionSet is !Sync by default (raw pointer). We impl Send
-// so it can be moved between threads (the rpmts is self-contained), but
-// concurrent access from multiple threads is not safe.
+// Safety: see doc comment on TransactionSet above.
 unsafe impl Send for TransactionSet {}
 
 impl TransactionSet {
@@ -54,6 +69,8 @@ impl TransactionSet {
 impl Drop for TransactionSet {
     fn drop(&mut self) {
         // Safety: self.0 was created by rpmtsCreate and has not been freed.
+        // The rpmts may still be alive after this call if iterators hold
+        // additional references via rpmtsLink.
         unsafe {
             librpm_sys::rpmtsFree(self.0);
         }

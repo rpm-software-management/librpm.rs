@@ -28,6 +28,22 @@ use std::{fmt, path::Path, time};
 ///
 /// A thin wrapper around a librpm header. Accessors perform tag lookups
 /// on demand rather than copying data out of the header up front.
+///
+/// # Ownership
+///
+/// Each `Package` owns a reference-counted link to its underlying
+/// librpm `Header`. Cloning a `Package` increments the header's
+/// refcount (`headerLink`); dropping decrements it (`headerFree`).
+/// A `Package` is fully independent of the `Db` or iterator that
+/// produced it.
+///
+/// # String lifetimes
+///
+/// Accessors like [`name()`](Package::name) and
+/// [`version()`](Package::version) return `&str` tied to `&self`.
+/// These point directly into the header's in-memory blob (via
+/// `HEADERGET_MINMEM`), so they are valid as long as the `Package`
+/// is alive. No allocation or copy occurs.
 pub struct Package {
     header: Header,
 }

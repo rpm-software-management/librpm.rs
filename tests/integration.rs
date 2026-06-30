@@ -1,7 +1,7 @@
 //! librpm.rs integration tests
 
 use librpm::db::Index;
-use librpm::{Package, Tag};
+use librpm::{Db, Package, Tag};
 
 mod common;
 
@@ -107,4 +107,52 @@ fn db_find_test_multiple_packages() {
 
     assert!(db.find(Index::Name, "bash").next().is_some());
     assert!(db.find(Index::Name, "filesystem").next().is_some());
+}
+
+#[test]
+fn iterator_outlives_db() {
+    let packages: Vec<Package> = {
+        let db = common::init(&common::CENTOS_STREAM_9);
+        db.installed_packages().collect()
+    };
+    // Db (and its TransactionSet) is dropped. The collected Packages must
+    // still be valid — each owns a refcounted Header independent of the rpmts.
+    assert!(!packages.is_empty());
+    for pkg in &packages {
+        assert!(!pkg.name().is_empty());
+    }
+}
+
+#[test]
+fn multiple_db_instances() {
+    let db1 = common::init(&common::CENTOS_STREAM_9);
+    let db2 = common::init(&common::CENTOS_STREAM_9);
+
+    let count1 = db1.installed_packages().count();
+    let count2 = db2.installed_packages().count();
+    assert_eq!(count1, count2);
+
+    let results1: Vec<Package> = db1.find(Index::Name, "bash").collect();
+    let results2: Vec<Package> = db2.find(Index::Name, "bash").collect();
+    assert_eq!(results1.len(), results2.len());
+    assert_eq!(results1[0].name(), results2[0].name());
+}
+
+#[test]
+fn concurrent_db_instances() {
+    common::init(&common::CENTOS_STREAM_9);
+
+    let handles: Vec<_> = (0..4)
+        .map(|_| {
+            std::thread::spawn(|| {
+                let db = Db::open().unwrap();
+                let packages: Vec<Package> = db.installed_packages().collect();
+                assert!(!packages.is_empty());
+                packages.len()
+            })
+        })
+        .collect();
+
+    let counts: Vec<usize> = handles.into_iter().map(|h| h.join().unwrap()).collect();
+    assert!(counts.windows(2).all(|w| w[0] == w[1]));
 }
