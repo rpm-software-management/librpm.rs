@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+
+* Fixed documentation links
+
+## 0.2.0 -- July 2, 2026
+
 ### Added
 
 * `Package::from_file()` reads an `.rpm` file directly into a `Package`

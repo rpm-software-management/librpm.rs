@@ -40,7 +40,7 @@ If a copy of the MPL was not distributed with this file, You can obtain one at <
 
 [//]: # (general links)
 
-[Documentation]: https://rustrpm.org/librpm-sys/
+[Documentation]: https://docs.rs/crate/librpm
 [librpm C library]: http://ftp.rpm.org/api/4.14.0/
 [RPM Package Manager]: http://rpm.org/
 [Mozilla Public License, v. 2.0]: https://github.com/rpm-software-management/librpm.rs/blob/main/LICENSE
