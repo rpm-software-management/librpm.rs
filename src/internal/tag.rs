@@ -996,9 +996,11 @@ pub enum Tag {
     FILEMIMES = librpm_sys::rpmTag_e_RPMTAG_FILEMIMES as isize,
 
     /// Package header digests (string array)
+    #[cfg(has_rpmtag_packagedigests)]
     PACKAGEDIGESTS = librpm_sys::rpmTag_e_RPMTAG_PACKAGEDIGESTS as isize,
 
     /// Algorithms used for PACKAGEDIGESTS (int array)
+    #[cfg(has_rpmtag_packagedigestalgos)]
     PACKAGEDIGESTALGOS = librpm_sys::rpmTag_e_RPMTAG_PACKAGEDIGESTALGOS as isize,
 
     /// NEVR of the source RPM (string)

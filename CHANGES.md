@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 * Fixed documentation links
+* Fixed builds against Ubuntu 24.04's build of RPM, which is slightly different from CentOS Stream.
 
 ## 0.2.0 -- July 2, 2026
 

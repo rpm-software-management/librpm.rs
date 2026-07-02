@@ -55,3 +55,18 @@ jobs:
       - name: 🧪 Run Integration Tests
         run: |
           cargo test --test '*' --release
+
+  integration-tests-ubuntu:  # doubles as docs.rs build test
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: 📦 Install librpm dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y librpm-dev clang libclang-dev
+
+      - name: 🧪 Run Integration Tests
+        run: |
+          cargo test --test '*' --release
