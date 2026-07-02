@@ -129,7 +129,7 @@ dependencies = [
 
 [[package]]
 name = "librpm"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "librpm-sys",
  "librpmbuild-sys",
@@ -140,21 +140,21 @@ dependencies = [
 
 [[package]]
 name = "librpm-sys"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "bindgen",
 ]
 
 [[package]]
 name = "librpmbuild-sys"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "bindgen",
 ]
 
 [[package]]
 name = "librpmsign-sys"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "bindgen",
 ]
