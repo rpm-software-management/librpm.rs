@@ -18,12 +18,17 @@
 //! Thread-safe tracking of librpm's process-global configuration state.
 //!
 //! librpm's `rpmReadConfigFiles` / `rpmInitCrypto` must only be called once
-//! per process. This module tracks whether that has happened and serializes
-//! macro operations that mutate the global macro context.
+//! per process. This module tracks whether that has happened.
 
 use std::sync::{Mutex, MutexGuard, OnceLock};
 
 static CONFIG_STATE: OnceLock<Mutex<ConfigState>> = OnceLock::new();
+
+// Serializes FFI calls that mutate librpm's process-global iterator/database
+// tracking lists (rpmmiRock, rpmdbRock, rpmiiRock in RPM <= 4.18). These
+// unsynchronized linked lists are removed in RPM 4.19+, but the lock is
+// harmless there (uncontended, ~25ns).
+static RPMDB_GLOBAL_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
 
 /// Tracking struct for process-global configuration in RPM
 pub(crate) struct ConfigState {
@@ -40,4 +45,13 @@ impl ConfigState {
             .lock()
             .unwrap()
     }
+}
+
+/// Acquire the process-wide lock that serializes librpm FFI calls touching
+/// global iterator/database tracking state.
+pub fn rpmdb_lock() -> MutexGuard<'static, ()> {
+    RPMDB_GLOBAL_LOCK
+        .get_or_init(|| Mutex::new(()))
+        .lock()
+        .unwrap()
 }

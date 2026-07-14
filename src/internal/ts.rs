@@ -71,6 +71,10 @@ impl Drop for TransactionSet {
         // Safety: self.0 was created by rpmtsCreate and has not been freed.
         // The rpmts may still be alive after this call if iterators hold
         // additional references via rpmtsLink.
+        // rpmtsFree -> rpmtsCloseDB -> rpmdbClose removes from the
+        // process-global rpmdbRock linked list (RPM <= 4.18) without
+        // synchronization. See docs/threading.md.
+        let _lock = super::rpmdb_lock();
         unsafe {
             librpm_sys::rpmtsFree(self.0);
         }

@@ -19,8 +19,6 @@
 //! previous rpmrc system.
 
 use crate::error::{Error, ErrorKind};
-use crate::internal::ConfigState;
-use librpm_sys;
 use std::ffi::{CStr, CString};
 
 /// Scopes in which macros are defined
@@ -45,13 +43,9 @@ impl MacroContext {
         let cstr =
             CString::new(macro_string).map_err(|e| format_err!(ErrorKind::InvalidArg, "{}", e))?;
 
-        // Aggressively synchronize all macro operations through the global
-        // lock. This serializes even non-global context operations, but these
-        // are not hot paths and correctness is more important here.
-        let _lock = ConfigState::lock();
         // Safety: cstr is a valid null-terminated C string, and self.0 is a
-        // valid rpmMacroContext obtained from librpm. The global lock ensures
-        // exclusive access to librpm's macro state.
+        // valid rpmMacroContext. The C macro context has its own internal
+        // recursive mutex (since RPM 4.12).
         unsafe {
             librpm_sys::rpmDefineMacro(self.0, cstr.as_ptr(), level as i32);
         }
@@ -63,9 +57,9 @@ impl MacroContext {
     pub fn pop(&self, name: &str) -> Result<(), Error> {
         let cstr = CString::new(name).map_err(|e| format_err!(ErrorKind::InvalidArg, "{}", e))?;
 
-        let _lock = ConfigState::lock();
         // Safety: cstr is a valid null-terminated C string, and self.0 is a
-        // valid rpmMacroContext. The global lock ensures exclusive access.
+        // valid rpmMacroContext. The C macro context has its own internal
+        // recursive mutex (since RPM 4.12).
         unsafe {
             librpm_sys::rpmPopMacro(self.0, cstr.as_ptr());
         }
@@ -89,7 +83,6 @@ impl MacroContext {
     pub fn expand(&self, expr: &str) -> Result<String, Error> {
         let cstr = CString::new(expr).map_err(|e| format_err!(ErrorKind::InvalidArg, "{}", e))?;
 
-        let _lock = ConfigState::lock();
         let mut obuf: *mut std::os::raw::c_char = std::ptr::null_mut();
         let rc = unsafe { librpm_sys::rpmExpandMacros(self.0, cstr.as_ptr(), &mut obuf, 0) };
 
@@ -121,7 +114,6 @@ impl MacroContext {
             return false;
         };
 
-        let _lock = ConfigState::lock();
         unsafe { librpm_sys::rpmMacroIsDefined(self.0, cstr.as_ptr()) != 0 }
     }
 }
@@ -141,7 +133,6 @@ pub fn expand_numeric(expr: &str) -> i32 {
         return 0;
     };
 
-    let _lock = ConfigState::lock();
     unsafe { librpm_sys::rpmExpandNumeric(cstr.as_ptr()) }
 }
 
