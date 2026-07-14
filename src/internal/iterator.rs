@@ -17,7 +17,7 @@
 
 //! Iterators for matches in the RPM database
 
-use super::{header::Header, tag::DBIndexTag};
+use super::{header::Header, rpmdb_lock, tag::DBIndexTag};
 use std::{os::raw::c_void, ptr};
 use streaming_iterator::StreamingIterator;
 
@@ -59,6 +59,10 @@ impl MatchIterator {
     ) -> Self {
         let next_item = None;
         let finished = false;
+
+        // rpmtsInitIterator inserts into the process-global rpmmiRock linked
+        // list (RPM <= 4.18) without synchronization. See docs/threading.md.
+        let _lock = rpmdb_lock();
 
         if let Some(key) = key_opt
             && !key.is_empty()
@@ -118,6 +122,9 @@ impl StreamingIterator for MatchIterator {
 
 impl Drop for MatchIterator {
     fn drop(&mut self) {
+        // rpmdbFreeIterator removes from the process-global rpmmiRock linked
+        // list (RPM <= 4.18) without synchronization. See docs/threading.md.
+        let _lock = rpmdb_lock();
         unsafe {
             librpm_sys::rpmdbFreeIterator(self.ptr);
         }

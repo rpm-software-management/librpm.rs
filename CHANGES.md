@@ -12,6 +12,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * `Package::format()` applies an RPM query format string to a package header using
   `%{TAG}` syntax, equivalent to `rpm --queryformat` or librpm's `headerFormat()`.
 
+### Fixed
+
+* Fixed a crash (SIGSEGV in `rpmAtExit`) when using multiple `Db` instances
+  from concurrent threads on RPM <= 4.18 (e.g. CentOS Stream 9). The crash
+  was caused by unsynchronized global linked lists in `rpmdb.c` that track
+  live iterators and databases. Iterator creation, destruction, and transaction
+  set cleanup are now serialized through a process-wide lock.
+
 ## 0.2.1 -- July 2, 2026
 
 ### Fixed
