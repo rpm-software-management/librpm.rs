@@ -4,7 +4,7 @@
 use std::collections::HashSet;
 use std::path::Path;
 
-use librpm::{Package, Tag};
+use librpm::{Package, Tag, error::ErrorKind};
 
 mod common;
 
@@ -366,6 +366,45 @@ fn test_dependencies_into_iter() {
 
     let names: Vec<String> = conflicts.into_iter().map(|d| d.name().to_owned()).collect();
     assert_eq!(names, vec!["hank"]);
+}
+
+// Package::format
+
+#[test]
+fn test_format_nvra() {
+    let pkg = load_basic();
+    let result = pkg.format("%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}").unwrap();
+    assert_eq!(result, "rpm-basic-2.3.4-5.el9.noarch");
+}
+
+#[test]
+fn test_format_nevra() {
+    let pkg = load_basic();
+    let result = pkg.format("%{NEVRA}").unwrap();
+    assert_eq!(result, "rpm-basic-1:2.3.4-5.el9.noarch");
+}
+
+#[test]
+fn test_format_epoch_missing_display() {
+    common::configure();
+    let pkg = Package::from_file(&assets_path().join("rpm-empty-0-0.x86_64.rpm")).unwrap();
+    // librpm renders a missing EPOCH as "(none)" in the format string
+    let result = pkg.format("%{EPOCH}").unwrap();
+    assert_eq!(result, "(none)");
+}
+
+#[test]
+fn test_format_invalid_tag_returns_error() {
+    let pkg = load_basic();
+    let err = pkg.format("%{NOSUCHTAG}").unwrap_err();
+    assert_eq!(err.kind(), ErrorKind::FormatString);
+}
+
+#[test]
+fn test_format_literal_text() {
+    let pkg = load_basic();
+    let result = pkg.format("hello world").unwrap();
+    assert_eq!(result, "hello world");
 }
 
 // Package trait implementations

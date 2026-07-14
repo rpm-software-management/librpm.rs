@@ -71,6 +71,8 @@ pub enum ErrorKind {
     InvalidArg,
     /// Macro expansion failure
     Macro,
+    /// Header format string error
+    FormatString,
 }
 
 impl Display for ErrorKind {
@@ -79,6 +81,7 @@ impl Display for ErrorKind {
             ErrorKind::Config => write!(f, "configuration error"),
             ErrorKind::InvalidArg => write!(f, "invalid argument"),
             ErrorKind::Macro => write!(f, "macro expansion error"),
+            ErrorKind::FormatString => write!(f, "format string error"),
         }
     }
 }

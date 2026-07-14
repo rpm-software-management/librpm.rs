@@ -16,7 +16,7 @@
  */
 
 //! RPM package headers
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 use std::mem;
 use std::os::unix::prelude::OsStrExt;
 use std::path::Path;
@@ -24,6 +24,10 @@ use std::path::Path;
 use super::rc::{RpmErrorKind, RpmReturnCode};
 use super::ts::TransactionSet;
 use super::{tag::Tag, td::TagData};
+
+unsafe extern "C" {
+    fn free(ptr: *mut std::ffi::c_void);
+}
 
 /// RPM package header
 pub(crate) struct Header(librpm_sys::Header); // *mut librpm_sys::headerToken_s
@@ -175,6 +179,44 @@ impl Header {
         }
 
         Some(data)
+    }
+
+    /// Format the header using an RPM query format string (`%{TAG}` syntax).
+    ///
+    /// Returns the formatted string, or an error if the format string is invalid
+    /// (e.g. references an unknown tag).
+    pub(crate) fn format(&self, fmt: &str) -> Result<String, crate::error::Error> {
+        use crate::error::ErrorKind;
+
+        let fmt_cstr =
+            CString::new(fmt).map_err(|e| format_err!(ErrorKind::InvalidArg, "{}", e))?;
+
+        // errmsg_t is *const c_char; headerFormat sets it to point into a
+        // static buffer inside librpm on failure — do NOT free it.
+        let mut errmsg: librpm_sys::errmsg_t = std::ptr::null();
+
+        // Safety: self.0 is a valid Header pointer (invariant of Header).
+        // fmt_cstr is a valid null-terminated C string kept alive for the call.
+        // The returned pointer (if non-null) is malloc'd by librpm and must be
+        // freed with free().
+        let result = unsafe { librpm_sys::headerFormat(self.0, fmt_cstr.as_ptr(), &mut errmsg) };
+
+        if result.is_null() {
+            let msg = if errmsg.is_null() {
+                "headerFormat failed".to_string()
+            } else {
+                unsafe { CStr::from_ptr(errmsg) }
+                    .to_string_lossy()
+                    .into_owned()
+            };
+            return Err(format_err!(ErrorKind::FormatString, "{}", msg));
+        }
+
+        let s = unsafe { CStr::from_ptr(result) }
+            .to_string_lossy()
+            .into_owned();
+        unsafe { free(result.cast()) };
+        Ok(s)
     }
 }
 

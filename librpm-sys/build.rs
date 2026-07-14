@@ -64,7 +64,7 @@ fn main() {
         // .allowlist_function("headerPutUint32")
         // .allowlist_function("headerPutUint64")
         // .allowlist_function("headerDel")
-        // .allowlist_function("headerFormat")
+        .allowlist_function("headerFormat")
         // .allowlist_function("headerFreeIterator")
         // .allowlist_function("headerInitIterator")
         // .allowlist_function("headerNextTag")
