@@ -195,6 +195,26 @@ impl Package {
         Dependencies::from_header(&self.header, Tag::ENHANCENAME)
     }
 
+    /// Format the package using an RPM query format string.
+    ///
+    /// Uses the same `%{TAG}` syntax as `rpm --queryformat`. For example,
+    /// `"%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}"` produces the package's NVRA.
+    ///
+    /// Returns an error if the format string references an unknown tag or is
+    /// otherwise invalid.
+    ///
+    /// ```no_run
+    /// use librpm::Package;
+    /// use std::path::Path;
+    ///
+    /// let pkg = Package::from_file(Path::new("bash-5.2.15-3.fc39.x86_64.rpm")).unwrap();
+    /// let nvra = pkg.format("%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}").unwrap();
+    /// println!("{nvra}");
+    /// ```
+    pub fn format(&self, fmt: &str) -> Result<String, crate::error::Error> {
+        self.header.format(fmt)
+    }
+
     /// Buildtime of the package
     pub fn buildtime(&self) -> time::SystemTime {
         let buildtime = self

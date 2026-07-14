@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+* `Package::format()` applies an RPM query format string to a package header using
+  `%{TAG}` syntax, equivalent to `rpm --queryformat` or librpm's `headerFormat()`.
+
 ## 0.2.1 -- July 2, 2026
 
 ### Fixed
