@@ -16,6 +16,7 @@
  */
 
 //! RPM package type: represents `.rpm` files or entries in the RPM database
+use crate::changelog::{self, ChangelogEntry};
 use crate::dep::Dependencies;
 use crate::files::Files;
 use crate::internal::header::Header;
@@ -193,6 +194,11 @@ impl Package {
     /// `Enhances` (weak) dependencies.
     pub fn enhances(&self) -> Dependencies {
         Dependencies::from_header(&self.header, Tag::ENHANCENAME)
+    }
+
+    /// Changelog entries for the package.
+    pub fn changelogs(&self) -> Vec<ChangelogEntry<'_>> {
+        changelog::changelogs_from_header(&self.header)
     }
 
     /// Format the package using an RPM query format string.

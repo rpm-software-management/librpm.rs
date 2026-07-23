@@ -39,6 +39,9 @@ pub mod error;
 /// RPM configuration (i.e. rpmrc)
 mod config;
 
+/// Changelog information for RPM packages
+pub mod changelog;
+
 /// Dependency information for RPM packages
 pub mod dep;
 
@@ -65,9 +68,9 @@ pub mod version;
 pub mod sign;
 
 pub use self::{
-    db::Db, db::Index, db::MatchMode, dep::DepFlags, dep::Dependencies, dep::Dependency,
-    error::Error, files::FileAttrs, files::FileEntry, files::Files, macro_context::MacroContext,
-    package::Package, version::Version,
+    changelog::ChangelogEntry, db::Db, db::Index, db::MatchMode, dep::DepFlags, dep::Dependencies,
+    dep::Dependency, error::Error, files::FileAttrs, files::FileEntry, files::Files,
+    macro_context::MacroContext, package::Package, version::Version,
 };
 
 // Re-export types used in public API

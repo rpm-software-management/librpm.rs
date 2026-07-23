@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+* `Package::changelogs()` returns changelog entries as `Vec<ChangelogEntry>`,
+  built from the parallel CHANGELOGTIME / CHANGELOGNAME / CHANGELOGTEXT header
+  arrays. Each `ChangelogEntry` provides `time()`, `timestamp()`, `name()`,
+  and `text()` accessors.
 * `Package::format()` applies an RPM query format string to a package header using
   `%{TAG}` syntax, equivalent to `rpm --queryformat` or librpm's `headerFormat()`.
 * `Index` enum expanded with `Basenames`, `Dirnames`, `Instfilenames`,
