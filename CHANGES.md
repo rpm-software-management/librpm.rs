@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+* `logging::set_verbosity()` controls librpm's log verbosity at the C level
+  and `logging::last_message()` retrieves the most recent librpm log message.
+  A `LogLevel` enum provides the available verbosity levels.
+* `logging::set_behavior()` switches between routing log messages through
+  Rust's `log` crate (`LogBehavior::LogCrate`, the default) or librpm's
+  native stderr output (`LogBehavior::Default`).
+* When `LogBehavior::LogCrate` mode is set, you can install any
+  `log`-compatible backend (e.g. `env_logger`) and messages appear
+  automatically with the target `"librpm"`.
 * `Db::init_db()`, `Db::rebuild()`, and `Db::verify()` for RPM database
   management — equivalent to `rpm --initdb`, `rpm --rebuilddb`, and
   `rpmdb --verifydb` respectively.

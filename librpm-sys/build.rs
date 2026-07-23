@@ -337,8 +337,11 @@ fn main() {
         // .allowlist_function("rpmpsFreeIterator")
         // .allowlist_function("rpmpsiNext")
         // rpmlog.h — logging
-        // .allowlist_function("rpmlog")
-        // .allowlist_function("rpmlogSetFile")
+        .allowlist_function("rpmlogSetCallback")
+        .allowlist_function("rpmlogRecMessage")
+        .allowlist_function("rpmlogRecPriority")
+        .allowlist_function("rpmlogSetMask")
+        .allowlist_function("rpmlogMessage")
         // rpmarchive.h — cpio archive read/write
         // .allowlist_function("rpmfiNewArchiveWriter")
         // .allowlist_function("rpmfiNewArchiveReader")
@@ -402,7 +405,7 @@ fn main() {
         // rpmprob.h — problem type
         // .allowlist_type("rpmProblemType_e")
         // rpmlog.h — log level
-        // .allowlist_type("rpmlogLvl_e")
+        .allowlist_type("rpmlogLvl_e")
         // rpmcrypto.h — digest algorithm
         // .allowlist_type("rpmHashAlgo_e")
         // librpm.hpp (local workaround)

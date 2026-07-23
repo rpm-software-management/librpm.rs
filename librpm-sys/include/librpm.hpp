@@ -42,6 +42,7 @@
 /** RPM sub-system header files (from Table 16-1, omitting popt.h) */
 #include <rpm/rpmdb.h> // RPM database access
 #include <rpm/rpmio.h> // RPM input/output routines
+#include <rpm/rpmlog.h> // RPM logging
 
 /** RPM data object header files (from Table 16-2) */
 #include <rpm/header.h> // Package headers
