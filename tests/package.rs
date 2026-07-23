@@ -4,7 +4,7 @@
 use std::collections::HashSet;
 use std::path::Path;
 
-use librpm::{Package, Tag, error::ErrorKind};
+use librpm::{PackageHeader, Tag, error::ErrorKind};
 
 mod common;
 
@@ -12,9 +12,9 @@ fn assets_path() -> std::path::PathBuf {
     common::get_assets_path().join("rpms")
 }
 
-fn load_basic() -> Package {
+fn load_basic() -> PackageHeader {
     common::configure();
-    Package::from_file(&assets_path().join("rpm-basic-with-rsa4096-2.3.4-5.el9.noarch.rpm"))
+    PackageHeader::from_file(&assets_path().join("rpm-basic-with-rsa4096-2.3.4-5.el9.noarch.rpm"))
         .unwrap()
 }
 
@@ -45,7 +45,7 @@ fn test_from_file_basic_metadata() {
 #[test]
 fn test_from_file_empty_package() {
     common::configure();
-    let pkg = Package::from_file(&assets_path().join("rpm-empty-0-0.x86_64.rpm")).unwrap();
+    let pkg = PackageHeader::from_file(&assets_path().join("rpm-empty-0-0.x86_64.rpm")).unwrap();
 
     assert_eq!(pkg.name(), "rpm-empty");
     assert_eq!(pkg.epoch(), None);
@@ -59,7 +59,7 @@ fn test_from_file_empty_package() {
 #[test]
 fn test_from_file_nonexistent() {
     common::configure();
-    let result = Package::from_file(Path::new("/nonexistent/path/to/package.rpm"));
+    let result = PackageHeader::from_file(Path::new("/nonexistent/path/to/package.rpm"));
     assert!(result.is_err());
 }
 
@@ -139,7 +139,7 @@ fn test_tag_missing_returns_none() {
     assert!(pkg.get(Tag::EPOCH).is_some());
 
     common::configure();
-    let empty = Package::from_file(&assets_path().join("rpm-empty-0-0.x86_64.rpm")).unwrap();
+    let empty = PackageHeader::from_file(&assets_path().join("rpm-empty-0-0.x86_64.rpm")).unwrap();
     assert!(empty.get(Tag::EPOCH).is_none());
 }
 
@@ -216,7 +216,7 @@ fn test_file_digest() {
 #[test]
 fn test_files_empty_package() {
     common::configure();
-    let pkg = Package::from_file(&assets_path().join("rpm-empty-0-0.x86_64.rpm")).unwrap();
+    let pkg = PackageHeader::from_file(&assets_path().join("rpm-empty-0-0.x86_64.rpm")).unwrap();
     let files = pkg.files();
 
     assert_eq!(files.len(), 0);
@@ -337,7 +337,7 @@ fn test_suggests() {
 #[test]
 fn test_dependencies_empty_package() {
     common::configure();
-    let pkg = Package::from_file(&assets_path().join("rpm-empty-0-0.x86_64.rpm")).unwrap();
+    let pkg = PackageHeader::from_file(&assets_path().join("rpm-empty-0-0.x86_64.rpm")).unwrap();
 
     assert!(pkg.requires().iter().all(|d| d.flags().is_rpmlib()));
     assert!(pkg.provides().len() >= 1); // self-provide always exists
@@ -387,7 +387,7 @@ fn test_format_nevra() {
 #[test]
 fn test_format_epoch_missing_display() {
     common::configure();
-    let pkg = Package::from_file(&assets_path().join("rpm-empty-0-0.x86_64.rpm")).unwrap();
+    let pkg = PackageHeader::from_file(&assets_path().join("rpm-empty-0-0.x86_64.rpm")).unwrap();
     // librpm renders a missing EPOCH as "(none)" in the format string
     let result = pkg.format("%{EPOCH}").unwrap();
     assert_eq!(result, "(none)");
@@ -442,7 +442,7 @@ fn test_package_partial_eq() {
     assert_eq!(pkg1, pkg2);
 
     common::configure();
-    let empty = Package::from_file(&assets_path().join("rpm-empty-0-0.x86_64.rpm")).unwrap();
+    let empty = PackageHeader::from_file(&assets_path().join("rpm-empty-0-0.x86_64.rpm")).unwrap();
     assert_ne!(pkg1, empty);
 }
 

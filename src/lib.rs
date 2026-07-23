@@ -44,6 +44,9 @@ use std::path::Path;
 #[macro_use]
 pub mod error;
 
+/// Archive (payload) extraction for RPM packages
+pub mod archive;
+
 /// RPM configuration (i.e. rpmrc)
 mod config;
 
@@ -79,10 +82,10 @@ pub mod version;
 pub mod sign;
 
 pub use self::{
-    changelog::ChangelogEntry, db::Db, db::Index, db::MatchMode, dep::DepFlags, dep::Dependencies,
-    dep::Dependency, error::Error, files::FileAttrs, files::FileEntry, files::Files,
-    logging::LogBehavior, logging::LogLevel, macro_context::MacroContext, package::Package,
-    version::Version,
+    archive::ArchiveEntry, archive::PackageReader, changelog::ChangelogEntry, db::Db, db::Index,
+    db::MatchMode, dep::DepFlags, dep::Dependencies, dep::Dependency, error::Error,
+    files::FileAttrs, files::FileEntry, files::Files, logging::LogBehavior, logging::LogLevel,
+    macro_context::MacroContext, package::PackageHeader, version::Version,
 };
 
 // Re-export types used in public API

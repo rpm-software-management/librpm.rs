@@ -46,6 +46,13 @@ unsafe impl Send for Files {}
 unsafe impl Sync for Files {}
 
 impl Files {
+    pub(crate) fn as_ptr(&self) -> *mut librpm_sys::rpmfiles_s {
+        match self.ptr {
+            Some(ptr) => ptr.as_ptr(),
+            None => std::ptr::null_mut(),
+        }
+    }
+
     pub(crate) fn from_header(header: &Header) -> Self {
         let ptr = unsafe {
             librpm_sys::rpmfilesNew(
@@ -270,6 +277,10 @@ impl ExactSizeIterator for FileIter<'_> {}
 pub struct FileAttrs(u32);
 
 impl FileAttrs {
+    pub(crate) fn from_raw(raw: u32) -> Self {
+        FileAttrs(raw)
+    }
+
     /// Raw flag bits.
     pub fn bits(self) -> u32 {
         self.0

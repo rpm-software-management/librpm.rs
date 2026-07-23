@@ -25,7 +25,7 @@
 
 #![cfg(feature = "test-current-system")]
 
-use librpm::Package;
+use librpm::PackageHeader;
 use librpm::db::Index;
 use std::process::Command;
 
@@ -111,7 +111,7 @@ fn test_against_installed_packages() {
 fn db_find_test_multiple_matching() {
     let db = common::configure();
 
-    let matches: Vec<librpm::Package> = db.find(Index::Name, "kernel").collect();
+    let matches: Vec<librpm::PackageHeader> = db.find(Index::Name, "kernel").collect();
     assert!(matches.len() > 1);
 
     for package in matches {

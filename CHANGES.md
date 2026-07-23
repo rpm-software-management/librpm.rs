@@ -7,25 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+
+* **Breaking**: `Package` renamed to `PackageHeader.
+
 ### Added
 
-* `logging::set_verbosity()` controls librpm's log verbosity at the C level
-  and `logging::last_message()` retrieves the most recent librpm log message.
-  A `LogLevel` enum provides the available verbosity levels.
-* `logging::set_behavior()` switches between routing log messages through
-  Rust's `log` crate (`LogBehavior::LogCrate`, the default) or librpm's
-  native stderr output (`LogBehavior::Default`).
-* When `LogBehavior::LogCrate` mode is set, you can install any
-  `log`-compatible backend (e.g. `env_logger`) and messages appear
-  automatically with the target `"librpm"`.
-* `Db::init_db()`, `Db::rebuild()`, and `Db::verify()` for RPM database
-  management — equivalent to `rpm --initdb`, `rpm --rebuilddb`, and
-  `rpmdb --verifydb` respectively.
-* `Package::changelogs()` returns changelog entries as `Vec<ChangelogEntry>`,
-  built from the parallel CHANGELOGTIME / CHANGELOGNAME / CHANGELOGTEXT header
-  arrays. Each `ChangelogEntry` provides `time()`, `timestamp()`, `name()`,
-  and `text()` accessors.
-* `Package::format()` applies an RPM query format string to a package header using
+* `PackageHeader::format()` applies an RPM query format string to a package header using
   `%{TAG}` syntax, equivalent to `rpm --queryformat` or librpm's `headerFormat()`.
 * `Index` enum expanded with `Basenames`, `Dirnames`, `Instfilenames`,
   `Providename`, `Requirename`, `Conflictname`, `Obsoletename`, `Group`,
@@ -36,6 +24,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * `Iter::match_count()` and `Iter::offset()` expose the iterator's index
   snapshot count and current record offset (`rpmdbGetIteratorCount`,
   `rpmdbGetIteratorOffset`)
+* `Db::init_db()`, `Db::rebuild()`, and `Db::verify()` for RPM database
+  management — equivalent to `rpm --initdb`, `rpm --rebuilddb`, and
+  `rpmdb --verifydb` respectively.
+* `archive::PackageReader` provides sequential, streaming access to the file
+  contents inside an `.rpm` package's payload.
+* `PackageHeader::changelogs()` returns changelog entries as `Vec<ChangelogEntry>`.
+  Each `ChangelogEntry` provides `time()`, `timestamp()`, `name()`, and `text()` accessors.
+* `logging::set_verbosity()` controls librpm's log verbosity at the C level
+  and `logging::last_message()` retrieves the most recent librpm log message.
+  A `LogLevel` enum provides the available verbosity levels.
+* `logging::set_behavior()` switches between routing log messages through
+  Rust's `log` crate (`LogBehavior::LogCrate`, the default) or librpm's
+  native stderr output (`LogBehavior::Default`).
+* When `LogBehavior::LogCrate` mode is set, you can install any
+  `log`-compatible backend (e.g. `env_logger`) and messages appear
+  automatically with the target `"librpm"`.
 
 ### Fixed
 

@@ -47,7 +47,7 @@ use crate::internal::iterator::{MatchIterator, MireMode};
 use crate::internal::rpmdb_lock;
 use crate::internal::tag::DBIndexTag;
 use crate::internal::ts::TransactionSet;
-use crate::package::Package;
+use crate::package::PackageHeader;
 use streaming_iterator::StreamingIterator;
 
 /// Handle to the RPM database.
@@ -210,10 +210,10 @@ impl Iter {
 }
 
 impl Iterator for Iter {
-    type Item = Package;
+    type Item = PackageHeader;
 
-    fn next(&mut self) -> Option<Package> {
-        self.0.next().map(Package::from_header)
+    fn next(&mut self) -> Option<PackageHeader> {
+        self.0.next().map(PackageHeader::from_header)
     }
 }
 
