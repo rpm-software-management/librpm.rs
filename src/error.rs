@@ -73,6 +73,8 @@ pub enum ErrorKind {
     Macro,
     /// Header format string error
     FormatString,
+    /// Database operation failed
+    Database,
 }
 
 impl Display for ErrorKind {
@@ -82,6 +84,7 @@ impl Display for ErrorKind {
             ErrorKind::InvalidArg => write!(f, "invalid argument"),
             ErrorKind::Macro => write!(f, "macro expansion error"),
             ErrorKind::FormatString => write!(f, "format string error"),
+            ErrorKind::Database => write!(f, "database error"),
         }
     }
 }
