@@ -54,6 +54,10 @@ impl PackageHeader {
         PackageHeader { header: h.clone() }
     }
 
+    pub(crate) fn header_ptr(&self) -> librpm_sys::Header {
+        self.header.as_ptr()
+    }
+
     /// Create a Package by reading an `.rpm` file
     pub fn from_file(path: &Path) -> Result<Self, RpmErrorKind> {
         let header = Header::from_file(path)?;

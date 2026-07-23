@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+* `Db::init_db()`, `Db::rebuild()`, and `Db::verify()` for RPM database
+  management — equivalent to `rpm --initdb`, `rpm --rebuilddb`, and
+  `rpmdb --verifydb` respectively.
+* Transaction support for installing, upgrading, and erasing packages: see
+  `Db::transaction()` and the `Transaction` struct.
+
+
 ## 0.3.0 -- August 3, 2026
 
 ### Changed
@@ -58,6 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * `Files::find()` looks up a file by path using `rpmfilesFindFN`.
 * `librpm::arch()` and `librpm::os()` return the configured architecture
   and OS name via `rpmGetArchInfo` / `rpmGetOsInfo`.
+
 
 ### Fixed
 

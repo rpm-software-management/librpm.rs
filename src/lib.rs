@@ -78,6 +78,13 @@ pub mod package;
 /// RPM spec parsing and building (requires the `build` feature)
 #[cfg(feature = "build")]
 pub mod build;
+
+/// Transaction problem reporting
+pub mod problem;
+
+/// RPM transaction support: install, upgrade, and erase packages
+pub mod transaction;
+
 /// RPM version parsing and comparison
 pub mod version;
 

@@ -52,6 +52,8 @@
 #include <rpm/rpmts.h> // Transaction sets
 #include <rpm/rpmte.h> // Transaction elements (packages)
 #include <rpm/rpmver.h> // Version parsing and comparison
+#include <rpm/rpmprob.h> // Problem reporting
+#include <rpm/rpmps.h> // Problem sets
 
 /** On some library versions RPMTAG_NOT_FOUND is define rather than enum field,
  *  and bindgen can't convert it uniformly. Provide a separate constant here: */

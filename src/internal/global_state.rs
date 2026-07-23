@@ -15,10 +15,22 @@
  * file, You can obtain one at <https://mozilla.org/MPL/2.0/>.
  */
 
-//! Thread-safe tracking of librpm's process-global configuration state.
+//! Thread-safe tracking of librpm's process-global state.
 //!
-//! librpm's `rpmReadConfigFiles` / `rpmInitCrypto` must only be called once
-//! per process. This module tracks whether that has happened.
+//! This module provides three synchronization primitives:
+//!
+//! - **`ConfigState`** — tracks whether `rpmReadConfigFiles` / `rpmInitCrypto`
+//!   have been called (must happen exactly once per process).
+//!
+//! - **`global_list_lock()`** — serializes FFI calls that touch the
+//!   process-global iterator/database tracking lists (`rpmmiRock`,
+//!   `rpmdbRock`, `rpmiiRock`) in RPM <= 4.18. Held briefly during
+//!   iterator/ts create and destroy. Harmless no-op on RPM 4.19+.
+//!
+//! - **`mutation_lock()`** — serializes write operations (`rpmtsRun`,
+//!   `rpmtsInitDB`, `rpmtsRebuildDB`) that have process-global side
+//!   effects: POSIX `fcntl` lock semantics, chroot state, signal masks,
+//!   and SIGPIPE handler. See `docs/threading.md` for details.
 
 use std::sync::{Mutex, MutexGuard, OnceLock};
 
@@ -54,4 +66,13 @@ pub fn rpm_global_lock() -> MutexGuard<'static, ()> {
         .get_or_init(|| Mutex::new(()))
         .lock()
         .unwrap()
+}
+
+// Serializes write operations that have process-global side effects.
+// See the module doc and docs/threading.md for details.
+static MUTATION_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+
+/// Acquire the process-wide lock that serializes database write operations.
+pub fn mutation_lock() -> MutexGuard<'static, ()> {
+    MUTATION_LOCK.get_or_init(|| Mutex::new(())).lock().unwrap()
 }
