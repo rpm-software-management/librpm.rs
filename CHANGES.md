@@ -14,13 +14,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `rpmdb --verifydb` respectively.
 * Transaction support for installing, upgrading, and erasing packages: see
   `Db::transaction()` and the `Transaction` struct.
-
+* Keyring and public key management: `Keyring` and `PubKey` types for loading,
+  inspecting, and managing trusted GPG keys. Keyrings can be created empty,
+  loaded from the system RPM database (`Keyring::from_rpmdb()`), or populated
+  manually. `PubKey` supports loading from armored files, base64 encoding,
+  fingerprint and key ID introspection.
+* Signature and digest verification: `VerifyOptions` and `VerificationFlags`
+  control which checks are performed when reading `.rpm` files.
+  `Package::from_file()` now accepts an optional `&VerifyOptions` parameter —
+  `None` uses system defaults (verify everything with the system keyring),
+  `Some(&VerifyOptions::skip_verification())` disables all checks.
+* `Db::keyring()` returns the keyring loaded from the RPM database.
+* New cfg-gated APIs for newer RPM versions: `Keyring::remove_key()`,
+  `Keyring::lookup()`, `Keyring::keys()` iterator, `PubKey::from_file()`,
+  `PubKey::fingerprint_hex()`, `PubKey::key_id_hex()`.
 
 ## 0.3.0 -- August 3, 2026
 
 ### Changed
 
 * **Breaking**: `Package` renamed to `PackageHeader.
+* **Breaking:** `PackageHeader::from_file()` now takes a second parameter
+  `options: Option<&VerifyOptions>`. Pass `None` to verify with system
+  defaults, or `Some(&VerifyOptions::skip_verification())` to preserve
+  the previous behavior of skipping all verification.
 
 ### Added
 
@@ -68,7 +85,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * `librpm::arch()` and `librpm::os()` return the configured architecture
   and OS name via `rpmGetArchInfo` / `rpmGetOsInfo`.
 
-
 ### Fixed
 
 * Fixed a crash (SIGSEGV in `rpmAtExit`) when using multiple `Db` instances
@@ -87,6 +103,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## 0.2.0 -- July 2, 2026
 
 ### Added
+
 * `Package::from_file()` reads an `.rpm` file directly into a `Package`
 * `Package::get()` exposes raw tag data access via `Tag` and `TagData`,
   both of which are now part of the public API

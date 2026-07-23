@@ -52,8 +52,11 @@ impl Header {
         self.0
     }
 
-    pub(crate) fn from_file(path: &Path) -> Result<Self, RpmErrorKind> {
-        let (header, fd) = Self::read_package_file(path)?;
+    pub(crate) fn from_file(
+        path: &Path,
+        options: Option<&crate::verify::VerifyOptions>,
+    ) -> Result<Self, RpmErrorKind> {
+        let (header, fd) = Self::read_package_file(path, options)?;
         unsafe { librpm_sys::Fclose(fd) };
         Ok(header)
     }
@@ -62,7 +65,10 @@ impl Header {
     /// still-open file descriptor. After `rpmReadPackageFile`, the fd is
     /// positioned at the start of the payload — callers that need to read the
     /// archive content should keep it open.
-    pub(crate) fn read_package_file(path: &Path) -> Result<(Self, librpm_sys::FD_t), RpmErrorKind> {
+    pub(crate) fn read_package_file(
+        path: &Path,
+        options: Option<&crate::verify::VerifyOptions>,
+    ) -> Result<(Self, librpm_sys::FD_t), RpmErrorKind> {
         let txn = TransactionSet::create();
 
         let filename = CString::new(path.as_os_str().as_bytes()).unwrap();
@@ -71,40 +77,23 @@ impl Header {
         // Safety: filename and fmode are valid CStrings kept alive for the call
         let fd: librpm_sys::FD_t = unsafe { librpm_sys::Fopen(filename.as_ptr(), fmode.as_ptr()) };
 
-        if fd.is_null() {
-            return Err(RpmErrorKind::Fail);
+        if fd.is_null() || unsafe { librpm_sys::Ferror(fd) } != 0 {
+            let msg = if fd.is_null() {
+                "failed to open file".to_string()
+            } else {
+                let s = unsafe { CStr::from_ptr(librpm_sys::Fstrerror(fd)) }
+                    .to_string_lossy()
+                    .into_owned();
+                unsafe { librpm_sys::Fclose(fd) };
+                s
+            };
+            return Err(RpmErrorKind::Io(msg));
         }
 
-        #[allow(unused_mut)]
-        let mut vsflags = librpm_sys::rpmVSFlags_e_RPMVSF_NOHDRCHK
-            | librpm_sys::rpmVSFlags_e_RPMVSF_NOSHA1HEADER
-            | librpm_sys::rpmVSFlags_e_RPMVSF_NOSHA256HEADER
-            | librpm_sys::rpmVSFlags_e_RPMVSF_NOMD5
-            | librpm_sys::rpmVSFlags_e_RPMVSF_NODSAHEADER
-            | librpm_sys::rpmVSFlags_e_RPMVSF_NORSAHEADER
-            | librpm_sys::rpmVSFlags_e_RPMVSF_NODSA
-            | librpm_sys::rpmVSFlags_e_RPMVSF_NORSA;
-
-        #[cfg(has_rpmvsflag_nosha256payload)]
-        {
-            vsflags |= librpm_sys::rpmVSFlags_e_RPMVSF_NOSHA256PAYLOAD;
-        }
-        #[cfg(has_rpmvsflag_nosha512payload)]
-        {
-            vsflags |= librpm_sys::rpmVSFlags_e_RPMVSF_NOSHA512PAYLOAD;
-        }
-        #[cfg(has_rpmvsflag_nosha3_256payload)]
-        {
-            vsflags |= librpm_sys::rpmVSFlags_e_RPMVSF_NOSHA3_256PAYLOAD;
-        }
-        #[cfg(has_rpmvsflag_nosha3_256header)]
-        {
-            vsflags |= librpm_sys::rpmVSFlags_e_RPMVSF_NOSHA3_256HEADER;
-        }
-        #[cfg(has_rpmvsflag_noopenpgp)]
-        {
-            vsflags |= librpm_sys::rpmVSFlags_e_RPMVSF_NOOPENPGP;
-        }
+        let vsflags = match options {
+            Some(opts) => opts.flags.bits(),
+            None => librpm_sys::rpmVSFlags_e_RPMVSF_DEFAULT,
+        };
 
         // Safety: rpmReadPackageFile takes a `Header *hdrp` out-parameter.
         // It sets `*hdrp = NULL`, then on success sets `*hdrp = headerLink(h)`.
@@ -113,6 +102,12 @@ impl Header {
         unsafe {
             let raw_ts = txn.as_ptr();
             librpm_sys::rpmtsSetVSFlags(raw_ts, vsflags);
+
+            if let Some(opts) = options {
+                if let Some(ref kr) = opts.keyring {
+                    librpm_sys::rpmtsSetKeyring(raw_ts, kr.as_ptr());
+                }
+            }
 
             let mut hdr_ptr: librpm_sys::Header = std::ptr::null_mut();
             let rc = librpm_sys::rpmReadPackageFile(raw_ts, fd, std::ptr::null(), &mut hdr_ptr);

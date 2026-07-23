@@ -36,7 +36,7 @@
 //!
 //! `Transaction::run` acquires the process-wide `mutation_lock()` and
 //! RPM's cross-process `.rpm.lock` (via `rpmtxnBegin`/`rpmtxnEnd`).
-//! See `docs/threading.md` for details.
+//! See `docs/locking.md` for details.
 
 use std::ffi::{CStr, CString, c_void};
 use std::marker::PhantomData;
@@ -49,6 +49,11 @@ use crate::error::Error;
 use crate::internal::mutation_lock;
 use crate::package::PackageHeader;
 use crate::problem::Problems;
+
+#[cfg(not(has_rpmts_set_notify_style))]
+unsafe extern "C" {
+    fn free(ptr: *mut c_void);
+}
 
 /// Flags controlling transaction execution.
 ///
@@ -82,6 +87,7 @@ impl TransactionFlags {
     /// Do not set file capabilities.
     pub const NOCAPS: Self = Self(librpm_sys::rpmtransFlags_e_RPMTRANS_FLAG_NOCAPS as u32);
     /// Do not update the database (filesystem-only).
+    #[cfg(has_rpmtransflag_nodb)]
     pub const NODB: Self = Self(librpm_sys::rpmtransFlags_e_RPMTRANS_FLAG_NODB as u32);
     /// Skip file digest verification during install.
     pub const NOFILEDIGEST: Self =
@@ -507,8 +513,13 @@ fn nevra_from_callback(h: *const c_void) -> String {
     if h.is_null() {
         return String::new();
     }
-    let c_str =
-        unsafe { librpm_sys::headerFormat(h as librpm_sys::Header, c"%{NEVRA}".as_ptr(), ptr::null_mut()) };
+    let c_str = unsafe {
+        librpm_sys::headerFormat(
+            h as librpm_sys::Header,
+            c"%{NEVRA}".as_ptr(),
+            ptr::null_mut(),
+        )
+    };
     if c_str.is_null() {
         return String::new();
     }
@@ -539,7 +550,10 @@ unsafe extern "C" fn callback_trampoline(
             return ptr::null_mut();
         }
         let fd = unsafe { librpm_sys::Fopen(key as *const _, c"r.ufdio".as_ptr()) };
-        if fd.is_null() {
+        if fd.is_null() || unsafe { librpm_sys::Ferror(fd) } != 0 {
+            if !fd.is_null() {
+                unsafe { librpm_sys::Fclose(fd) };
+            }
             return ptr::null_mut();
         }
         state.open_fd = Some(fd);
@@ -637,7 +651,7 @@ unsafe extern "C" fn callback_trampoline(
 ///
 /// ```no_run
 /// use std::path::Path;
-/// use librpm::{Db, Package};
+/// use librpm::{Db, PackageHeader};
 /// use librpm::transaction::{TransactionFlags, ProblemFilter};
 ///
 /// librpm::init().unwrap();
@@ -645,7 +659,7 @@ unsafe extern "C" fn callback_trampoline(
 ///
 /// // Load a package from a file
 /// let path = Path::new("/path/to/package.rpm");
-/// let pkg = Package::from_file(path).unwrap();
+/// let pkg = PackageHeader::from_file(path, None).unwrap();
 ///
 /// // Create a transaction and add the package as an upgrade
 /// let mut txn = db.transaction();

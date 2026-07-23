@@ -27,10 +27,10 @@
 
 use std::path::{Path, PathBuf};
 
-use librpm::Package;
 use librpm::db::Index;
 use librpm::problem::ProblemType;
 use librpm::transaction::{CallbackEvent, ElementType, ProblemFilter, TransactionFlags};
+use librpm::{Package, VerifyOptions};
 
 mod common;
 
@@ -47,11 +47,13 @@ fn rpm_empty_path() -> PathBuf {
 }
 
 fn rpm_basic() -> Package {
-    Package::from_file(&rpm_basic_path()).expect("failed to read rpm-basic")
+    let skip = VerifyOptions::skip_verification();
+    Package::from_file(&rpm_basic_path(), Some(&skip)).expect("failed to read rpm-basic")
 }
 
 fn rpm_empty() -> Package {
-    Package::from_file(&rpm_empty_path()).expect("failed to read rpm-empty")
+    let skip = VerifyOptions::skip_verification();
+    Package::from_file(&rpm_empty_path(), Some(&skip)).expect("failed to read rpm-empty")
 }
 
 // --- Transaction lifecycle ---

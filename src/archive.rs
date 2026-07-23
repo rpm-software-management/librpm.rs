@@ -25,7 +25,7 @@
 //! use std::io::Read;
 //! use std::path::Path;
 //!
-//! let mut pkg = PackageReader::open(Path::new("package.rpm")).unwrap();
+//! let mut pkg = PackageReader::open(Path::new("package.rpm"), None).unwrap();
 //!
 //! while let Some(mut entry) = pkg.next_entry().unwrap() {
 //!     println!("{}: {} bytes", entry.path(), entry.size());
@@ -85,8 +85,11 @@ impl PackageReader {
     ///
     /// Reads the package header and prepares the payload for sequential
     /// iteration. The file remains open until the `PackageReader` is dropped.
-    pub fn open(path: &Path) -> Result<Self, crate::error::Error> {
-        let (hdr, raw_fd) = Header::read_package_file(path)
+    pub fn open(
+        path: &Path,
+        options: Option<&crate::verify::VerifyOptions>,
+    ) -> Result<Self, crate::error::Error> {
+        let (hdr, raw_fd) = Header::read_package_file(path, options)
             .map_err(|e| crate::error::Error::new(ErrorKind::Archive, Some(format!("{e:?}"))))?;
 
         let fd = Fd(raw_fd);

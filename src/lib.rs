@@ -69,6 +69,9 @@ pub mod files;
 /// Internal functionality not to be exposed outside of this crate
 mod internal;
 
+/// Keyring and public key management
+pub mod keyring;
+
 /// Macros are RPM's configuration system
 pub mod macro_context;
 
@@ -85,6 +88,9 @@ pub mod problem;
 /// RPM transaction support: install, upgrade, and erase packages
 pub mod transaction;
 
+/// Package verification options
+pub mod verify;
+
 /// RPM version parsing and comparison
 pub mod version;
 
@@ -95,8 +101,9 @@ pub mod sign;
 pub use self::{
     archive::ArchiveEntry, archive::PackageReader, changelog::ChangelogEntry, db::Db, db::Index,
     db::MatchMode, dep::DepFlags, dep::Dependencies, dep::Dependency, error::Error,
-    files::FileAttrs, files::FileEntry, files::FileState, files::Files, logging::LogBehavior,
-    logging::LogLevel, macro_context::MacroContext, package::PackageHeader, version::Version,
+    files::FileAttrs, files::FileEntry, files::FileState, files::Files, keyring::Keyring,
+    keyring::PubKey, logging::LogBehavior, logging::LogLevel, macro_context::MacroContext,
+    package::PackageHeader, verify::VerificationFlags, verify::VerifyOptions, version::Version,
 };
 
 // Re-export types used in public API

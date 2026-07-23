@@ -177,6 +177,18 @@ impl Db {
         Transaction::new(self)
     }
 
+    /// Get the keyring associated with this database.
+    ///
+    /// Returns a [`Keyring`](crate::keyring::Keyring) loaded from the
+    /// RPM database's trusted keys. The returned keyring is an
+    /// independent refcounted object — it can outlive the `Db`.
+    pub fn keyring(&self) -> crate::keyring::Keyring {
+        unsafe {
+            let raw = librpm_sys::rpmtsGetKeyring(self.ts.as_ptr(), 1);
+            crate::keyring::Keyring::from_raw(raw)
+        }
+    }
+
     pub(crate) fn ts_ptr(&self) -> *mut librpm_sys::rpmts_s {
         self.ts.as_ptr()
     }

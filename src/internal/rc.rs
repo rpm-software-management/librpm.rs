@@ -1,5 +1,5 @@
 /// Errors returned by librpm operations such as reading package files
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RpmErrorKind {
     /// Generic not found code
     NotFound,
@@ -9,7 +9,23 @@ pub enum RpmErrorKind {
     NotTrusted,
     /// No public key available to verify the signature
     NoKey,
+    /// I/O error (e.g. file not found, permission denied)
+    Io(String),
 }
+
+impl std::fmt::Display for RpmErrorKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::NotFound => write!(f, "package not found"),
+            Self::Fail => write!(f, "operation failed"),
+            Self::NotTrusted => write!(f, "signature is present but key is not trusted"),
+            Self::NoKey => write!(f, "no public key available to verify signature"),
+            Self::Io(msg) => write!(f, "I/O error: {msg}"),
+        }
+    }
+}
+
+impl std::error::Error for RpmErrorKind {}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u32)]
