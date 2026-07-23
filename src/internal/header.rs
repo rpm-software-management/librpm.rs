@@ -53,6 +53,16 @@ impl Header {
     }
 
     pub(crate) fn from_file(path: &Path) -> Result<Self, RpmErrorKind> {
+        let (header, fd) = Self::read_package_file(path)?;
+        unsafe { librpm_sys::Fclose(fd) };
+        Ok(header)
+    }
+
+    /// Open an RPM file, read its header, and return both the header and the
+    /// still-open file descriptor. After `rpmReadPackageFile`, the fd is
+    /// positioned at the start of the payload — callers that need to read the
+    /// archive content should keep it open.
+    pub(crate) fn read_package_file(path: &Path) -> Result<(Self, librpm_sys::FD_t), RpmErrorKind> {
         let txn = TransactionSet::create();
 
         let filename = CString::new(path.as_os_str().as_bytes()).unwrap();
@@ -60,6 +70,10 @@ impl Header {
 
         // Safety: filename and fmode are valid CStrings kept alive for the call
         let fd: librpm_sys::FD_t = unsafe { librpm_sys::Fopen(filename.as_ptr(), fmode.as_ptr()) };
+
+        if fd.is_null() {
+            return Err(RpmErrorKind::Fail);
+        }
 
         #[allow(unused_mut)]
         let mut vsflags = librpm_sys::rpmVSFlags_e_RPMVSF_NOHDRCHK
@@ -95,14 +109,13 @@ impl Header {
         // Safety: rpmReadPackageFile takes a `Header *hdrp` out-parameter.
         // It sets `*hdrp = NULL`, then on success sets `*hdrp = headerLink(h)`.
         // We pass a null pointer — not a headerNew() result — to avoid leaking
-        // the overwritten header. Fclose is called on all paths.
+        // the overwritten header. On error, Fclose is called before returning.
         unsafe {
             let raw_ts = txn.as_ptr();
             librpm_sys::rpmtsSetVSFlags(raw_ts, vsflags);
 
             let mut hdr_ptr: librpm_sys::Header = std::ptr::null_mut();
             let rc = librpm_sys::rpmReadPackageFile(raw_ts, fd, std::ptr::null(), &mut hdr_ptr);
-            librpm_sys::Fclose(fd);
 
             match RpmReturnCode::from_raw(rc) {
                 Some(RpmReturnCode::Ok) => {
@@ -110,12 +123,17 @@ impl Header {
                     // rpmReadPackageFile already called headerLink; the header
                     // has refcount 1. Wrap it directly — do NOT call headerLink
                     // again (Header::from_ptr would double-link).
-                    Ok(Header(hdr_ptr))
+                    Ok((Header(hdr_ptr), fd))
                 }
-                Some(RpmReturnCode::NotFound) => Err(RpmErrorKind::NotFound),
-                Some(RpmReturnCode::NotTrusted) => Err(RpmErrorKind::NotTrusted),
-                Some(RpmReturnCode::NoKey) => Err(RpmErrorKind::NoKey),
-                _ => Err(RpmErrorKind::Fail),
+                err => {
+                    librpm_sys::Fclose(fd);
+                    match err {
+                        Some(RpmReturnCode::NotFound) => Err(RpmErrorKind::NotFound),
+                        Some(RpmReturnCode::NotTrusted) => Err(RpmErrorKind::NotTrusted),
+                        Some(RpmReturnCode::NoKey) => Err(RpmErrorKind::NoKey),
+                        _ => Err(RpmErrorKind::Fail),
+                    }
+                }
             }
         }
     }

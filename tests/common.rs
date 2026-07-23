@@ -13,7 +13,7 @@ use std::{
 use std::time;
 
 use librpm::db::MatchMode;
-use librpm::{Db, Index, Package};
+use librpm::{Db, Index, PackageHeader};
 
 static INIT: OnceLock<()> = OnceLock::new();
 static DISTRO: OnceLock<&'static str> = OnceLock::new();
@@ -62,7 +62,7 @@ pub struct SamplePackage {
 pub fn assert_distro(distro: &DistroTestCase) {
     let db = init(distro);
 
-    let mut packages: Vec<Package> = db.installed_packages().collect();
+    let mut packages: Vec<PackageHeader> = db.installed_packages().collect();
     packages.sort_by_key(|p| p.name().to_string());
 
     assert_eq!(
@@ -87,7 +87,7 @@ pub fn assert_distro(distro: &DistroTestCase) {
 pub fn assert_find_by_name(distro: &DistroTestCase) {
     let db = init(distro);
 
-    let results: Vec<Package> = db.find(Index::Name, distro.sample.name).collect();
+    let results: Vec<PackageHeader> = db.find(Index::Name, distro.sample.name).collect();
     assert_eq!(
         results.len(),
         1,
@@ -107,7 +107,7 @@ pub fn assert_find_by_name(distro: &DistroTestCase) {
 pub fn assert_find_nonexistent(distro: &DistroTestCase) {
     let db = init(distro);
 
-    let results: Vec<Package> = db.find(Index::Name, "nonexistent-package-xyz").collect();
+    let results: Vec<PackageHeader> = db.find(Index::Name, "nonexistent-package-xyz").collect();
     assert_eq!(
         results.len(),
         0,
@@ -119,7 +119,7 @@ pub fn assert_find_nonexistent(distro: &DistroTestCase) {
 pub fn assert_find_by_providename(distro: &DistroTestCase) {
     let db = init(distro);
 
-    let results: Vec<Package> = db.find(Index::Providename, distro.sample.name).collect();
+    let results: Vec<PackageHeader> = db.find(Index::Providename, distro.sample.name).collect();
     assert!(
         results.iter().any(|p| p.name() == distro.sample.name),
         "{}: '{}' should provide itself",
@@ -131,7 +131,7 @@ pub fn assert_find_by_providename(distro: &DistroTestCase) {
 pub fn assert_find_by_requirename(distro: &DistroTestCase) {
     let db = init(distro);
 
-    let results: Vec<Package> = db.find(Index::Requirename, "glibc").collect();
+    let results: Vec<PackageHeader> = db.find(Index::Requirename, "glibc").collect();
     assert!(
         !results.is_empty(),
         "{}: at least one package should require glibc",
@@ -142,7 +142,7 @@ pub fn assert_find_by_requirename(distro: &DistroTestCase) {
 pub fn assert_find_by_dirnames(distro: &DistroTestCase) {
     let db = init(distro);
 
-    let results: Vec<Package> = db.find(Index::Dirnames, "/etc/").collect();
+    let results: Vec<PackageHeader> = db.find(Index::Dirnames, "/etc/").collect();
     assert!(
         !results.is_empty(),
         "{}: at least one package should own files in /etc/",
@@ -171,7 +171,7 @@ pub fn assert_find_by_dirnames(distro: &DistroTestCase) {
 pub fn assert_find_re_glob(distro: &DistroTestCase) {
     let db = init(distro);
 
-    let results: Vec<Package> = db
+    let results: Vec<PackageHeader> = db
         .find_re(Index::Name, "alternatives*", MatchMode::Glob)
         .collect();
     assert!(
@@ -184,7 +184,7 @@ pub fn assert_find_re_glob(distro: &DistroTestCase) {
 pub fn assert_find_re_regex(distro: &DistroTestCase) {
     let db = init(distro);
 
-    let results: Vec<Package> = db
+    let results: Vec<PackageHeader> = db
         .find_re(Index::Name, "^alternatives$", MatchMode::Regex)
         .collect();
     assert_eq!(
@@ -199,7 +199,7 @@ pub fn assert_find_re_regex(distro: &DistroTestCase) {
 pub fn assert_find_re_no_match(distro: &DistroTestCase) {
     let db = init(distro);
 
-    let results: Vec<Package> = db
+    let results: Vec<PackageHeader> = db
         .find_re(Index::Name, "zzz-nonexistent*", MatchMode::Glob)
         .collect();
     assert_eq!(

@@ -10,7 +10,7 @@ fn main() {
     let rpm_path = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("testdata/rpms/rpm-basic-with-rsa4096-2.3.4-5.el9.noarch.rpm");
 
-    let pkg = librpm::Package::from_file(&rpm_path).expect("failed to read RPM");
+    let pkg = librpm::PackageHeader::from_file(&rpm_path).expect("failed to read RPM");
     println!("Name:    {}", pkg.name());
     println!("Version: {}", pkg.version());
     println!("Release: {}", pkg.release());

@@ -45,19 +45,19 @@ use std::{fmt, path::Path, time};
 /// These point directly into the header's in-memory blob (via
 /// `HEADERGET_MINMEM`), so they are valid as long as the `Package`
 /// is alive. No allocation or copy occurs.
-pub struct Package {
+pub struct PackageHeader {
     header: Header,
 }
 
-impl Package {
+impl PackageHeader {
     pub(crate) fn from_header(h: &Header) -> Self {
-        Package { header: h.clone() }
+        PackageHeader { header: h.clone() }
     }
 
     /// Create a Package by reading an `.rpm` file
     pub fn from_file(path: &Path) -> Result<Self, RpmErrorKind> {
         let header = Header::from_file(path)?;
-        Ok(Package { header })
+        Ok(PackageHeader { header })
     }
 
     /// Look up raw tag data from the underlying RPM header
@@ -210,10 +210,10 @@ impl Package {
     /// otherwise invalid.
     ///
     /// ```no_run
-    /// use librpm::Package;
+    /// use librpm::PackageHeader;
     /// use std::path::Path;
     ///
-    /// let pkg = Package::from_file(Path::new("bash-5.2.15-3.fc39.x86_64.rpm")).unwrap();
+    /// let pkg = PackageHeader::from_file(Path::new("bash-5.2.15-3.fc39.x86_64.rpm")).unwrap();
     /// let nvra = pkg.format("%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}").unwrap();
     /// println!("{nvra}");
     /// ```
@@ -234,17 +234,17 @@ impl Package {
     }
 }
 
-impl Clone for Package {
+impl Clone for PackageHeader {
     fn clone(&self) -> Self {
-        Package {
+        PackageHeader {
             header: self.header.clone(),
         }
     }
 }
 
-impl fmt::Debug for Package {
+impl fmt::Debug for PackageHeader {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Package")
+        f.debug_struct("PackageHeader")
             .field("name", &self.name())
             .field("epoch", &self.epoch())
             .field("version", &self.version())
@@ -254,13 +254,13 @@ impl fmt::Debug for Package {
     }
 }
 
-impl fmt::Display for Package {
+impl fmt::Display for PackageHeader {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.nevra())
     }
 }
 
-impl PartialEq for Package {
+impl PartialEq for PackageHeader {
     fn eq(&self, other: &Self) -> bool {
         self.name() == other.name()
             && self.epoch() == other.epoch()
@@ -270,9 +270,9 @@ impl PartialEq for Package {
     }
 }
 
-impl Eq for Package {}
+impl Eq for PackageHeader {}
 
-impl Hash for Package {
+impl Hash for PackageHeader {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.name().hash(state);
         self.epoch().hash(state);

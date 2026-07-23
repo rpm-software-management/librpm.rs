@@ -117,8 +117,8 @@ fn main() {
         // .allowlist_function("rpmdsIsRich")
         // rpmfi.h — file info (legacy iterator-style API; Python
         // only uses rpmfiFree/rpmfiNext for archive iteration)
-        // .allowlist_function("rpmfiFree")
-        // .allowlist_function("rpmfiNext")
+        .allowlist_function("rpmfiFree")
+        .allowlist_function("rpmfiNext")
         // rpmio.h — I/O routines
         .allowlist_function("Fopen")
         .allowlist_function("Fclose")
@@ -344,15 +344,15 @@ fn main() {
         .allowlist_function("rpmlogMessage")
         // rpmarchive.h — cpio archive read/write
         // .allowlist_function("rpmfiNewArchiveWriter")
-        // .allowlist_function("rpmfiNewArchiveReader")
-        // .allowlist_function("rpmfiArchiveClose")
+        .allowlist_function("rpmfiNewArchiveReader")
+        .allowlist_function("rpmfiArchiveClose")
         // .allowlist_function("rpmfiArchiveTell")
         // .allowlist_function("rpmfiArchiveWrite")
         // .allowlist_function("rpmfiArchiveWriteFile")
-        // .allowlist_function("rpmfiArchiveRead")
-        // .allowlist_function("rpmfiArchiveHasContent")
-        // .allowlist_function("rpmfiArchiveReadToFile")
-        // .allowlist_function("rpmfileStrerror")
+        .allowlist_function("rpmfiArchiveRead")
+        .allowlist_function("rpmfiArchiveHasContent")
+        .allowlist_function("rpmfiArchiveReadToFile")
+        .allowlist_function("rpmfileStrerror")
         // rpmstrpool.h — string interning pool
         // .allowlist_function("rpmstrPoolCreate")
         // .allowlist_function("rpmstrPoolFree")
@@ -397,8 +397,9 @@ fn main() {
         // ----------------------------------------------------------
         // Headers not yet included in librpm.hpp
         // ----------------------------------------------------------
-        // rpmfiles.h — file type and state
+        // rpmfiles.h — file type, state, and iteration mode
         .allowlist_type("rpmfileAttrs_e")
+        .allowlist_type("rpmFileIter_e")
         // .allowlist_type("rpmfileState_e")
         // rpmkeyring.h
         // .allowlist_type("rpmKeyringModifyMode_e")

@@ -6,7 +6,7 @@
 //! and macro operations rather than index queries.
 
 use librpm::db::{Index, MatchMode};
-use librpm::{Db, Package, Tag};
+use librpm::{Db, PackageHeader, Tag};
 
 mod common;
 
@@ -14,7 +14,7 @@ mod common;
 fn test_scalar_int32_tag() {
     let db = common::init(&common::CENTOS_STREAM_9);
 
-    let results: Vec<Package> = db.find(Index::Name, "alternatives").collect();
+    let results: Vec<PackageHeader> = db.find(Index::Name, "alternatives").collect();
     let package = &results[0];
 
     let buildtime = package.get(Tag::BUILDTIME).expect("BUILDTIME should exist");
@@ -31,7 +31,7 @@ fn test_scalar_int32_tag() {
 fn test_array_tag_data() {
     let db = common::init(&common::CENTOS_STREAM_9);
 
-    let results: Vec<Package> = db.find(Index::Name, "alternatives").collect();
+    let results: Vec<PackageHeader> = db.find(Index::Name, "alternatives").collect();
     let pkg = &results[0];
 
     let basenames = pkg.get(Tag::BASENAMES).expect("BASENAMES tag missing");
@@ -65,7 +65,7 @@ fn test_array_tag_data() {
 fn test_tag_type_mismatch_returns_none() {
     let db = common::init(&common::CENTOS_STREAM_9);
 
-    let results: Vec<Package> = db.find(Index::Name, "alternatives").collect();
+    let results: Vec<PackageHeader> = db.find(Index::Name, "alternatives").collect();
     let pkg = &results[0];
 
     let name = pkg.get(Tag::NAME).expect("NAME should exist");
@@ -110,7 +110,7 @@ fn db_find_test_multiple() {
 fn find_re_glob_returns_superset() {
     let db = common::init(&common::CENTOS_STREAM_9);
 
-    let results: Vec<Package> = db.find_re(Index::Name, "glibc*", MatchMode::Glob).collect();
+    let results: Vec<PackageHeader> = db.find_re(Index::Name, "glibc*", MatchMode::Glob).collect();
     assert!(
         results.len() >= 2,
         "glob 'glibc*' should match glibc and glibc-common (got {})",
@@ -135,7 +135,7 @@ fn db_find_test_multiple_packages() {
 
 #[test]
 fn iterator_outlives_db() {
-    let packages: Vec<Package> = {
+    let packages: Vec<PackageHeader> = {
         let db = common::init(&common::CENTOS_STREAM_9);
         db.installed_packages().collect()
     };
@@ -151,7 +151,7 @@ fn iterator_outlives_db() {
 fn find_re_regex_returns_superset() {
     let db = common::init(&common::CENTOS_STREAM_9);
 
-    let results: Vec<Package> = db
+    let results: Vec<PackageHeader> = db
         .find_re(Index::Name, "^glibc", MatchMode::Regex)
         .collect();
     assert!(
@@ -177,8 +177,8 @@ fn multiple_db_instances() {
     let count2 = db2.installed_packages().count();
     assert_eq!(count1, count2);
 
-    let results1: Vec<Package> = db1.find(Index::Name, "bash").collect();
-    let results2: Vec<Package> = db2.find(Index::Name, "bash").collect();
+    let results1: Vec<PackageHeader> = db1.find(Index::Name, "bash").collect();
+    let results2: Vec<PackageHeader> = db2.find(Index::Name, "bash").collect();
     assert_eq!(results1.len(), results2.len());
     assert_eq!(results1[0].name(), results2[0].name());
 }
@@ -191,7 +191,7 @@ fn concurrent_db_instances() {
         .map(|_| {
             std::thread::spawn(|| {
                 let db = Db::open().unwrap();
-                let packages: Vec<Package> = db.installed_packages().collect();
+                let packages: Vec<PackageHeader> = db.installed_packages().collect();
                 assert!(!packages.is_empty());
                 packages.len()
             })
@@ -206,7 +206,7 @@ fn concurrent_db_instances() {
 fn find_re_glob_by_providename() {
     let db = common::init(&common::CENTOS_STREAM_9);
 
-    let results: Vec<Package> = db
+    let results: Vec<PackageHeader> = db
         .find_re(Index::Providename, "glibc*", MatchMode::Glob)
         .collect();
     assert!(

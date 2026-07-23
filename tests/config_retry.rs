@@ -45,7 +45,7 @@ fn test_config_behavior() {
 
     // Db::open() should succeed after configuration
     let db = librpm::Db::open().expect("Db::open() should succeed after config");
-    let results: Vec<librpm::Package> = db
+    let results: Vec<librpm::PackageHeader> = db
         .find(librpm::Index::Name, "nonexistent-pkg-xyz")
         .collect();
     assert_eq!(results.len(), 0);
