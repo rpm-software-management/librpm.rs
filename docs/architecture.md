@@ -4,7 +4,7 @@ This document describes the high-level design of librpm.rs: how it
 decomposes librpm's C API into Rust types, the ownership and lifetime
 relationships between those types, and the error handling strategy.
 
-For thread-safety specifics, see [threading.md](threading.md).
+For thread-safety specifics, see [locking.md](locking.md).
 
 ## The `rpmts` god object
 
@@ -20,8 +20,13 @@ librpm.rs decomposes this into purpose-specific types:
 |-----------|-------|------|
 | `Db` | `rpmts` (1:1) | Read-only database queries |
 | `Transaction<'db>` | borrows `Db`'s `rpmts` | Install/erase lifecycle (mutating) |
-| `Package::from_file()` | ephemeral `rpmts` | Read a `.rpm` file (no DB needed) |
-| `sign::sign_package()` | no `rpmts` | Signing via `librpmsign` |
+| `PackageHeader::from_file()` | ephemeral `rpmts` | Read a `.rpm` file (no DB needed) |
+| `Keyring` | `rpmKeyring` (standalone) | Trusted key management |
+| `PubKey` | `rpmPubkey` (standalone) | Individual public key |
+| `VerifyOptions` | flags + optional `Keyring` | Verification configuration |
+| `VerificationFlags` | `rpmVSFlags_e` | Control verification checks |
+| `Spec` | `rpmSpec` (via `rpmts`) | Spec file parsing and building (`build` feature) |
+| `sign::sign_package()` | no `rpmts` | Signing via `librpmsign` (`sign` feature) |
 
 The internal `TransactionSet` wrapper owns the `rpmts` pointer and is
 always held inside a `Db`. External callers never interact with
@@ -33,9 +38,9 @@ always held inside a `Db`. External callers never interact with
 Db
  └── TransactionSet (1:1, owns rpmts)
       │
-      ├── Iter ── Package ── Header
-      │   (internally refcounted,    (owns refcounted
-      │    independent of Db)         header, independent)
+      ├── Iter ── PackageHeader ── Header
+      │   (internally refcounted,          (owns refcounted
+      │    independent of Db)               header, independent)
       │
       └── Transaction<'db> (&mut Db borrow)
            │
@@ -60,8 +65,29 @@ Key relationships:
   `rpmtsInitIterator`). They are independent of the `Db` that created
   them and can outlive it.
 
-- **`Package`** owns a refcounted `Header` (via `headerLink`). Fully
+- **`PackageHeader`** owns a refcounted `Header` (via `headerLink`). Fully
   independent of `Db`, iterators, and transactions.
+
+- **`Keyring`** wraps a refcounted `rpmKeyring`. Clone increments the
+  refcount (`rpmKeyringLink`); Drop decrements it (`rpmKeyringFree`).
+  Independent of any `Db` or transaction set.
+
+- **`PubKey`** wraps a refcounted `rpmPubkey`. Same Link/Free pattern.
+  Independent of the `Keyring` that may contain it.
+
+- **`VerifyOptions`** bundles `VerificationFlags` with an optional
+  `Keyring`. When passed to `PackageHeader::from_file()`, the ephemeral
+  `rpmts` is configured with the given flags and keyring. Cloning is
+  cheap (keyring clone is a refcount increment).
+
+```text
+Keyring (standalone, refcounted rpmKeyring)
+ ├── PubKey (refcounted rpmPubkey, independent)
+ └── KeyringIter<'kr> (borrows Keyring)
+
+VerifyOptions
+ └── Keyring (optional, cloned/refcounted)
+```
 
 - **`Transaction`** manages file I/O for install elements. When
   `add_install` or `add_reinstall` is called, the file path is stored as

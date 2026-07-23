@@ -3,8 +3,8 @@
 use std::io::Read;
 use std::path::Path;
 
-use librpm::PackageHeader;
 use librpm::archive::PackageReader;
+use librpm::{PackageHeader, VerifyOptions};
 
 mod common;
 
@@ -20,14 +20,19 @@ fn empty_rpm() -> std::path::PathBuf {
     assets_path().join("rpm-empty-0-0.x86_64.rpm")
 }
 
+fn skip() -> VerifyOptions {
+    VerifyOptions::skip_verification()
+}
+
 #[test]
 fn test_archive_entries() {
     common::configure();
 
-    let pkg = PackageHeader::from_file(&basic_rpm()).unwrap();
+    let skip = skip();
+    let pkg = PackageHeader::from_file(&basic_rpm(), Some(&skip)).unwrap();
     let non_ghost_files = pkg.files().iter().filter(|f| !f.flags().is_ghost()).count();
 
-    let mut archive = PackageReader::open(&basic_rpm()).unwrap();
+    let mut archive = PackageReader::open(&basic_rpm(), Some(&skip)).unwrap();
     let mut paths = Vec::new();
 
     while let Some(entry) = archive.next_entry().unwrap() {
@@ -53,7 +58,7 @@ fn test_archive_entries() {
 fn test_archive_read_content() {
     common::configure();
 
-    let mut archive = PackageReader::open(&basic_rpm()).unwrap();
+    let mut archive = PackageReader::open(&basic_rpm(), Some(&skip())).unwrap();
 
     while let Some(mut entry) = archive.next_entry().unwrap() {
         if entry.has_content() && entry.size() > 0 {
@@ -76,7 +81,7 @@ fn test_archive_read_content() {
 fn test_archive_read_specific_file() {
     common::configure();
 
-    let mut archive = PackageReader::open(&basic_rpm()).unwrap();
+    let mut archive = PackageReader::open(&basic_rpm(), Some(&skip())).unwrap();
 
     while let Some(mut entry) = archive.next_entry().unwrap() {
         if entry.path() == "/etc/rpm-basic/example_config.toml" {
@@ -97,7 +102,7 @@ fn test_archive_read_specific_file() {
 fn test_archive_package_metadata() {
     common::configure();
 
-    let archive = PackageReader::open(&basic_rpm()).unwrap();
+    let archive = PackageReader::open(&basic_rpm(), Some(&skip())).unwrap();
     let pkg = archive.package();
 
     assert_eq!(pkg.name(), "rpm-basic");
@@ -110,7 +115,7 @@ fn test_archive_package_metadata() {
 fn test_archive_empty_package() {
     common::configure();
 
-    let mut archive = PackageReader::open(&empty_rpm()).unwrap();
+    let mut archive = PackageReader::open(&empty_rpm(), None).unwrap();
     let mut count = 0;
     while let Some(_entry) = archive.next_entry().unwrap() {
         count += 1;
@@ -122,7 +127,7 @@ fn test_archive_empty_package() {
 fn test_archive_exhausted_returns_none() {
     common::configure();
 
-    let mut archive = PackageReader::open(&basic_rpm()).unwrap();
+    let mut archive = PackageReader::open(&basic_rpm(), Some(&skip())).unwrap();
 
     while archive.next_entry().unwrap().is_some() {}
 
@@ -136,6 +141,6 @@ fn test_archive_exhausted_returns_none() {
 fn test_archive_nonexistent_file() {
     common::configure();
 
-    let result = PackageReader::open(Path::new("/nonexistent/path/to/package.rpm"));
+    let result = PackageReader::open(Path::new("/nonexistent/path/to/package.rpm"), None);
     assert!(result.is_err());
 }

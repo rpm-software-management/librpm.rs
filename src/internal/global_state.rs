@@ -22,7 +22,7 @@
 //! - **`ConfigState`** — tracks whether `rpmReadConfigFiles` / `rpmInitCrypto`
 //!   have been called (must happen exactly once per process).
 //!
-//! - **`global_list_lock()`** — serializes FFI calls that touch the
+//! - **`rpm_global_lock()`** — serializes FFI calls that touch the
 //!   process-global iterator/database tracking lists (`rpmmiRock`,
 //!   `rpmdbRock`, `rpmiiRock`) in RPM <= 4.18. Held briefly during
 //!   iterator/ts create and destroy. Harmless no-op on RPM 4.19+.

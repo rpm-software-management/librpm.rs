@@ -148,8 +148,8 @@ fn main() {
         // .allowlist_function("Fwrite")
         // .allowlist_function("Fseek")
         // .allowlist_function("Ftell")
-        // .allowlist_function("Ferror")
-        // .allowlist_function("Fstrerror")
+        .allowlist_function("Ferror")
+        .allowlist_function("Fstrerror")
         // .allowlist_function("Fdescr")
         // rpmlib.h — configuration and package reading
         .allowlist_function("rpmReadConfigFiles")
@@ -241,8 +241,8 @@ fn main() {
         // .allowlist_function("rpmtxnRebuildKeystore")
         .allowlist_function("rpmtxnBegin")
         .allowlist_function("rpmtxnEnd")
-        // .allowlist_function("rpmtsGetKeyring")
-        // .allowlist_function("rpmtsSetKeyring")
+        .allowlist_function("rpmtsGetKeyring")
+        .allowlist_function("rpmtsSetKeyring")
         // .allowlist_function("rpmtsSetSolveCallback")
         .allowlist_function("rpmtsProblems")
         .allowlist_function("rpmtsEmpty")
@@ -275,24 +275,26 @@ fn main() {
         .allowlist_function("rpmtsiFree")
         .allowlist_function("rpmtsiInit")
         .allowlist_function("rpmtsiNext")
-        // ----------------------------------------------------------
-        // Headers not yet included in librpm.hpp — add the #include
-        // before uncommenting these.
-        // ----------------------------------------------------------
         // rpmkeyring.h — keyring and public key management
-        // .allowlist_function("rpmKeyringNew")
-        // .allowlist_function("rpmKeyringFree")
-        // .allowlist_function("rpmKeyringAddKey")
-        // .allowlist_function("rpmKeyringInitIterator")
-        // .allowlist_function("rpmKeyringIteratorNext")
-        // .allowlist_function("rpmKeyringIteratorFree")
+        .allowlist_function("rpmKeyringNew")
+        .allowlist_function("rpmKeyringFree")
+        .allowlist_function("rpmKeyringLink")
+        .allowlist_function("rpmKeyringAddKey")
+        .allowlist_function("rpmKeyringInitIterator")
+        .allowlist_function("rpmKeyringIteratorNext")
+        .allowlist_function("rpmKeyringIteratorFree")
         // .allowlist_function("rpmKeyringVerifySig")
         // .allowlist_function("rpmKeyringVerifySig2")
-        // .allowlist_function("rpmKeyringLookupKey")
-        // .allowlist_function("rpmKeyringModify")
-        // .allowlist_function("rpmPubkeyNew")
-        // .allowlist_function("rpmPubkeyFree")
-        // .allowlist_function("rpmPubkeyBase64")
+        .allowlist_function("rpmKeyringLookupKey")
+        .allowlist_function("rpmKeyringModify")
+        .allowlist_function("rpmPubkeyNew")
+        .allowlist_function("rpmPubkeyFree")
+        .allowlist_function("rpmPubkeyLink")
+        .allowlist_function("rpmPubkeyBase64")
+        .allowlist_function("rpmPubkeyRead")
+        .allowlist_function("rpmPubkeyFingerprintAsHex")
+        .allowlist_function("rpmPubkeyKeyIDAsHex")
+        .allowlist_function("rpmPubkeyArmorWrap")
         // rpmfiles.h — file info (index-style, modern)
         .allowlist_function("rpmfilesNew")
         .allowlist_function("rpmfilesFree")
@@ -425,7 +427,7 @@ fn main() {
         .allowlist_type("rpmFileIter_e")
         .allowlist_type("rpmfileState_e")
         // rpmkeyring.h
-        // .allowlist_type("rpmKeyringModifyMode_e")
+        .allowlist_type("rpmKeyringModifyMode_e")
         // rpmprob.h — problem type
         .allowlist_type("rpmProblemType_e")
         // rpmcallback.h — callback event type
@@ -454,6 +456,25 @@ fn main() {
         println!("cargo:rpmts_set_notify_style=1");
     }
 
+    // Detect function availability for keyring APIs that may not exist on older RPM.
+    for name in [
+        "rpmKeyringInitIterator",
+        "rpmKeyringIteratorNext",
+        "rpmKeyringIteratorFree",
+        "rpmKeyringModify",
+        "rpmKeyringLookupKey",
+        "rpmPubkeyRead",
+        "rpmPubkeyFingerprintAsHex",
+        "rpmPubkeyKeyIDAsHex",
+        "rpmPubkeyArmorWrap",
+        "rpmPubkeyLink",
+        "rpmKeyringLink",
+    ] {
+        if bindings_src.contains(name) {
+            println!("cargo:rpmkeyring_{name}=1");
+        }
+    }
+
     for cap in find_consts(&bindings_src, "rpmTag_e_RPMTAG_") {
         println!("cargo:rpmtag_{}=1", cap.to_lowercase());
     }
@@ -465,5 +486,11 @@ fn main() {
     }
     for cap in find_consts(&bindings_src, "rpmElementType_e_") {
         println!("cargo:rpmelementtype_{}=1", cap.to_lowercase());
+    }
+    for cap in find_consts(&bindings_src, "rpmKeyringModifyMode_e_") {
+        println!("cargo:rpmkeyring_modifymode_{}=1", cap.to_lowercase());
+    }
+    for cap in find_consts(&bindings_src, "rpmtransFlags_e_RPMTRANS_FLAG_") {
+        println!("cargo:rpmtransflag_{}=1", cap.to_lowercase());
     }
 }

@@ -6,12 +6,14 @@ the binding internals.
 
 ## librpm's threading model
 
-librpm was not designed with thread safety as a primary concern. Some
+librpm was not originally designed with thread safety as a primary concern. Some
 internal synchronization exists (e.g. the macro context has a recursive mutex
-since RPM 4.12), but coverage is incomplete and inconsistent — other
-process-global state has no protection at all, and the protection that exists
-varies across versions. The following sections describe the specific areas that
-affect librpm.rs.
+since RPM 4.12), but coverage across the entire library is incomplete and
+inconsistent, especially across older versions. Some forms of process-global state
+is also unprotected across any version of librpm. As librpm.rs is designed to
+compile against multiple versions of librpm, we add some locking to guard against
+problems present in older versions of librpm even if newer versions has its own
+locking. The following sections describe the specific areas that affect librpm.rs.
 
 ### Macro context
 
@@ -30,9 +32,29 @@ relying on the C-level locking.
 
 ### Configuration initialization
 
-`rpmReadConfigFiles` and `rpmInitCrypto` must be called exactly once per
-process. librpm.rs enforces this through the `ConfigState::configured` flag,
-guarded by the same `ConfigState` mutex.
+`rpmReadConfigFiles` reads the system rpmrc and macro configuration. It
+vicariously calls `rpmInitCrypto`, which initializes the cryptographic backend
+(NSS or OpenSSL depending on the RPM build). `rpmReadConfigFiles` and
+`rpmInitCrypto` must be called exactly once per process. librpm.rs enforces
+this through the `ConfigState::configured` flag, guarded by the same
+`ConfigState` mutex.
+
+librpm.rs enforces the once-only requirement through `ConfigState`, a struct
+behind a `OnceLock<Mutex<ConfigState>>` in `src/internal/global_state.rs`.
+`ConfigState` contains a single `configured: bool` flag. The public entry
+points `librpm::init()` and `librpm::init_with()` both call
+`config::read_file()`, which:
+
+1. Acquires `ConfigState::lock()`.
+2. Checks `configured` — if already `true`, returns an error immediately
+   without calling into C.
+3. Calls `rpmReadConfigFiles` (which internally calls `rpmInitCrypto`).
+4. Sets `configured = true` and releases the lock.
+
+Other operations that require configuration (`Db::open()`,
+`Keyring::from_rpmdb()`) also acquire the `ConfigState` lock and check the
+flag, returning an error if `init()` has not been called. This prevents
+use-before-init rather than relying on opaque C-level failures.
 
 ### Transaction set lazy initialization
 
@@ -95,8 +117,8 @@ The lock is held only for the duration of each FFI call, not for the lifetime
 of iterators or transaction sets. Database iteration (`rpmdbNextIterator`) and
 all read-only header operations run entirely without the lock.
 
-On RPM 4.19+, the lock remains necessary for spec/build serialization (see
-below) even though the global tracking lists no longer exist.
+On RPM 4.19+, the lock is also used for spec/build serialization (see below)
+even though the global tracking lists no longer exist.
 
 ### Spec parsing and package building
 
@@ -163,17 +185,17 @@ librpm.rs uses a second process-wide `Mutex<()>` (`mutation_lock()` in
 | `Db::rebuild()` | `rpmtsRebuildDB` | Database rewrite |
 | `Db::verify()` | `rpmtsVerifyDB` | Database read (but shares chroot path) |
 
-#### Interaction with `global_list_lock`
+#### Interaction with `rpm_global_lock`
 
 The two locks are independent and protect different things:
 
-- **`global_list_lock`**: protects RPM <= 4.18 global linked lists. Held
+- **`rpm_global_lock`**: protects RPM <= 4.18 global linked lists. Held
   briefly (~microseconds) during iterator/ts create and destroy.
 - **`mutation_lock`**: serializes write operations. Held for the duration of
   `rpmtsRun` (potentially seconds or minutes for large transactions).
 
 They are never held simultaneously. A write operation may cause internal
-iterator or ts creation/destruction, but those acquire `global_list_lock`
+iterator or ts creation/destruction, but those acquire `rpm_global_lock`
 internally through the existing call sites.
 
 #### Interaction with `rpmtxnBegin`/`rpmtxnEnd`
@@ -204,7 +226,7 @@ around each call to prevent this mutation from leaking.
 | `Transaction` | No (inherited) | No (inherited) | Borrows `&mut Db`; contains raw `rpmts` pointer |
 | `MatchIterator` | No (default) | No (default) | Contains raw pointer |
 | `Header` | No (default) | No (default) | Contains raw pointer |
-| `Package` | No (inherited) | No (inherited) | Contains `Header` |
+| `PackageHeader` | No (inherited) | No (inherited) | Contains `Header` |
 | `Spec` | Yes | No (default) | Heap-allocated, refcounted handle; global-state FFI calls serialized by `rpm_global_lock()` |
 | `Element` | No (default) | No (default) | Contains raw `rpmte` pointer |
 | `Problem` | No (default) | No (default) | Contains raw `rpmProblem` pointer |

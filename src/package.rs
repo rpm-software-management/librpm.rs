@@ -58,9 +58,24 @@ impl PackageHeader {
         self.header.as_ptr()
     }
 
-    /// Create a Package by reading an `.rpm` file
-    pub fn from_file(path: &Path) -> Result<Self, RpmErrorKind> {
-        let header = Header::from_file(path)?;
+    /// Read an `.rpm` package file, optionally with verification.
+    ///
+    /// When `options` is `None`, the system defaults are used: all
+    /// signature and digest checks are performed against the system
+    /// keyring loaded from the RPM database.
+    ///
+    /// To skip verification (e.g. when only reading metadata), pass
+    /// `Some(&VerifyOptions::skip_verification())`.
+    ///
+    /// To verify against a custom keyring or with specific flags, build
+    /// a [`VerifyOptions`] and pass `Some(&opts)`.
+    ///
+    /// [`VerifyOptions`]: crate::verify::VerifyOptions
+    pub fn from_file(
+        path: &Path,
+        options: Option<&crate::verify::VerifyOptions>,
+    ) -> Result<Self, RpmErrorKind> {
+        let header = Header::from_file(path, options)?;
         Ok(PackageHeader { header })
     }
 
@@ -229,7 +244,7 @@ impl PackageHeader {
     /// use librpm::PackageHeader;
     /// use std::path::Path;
     ///
-    /// let pkg = PackageHeader::from_file(Path::new("bash-5.2.15-3.fc39.x86_64.rpm")).unwrap();
+    /// let pkg = PackageHeader::from_file(Path::new("bash-5.2.15-3.fc39.x86_64.rpm"), None).unwrap();
     /// let nvra = pkg.format("%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}").unwrap();
     /// println!("{nvra}");
     /// ```

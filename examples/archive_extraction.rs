@@ -10,7 +10,7 @@ fn main() {
 
     librpm::init().unwrap();
 
-    let mut archive = PackageReader::open(Path::new(&path)).unwrap();
+    let mut archive = PackageReader::open(Path::new(&path), None).unwrap();
 
     println!("Package: {}", archive.package().nevra());
     println!();

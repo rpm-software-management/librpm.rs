@@ -19,7 +19,7 @@ fn main() {
     let rpm_path = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("testdata/rpms/rpm-basic-with-rsa4096-2.3.4-5.el9.noarch.rpm");
 
-    let pkg = PackageHeader::from_file(&rpm_path).expect("failed to read RPM");
+    let pkg = PackageHeader::from_file(&rpm_path, None).expect("failed to read RPM");
     println!("Loaded package: {} ({})", pkg.nevra(), pkg.summary());
 
     let mut db = Db::open().expect("failed to open RPM database");

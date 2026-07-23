@@ -79,6 +79,8 @@ pub enum ErrorKind {
     Archive,
     /// Transaction operation failed
     Transaction,
+    /// Keyring or public key operation failed
+    Keyring,
 }
 
 impl Display for ErrorKind {
@@ -91,6 +93,7 @@ impl Display for ErrorKind {
             ErrorKind::Database => write!(f, "database error"),
             ErrorKind::Archive => write!(f, "archive error"),
             ErrorKind::Transaction => write!(f, "transaction error"),
+            ErrorKind::Keyring => write!(f, "keyring error"),
         }
     }
 }

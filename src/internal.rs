@@ -27,4 +27,4 @@ pub mod tag;
 pub mod td;
 pub(crate) mod ts;
 
-pub(crate) use self::global_state::{ConfigState, rpm_global_lock, mutation_lock};
+pub(crate) use self::global_state::{ConfigState, mutation_lock, rpm_global_lock};

@@ -51,6 +51,7 @@
 #include <rpm/rpmfi.h> // File information
 #include <rpm/rpmts.h> // Transaction sets
 #include <rpm/rpmte.h> // Transaction elements (packages)
+#include <rpm/rpmkeyring.h> // Keyring and public key management
 #include <rpm/rpmver.h> // Version parsing and comparison
 #include <rpm/rpmprob.h> // Problem reporting
 #include <rpm/rpmps.h> // Problem sets
