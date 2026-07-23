@@ -31,7 +31,7 @@ RHEL 8 support may be added in the future, but is not a current priority.
 
 - [x] Search and query RPM database by tag with exact match, glob, and regex
 - [x] RPM database management: create, verify, rebuild database
-- [ ] Install and upgrade packages
+- [x] Install, upgrade, and erase packages (transaction support with progress callbacks)
 - [x] Version comparison support (i.e. dependency sets)
 - [x] RPM reader API (i.e. for `.rpm` files)
 - [x] RPM builder API (i.e. `librpmbuild`)

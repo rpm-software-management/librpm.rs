@@ -77,6 +77,8 @@ pub enum ErrorKind {
     Database,
     /// Archive (payload) read/extraction error
     Archive,
+    /// Transaction operation failed
+    Transaction,
 }
 
 impl Display for ErrorKind {
@@ -88,6 +90,7 @@ impl Display for ErrorKind {
             ErrorKind::FormatString => write!(f, "format string error"),
             ErrorKind::Database => write!(f, "database error"),
             ErrorKind::Archive => write!(f, "archive error"),
+            ErrorKind::Transaction => write!(f, "transaction error"),
         }
     }
 }

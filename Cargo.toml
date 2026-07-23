@@ -43,8 +43,9 @@ streaming-iterator = "0.1.5"
 [features]
 default = ["build", "sign"]
 build = ["dep:librpmbuild-sys"]
-sign = ["dep:librpmsign-sys"]
 test-current-system = []
+test-transaction = []
+sign = ["dep:librpmsign-sys"]
 
 [dev-dependencies]
 env_logger = "0.11"

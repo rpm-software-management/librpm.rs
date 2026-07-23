@@ -197,26 +197,26 @@ fn main() {
         // .allowlist_function("rpmtdGetString")
         // .allowlist_function("rpmtdGetNumber")
         // rpmte.h — transaction elements
-        // .allowlist_function("rpmteType")
-        // .allowlist_function("rpmteN")
-        // .allowlist_function("rpmteE")
-        // .allowlist_function("rpmteV")
-        // .allowlist_function("rpmteR")
-        // .allowlist_function("rpmteA")
+        .allowlist_function("rpmteType")
+        .allowlist_function("rpmteN")
+        .allowlist_function("rpmteE")
+        .allowlist_function("rpmteV")
+        .allowlist_function("rpmteR")
+        .allowlist_function("rpmteA")
         // .allowlist_function("rpmteO")
         // .allowlist_function("rpmteColor")
-        // .allowlist_function("rpmtePkgFileSize")
+        .allowlist_function("rpmtePkgFileSize")
         // .allowlist_function("rpmteParent")
-        // .allowlist_function("rpmteProblems")
-        // .allowlist_function("rpmteDBOffset")
-        // .allowlist_function("rpmteNEVR")
-        // .allowlist_function("rpmteNEVRA")
-        // .allowlist_function("rpmteKey")
+        .allowlist_function("rpmteProblems")
+        .allowlist_function("rpmteDBOffset")
+        .allowlist_function("rpmteNEVR")
+        .allowlist_function("rpmteNEVRA")
+        .allowlist_function("rpmteKey")
         // .allowlist_function("rpmteSetUserdata")
         // .allowlist_function("rpmteUserdata")
-        // .allowlist_function("rpmteFailed")
-        // .allowlist_function("rpmteDS")
-        // .allowlist_function("rpmteFiles")
+        .allowlist_function("rpmteFailed")
+        .allowlist_function("rpmteDS")
+        .allowlist_function("rpmteFiles")
         // .allowlist_function("rpmteVerified")
         // .allowlist_function("rpmteVfyLevel")
         // .allowlist_function("rpmteSetVfyLevel")
@@ -225,9 +225,9 @@ fn main() {
         .allowlist_function("rpmtsFree")
         .allowlist_function("rpmtsClean")
         .allowlist_function("rpmtsInitIterator")
-        // .allowlist_function("rpmtsCheck")
-        // .allowlist_function("rpmtsOrder")
-        // .allowlist_function("rpmtsRun")
+        .allowlist_function("rpmtsCheck")
+        .allowlist_function("rpmtsOrder")
+        .allowlist_function("rpmtsRun")
         // .allowlist_function("rpmtsCloseDB")
         // .allowlist_function("rpmtsOpenDB")
         .allowlist_function("rpmtsInitDB")
@@ -239,40 +239,42 @@ fn main() {
         // .allowlist_function("rpmtxnImportPubkey")
         // .allowlist_function("rpmtxnDeletePubkey")
         // .allowlist_function("rpmtxnRebuildKeystore")
-        // .allowlist_function("rpmtxnBegin")
-        // .allowlist_function("rpmtxnEnd")
+        .allowlist_function("rpmtxnBegin")
+        .allowlist_function("rpmtxnEnd")
         // .allowlist_function("rpmtsGetKeyring")
         // .allowlist_function("rpmtsSetKeyring")
         // .allowlist_function("rpmtsSetSolveCallback")
-        // .allowlist_function("rpmtsProblems")
-        // .allowlist_function("rpmtsEmpty")
-        // .allowlist_function("rpmtsVSFlags")
+        .allowlist_function("rpmtsProblems")
+        .allowlist_function("rpmtsEmpty")
+        .allowlist_function("rpmtsVSFlags")
         .allowlist_function("rpmtsSetVSFlags")
         // .allowlist_function("rpmtsVfyFlags")
         // .allowlist_function("rpmtsSetVfyFlags")
         // .allowlist_function("rpmtsVfyLevel")
         // .allowlist_function("rpmtsSetVfyLevel")
-        // .allowlist_function("rpmtsRootDir")
-        // .allowlist_function("rpmtsSetRootDir")
+        .allowlist_function("rpmtsRootDir")
+        .allowlist_function("rpmtsSetRootDir")
         // .allowlist_function("rpmtsSetScriptFd")
         // .allowlist_function("rpmtsGetTid")
         // .allowlist_function("rpmtsGetRdb")
-        // .allowlist_function("rpmtsFlags")
-        // .allowlist_function("rpmtsSetFlags")
+        .allowlist_function("rpmtsFlags")
+        .allowlist_function("rpmtsSetFlags")
         // .allowlist_function("rpmtsColor")
         // .allowlist_function("rpmtsPrefColor")
         // .allowlist_function("rpmtsSetColor")
         // .allowlist_function("rpmtsSetPrefColor")
-        // .allowlist_function("rpmtsSetNotifyCallback")
-        // .allowlist_function("rpmtsSetNotifyStyle")
-        // .allowlist_function("rpmtsGetNotifyStyle")
-        // .allowlist_function("rpmtsAddInstallElement")
-        // .allowlist_function("rpmtsAddReinstallElement")
-        // .allowlist_function("rpmtsAddRestoreElement")
-        // .allowlist_function("rpmtsAddEraseElement")
-        // .allowlist_function("rpmtsiFree")
-        // .allowlist_function("rpmtsiInit")
-        // .allowlist_function("rpmtsiNext")
+        .allowlist_function("rpmtsSetNotifyCallback")
+        .allowlist_function("rpmtsSetNotifyStyle")
+        .allowlist_function("rpmtsGetNotifyStyle")
+        .allowlist_function("rpmtsAddInstallElement")
+        .allowlist_function("rpmtsAddReinstallElement")
+        .allowlist_function("rpmtsAddRestoreElement")
+        .allowlist_function("rpmtsAddEraseElement")
+        .allowlist_function("rpmtsNElements")
+        .allowlist_function("rpmtsElement")
+        .allowlist_function("rpmtsiFree")
+        .allowlist_function("rpmtsiInit")
+        .allowlist_function("rpmtsiNext")
         // ----------------------------------------------------------
         // Headers not yet included in librpm.hpp — add the #include
         // before uncommenting these.
@@ -341,20 +343,21 @@ fn main() {
         .allowlist_function("rpmverEVR")
         .allowlist_function("rpmverCmp")
         // rpmprob.h — problem reporting
-        // .allowlist_function("rpmProblemFree")
-        // .allowlist_function("rpmProblemLink")
-        // .allowlist_function("rpmProblemGetPkgNEVR")
-        // .allowlist_function("rpmProblemGetAltNEVR")
-        // .allowlist_function("rpmProblemGetType")
+        .allowlist_function("rpmProblemFree")
+        .allowlist_function("rpmProblemLink")
+        .allowlist_function("rpmProblemGetPkgNEVR")
+        .allowlist_function("rpmProblemGetAltNEVR")
+        .allowlist_function("rpmProblemGetType")
         // .allowlist_function("rpmProblemGetKey")
-        // .allowlist_function("rpmProblemGetStr")
-        // .allowlist_function("rpmProblemGetDiskNeed")
-        // .allowlist_function("rpmProblemString")
+        .allowlist_function("rpmProblemGetStr")
+        .allowlist_function("rpmProblemGetDiskNeed")
+        .allowlist_function("rpmProblemString")
         // rpmps.h — problem sets
-        // .allowlist_function("rpmpsFree")
-        // .allowlist_function("rpmpsInitIterator")
-        // .allowlist_function("rpmpsFreeIterator")
-        // .allowlist_function("rpmpsiNext")
+        .allowlist_function("rpmpsFree")
+        .allowlist_function("rpmpsNumProblems")
+        .allowlist_function("rpmpsInitIterator")
+        .allowlist_function("rpmpsFreeIterator")
+        .allowlist_function("rpmpsiNext")
         // rpmlog.h — logging
         .allowlist_function("rpmlogSetCallback")
         .allowlist_function("rpmlogRecMessage")
@@ -404,11 +407,12 @@ fn main() {
         // .allowlist_type("headerImportFlags_e")
         // .allowlist_type("hMagic")
         // rpmts.h — transaction control flags
-        // .allowlist_type("rpmtransFlags_e")
+        .allowlist_type("rpmtransFlags_e")
         .allowlist_type("rpmVSFlags_e")
-        // .allowlist_type("rpmtxnFlags_e")
+        .allowlist_type("rpmtxnFlags_e")
+        .allowlist_type("rpmprobFilterFlags_e")
         // rpmte.h — transaction element type
-        // .allowlist_type("rpmElementType_e")
+        .allowlist_type("rpmElementType_e")
         // rpmds.h — dependency flags
         .allowlist_type("rpmsenseFlags_e")
         // rpmdb.h — iterator match mode
@@ -423,7 +427,9 @@ fn main() {
         // rpmkeyring.h
         // .allowlist_type("rpmKeyringModifyMode_e")
         // rpmprob.h — problem type
-        // .allowlist_type("rpmProblemType_e")
+        .allowlist_type("rpmProblemType_e")
+        // rpmcallback.h — callback event type
+        .allowlist_type("rpmCallbackType_e")
         // rpmlog.h — log level
         .allowlist_type("rpmlogLvl_e")
         // rpmcrypto.h — digest algorithm
@@ -441,6 +447,13 @@ fn main() {
         .unwrap();
 
     let bindings_src = std::fs::read_to_string(&output_path).unwrap();
+    // rpmtsSetNotifyStyle (RPM >= 4.17) switches callbacks from legacy
+    // Header-based payloads (style 0) to rpmte-based payloads (style 1).
+    // When absent, the trampoline must extract NEVRA from a Header instead.
+    if bindings_src.contains("rpmtsSetNotifyStyle") {
+        println!("cargo:rpmts_set_notify_style=1");
+    }
+
     for cap in find_consts(&bindings_src, "rpmTag_e_RPMTAG_") {
         println!("cargo:rpmtag_{}=1", cap.to_lowercase());
     }
@@ -449,5 +462,8 @@ fn main() {
     }
     for cap in find_consts(&bindings_src, "rpmVSFlags_e_RPMVSF_") {
         println!("cargo:rpmvsflag_{}=1", cap.to_lowercase());
+    }
+    for cap in find_consts(&bindings_src, "rpmElementType_e_") {
+        println!("cargo:rpmelementtype_{}=1", cap.to_lowercase());
     }
 }

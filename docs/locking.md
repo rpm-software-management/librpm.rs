@@ -132,11 +132,12 @@ could overwrite the values. Callers performing concurrent builds should use
 their own higher-level synchronization to cover the entire
 define → parse → build sequence.
 
-### Process-global state affecting write operations (future)
+### Write-operation serialization (`mutation_lock`)
 
-The following global state is relevant when librpm.rs eventually supports
-`rpmtsRun` (install/erase/upgrade). It does not affect the current read-only
-API.
+**This lock serializes all RPM write operations within the process.**
+
+`rpmtsRun`, `rpmtsInitDB`, `rpmtsRebuildDB`, and `rpmtsVerifyDB` have
+process-global side effects that are unsafe under concurrent execution:
 
 | State | Location | Impact |
 |-------|----------|--------|
@@ -150,17 +151,78 @@ and transaction set B is dropped (closing B's fd to `.rpm.lock`), A's lock
 silently disappears. This means at most one `Db` should perform write
 operations at a time.
 
+#### librpm.rs mitigation
+
+librpm.rs uses a second process-wide `Mutex<()>` (`mutation_lock()` in
+`src/internal/global_state.rs`) to serialize these write operations:
+
+| Call site | FFI function(s) | Side effects |
+|-----------|----------------|--------------|
+| `Transaction::run()` | `rpmtxnBegin`, `rpmtsRun`, `rpmtxnEnd` | All of the above |
+| `Db::init_db()` | `rpmtsInitDB` | Database file creation |
+| `Db::rebuild()` | `rpmtsRebuildDB` | Database rewrite |
+| `Db::verify()` | `rpmtsVerifyDB` | Database read (but shares chroot path) |
+
+#### Interaction with `global_list_lock`
+
+The two locks are independent and protect different things:
+
+- **`global_list_lock`**: protects RPM <= 4.18 global linked lists. Held
+  briefly (~microseconds) during iterator/ts create and destroy.
+- **`mutation_lock`**: serializes write operations. Held for the duration of
+  `rpmtsRun` (potentially seconds or minutes for large transactions).
+
+They are never held simultaneously. A write operation may cause internal
+iterator or ts creation/destruction, but those acquire `global_list_lock`
+internally through the existing call sites.
+
+#### Interaction with `rpmtxnBegin`/`rpmtxnEnd`
+
+`Transaction::run()` acquires both locks:
+
+1. `mutation_lock()` — serializes within the process
+2. `rpmtxnBegin(ts, RPMTXN_WRITE)` — acquires the cross-process `.rpm.lock`
+   file lock via `fcntl`
+
+The Rust-side lock prevents the `fcntl` hazard (multiple fds to the same
+lock file within one process), while the C-side lock prevents concurrent
+writes from other processes (e.g. `dnf` or `rpm` CLI running simultaneously).
+
+#### Transaction flags stickiness
+
+`rpmtsRun` internally expands high-level flags like `NOSCRIPTS` into
+individual sub-flags (`NOPRE`, `NOPOST`, etc.) and writes them back to
+the transaction set. `Transaction::run()` saves and restores the flags
+around each call to prevent this mutation from leaking.
+
 ## Summary of Rust type markers
 
 | Type | `Send` | `Sync` | Rationale |
 |------|--------|--------|-----------|
 | `TransactionSet` | Yes | No | Heap-allocated, self-contained; but lazy-init mutations in `rpmtsInitIterator` are not thread-safe for concurrent `&self` |
 | `Db` | Yes (inherited) | No (inherited) | Contains `TransactionSet` |
+| `Transaction` | No (inherited) | No (inherited) | Borrows `&mut Db`; contains raw `rpmts` pointer |
 | `MatchIterator` | No (default) | No (default) | Contains raw pointer |
 | `Header` | No (default) | No (default) | Contains raw pointer |
 | `Package` | No (inherited) | No (inherited) | Contains `Header` |
 | `Spec` | Yes | No (default) | Heap-allocated, refcounted handle; global-state FFI calls serialized by `rpm_global_lock()` |
+| `Element` | No (default) | No (default) | Contains raw `rpmte` pointer |
+| `Problem` | No (default) | No (default) | Contains raw `rpmProblem` pointer |
+| `Problems` | No (default) | No (default) | Contains raw `rpmps` pointer |
 
 Multiple `Db` instances on separate threads are safe for read-only queries.
 The `rpm_global_lock` serializes the global-state-touching FFI calls; iteration
 and header access are fully concurrent.
+
+Write operations are serialized by `mutation_lock`. Only one `Transaction::run()`,
+`Db::init_db()`, `Db::rebuild()`, or `Db::verify()` call can execute at a time
+across all threads in the process.
+
+#### File I/O in the callback trampoline
+
+During `Transaction::run()`, the internal callback trampoline handles
+`RPMCALLBACK_INST_OPEN_FILE` and `RPMCALLBACK_INST_CLOSE_FILE` by calling
+`Fopen`/`Fclose` on the RPM file path. These calls execute inside the
+callback, which fires during `rpmtsRun()` on the same thread. No additional
+locking is needed — `mutation_lock` (process-wide) and `.rpm.lock`
+(cross-process via `rpmtxnBegin`) are already held.
