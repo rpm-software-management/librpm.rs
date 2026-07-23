@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+* `Db::init_db()`, `Db::rebuild()`, and `Db::verify()` for RPM database
+  management — equivalent to `rpm --initdb`, `rpm --rebuilddb`, and
+  `rpmdb --verifydb` respectively.
 * `Package::changelogs()` returns changelog entries as `Vec<ChangelogEntry>`,
   built from the parallel CHANGELOGTIME / CHANGELOGNAME / CHANGELOGTEXT header
   arrays. Each `ChangelogEntry` provides `time()`, `timestamp()`, `name()`,

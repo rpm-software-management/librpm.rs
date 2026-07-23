@@ -44,6 +44,7 @@
 
 use crate::error::Error;
 use crate::internal::iterator::{MatchIterator, MireMode};
+use crate::internal::rpmdb_lock;
 use crate::internal::tag::DBIndexTag;
 use crate::internal::ts::TransactionSet;
 use crate::package::Package;
@@ -130,6 +131,56 @@ impl Db {
             DBIndexTag::PACKAGES,
             None,
         ))
+    }
+
+    /// Initialize a new, empty RPM database at the configured `_dbpath`.
+    ///
+    /// `perms` is the Unix file permission mode (e.g. `0o644`) for the
+    /// newly created database files.
+    ///
+    /// This is the equivalent of `rpm --initdb`.
+    pub fn init_db(&self, perms: i32) -> Result<(), Error> {
+        let _lock = rpmdb_lock();
+        let rc = unsafe { librpm_sys::rpmtsInitDB(self.ts.as_ptr(), perms) };
+        if rc != 0 {
+            fail!(
+                crate::error::ErrorKind::Database,
+                "failed to initialize RPM database"
+            );
+        }
+        Ok(())
+    }
+
+    /// Rebuild the RPM database from installed package headers.
+    ///
+    /// This is the equivalent of `rpm --rebuilddb`. It recreates the
+    /// database indices from the installed package headers.
+    pub fn rebuild(&self) -> Result<(), Error> {
+        let _lock = rpmdb_lock();
+        let rc = unsafe { librpm_sys::rpmtsRebuildDB(self.ts.as_ptr()) };
+        if rc != 0 {
+            fail!(
+                crate::error::ErrorKind::Database,
+                "failed to rebuild RPM database"
+            );
+        }
+        Ok(())
+    }
+
+    /// Verify the integrity of the RPM database.
+    ///
+    /// This is the equivalent of `rpmdb --verifydb`. Returns an error
+    /// if the database has integrity problems.
+    pub fn verify(&self) -> Result<(), Error> {
+        let _lock = rpmdb_lock();
+        let rc = unsafe { librpm_sys::rpmtsVerifyDB(self.ts.as_ptr()) };
+        if rc != 0 {
+            fail!(
+                crate::error::ErrorKind::Database,
+                "RPM database verification failed"
+            );
+        }
+        Ok(())
     }
 }
 
