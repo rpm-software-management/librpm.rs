@@ -25,6 +25,14 @@
 //! the library, then obtain a [`Db`] handle via [`Db::open`] to query the
 //! RPM database.
 //!
+//! ## Logging
+//!
+//! By default, librpm logs to stderr using its native logging. Call
+//! [`logging::set_behavior`] with [`LogBehavior::LogCrate`] to route
+//! messages through Rust's [`log`] crate instead. Messages are emitted
+//! with the target `"librpm"`.
+//!
+//! [`log`]: https://docs.rs/log
 //! [librpm-sys]: https://rustrpm.org/librpm_sys/index.html
 
 #![doc(html_root_url = "https://rustrpm.org/librpm/")]
@@ -38,6 +46,9 @@ pub mod error;
 
 /// RPM configuration (i.e. rpmrc)
 mod config;
+
+/// Logging bridge: routes librpm's C log output through Rust's `log` facade
+pub mod logging;
 
 /// Changelog information for RPM packages
 pub mod changelog;
@@ -70,7 +81,8 @@ pub mod sign;
 pub use self::{
     changelog::ChangelogEntry, db::Db, db::Index, db::MatchMode, dep::DepFlags, dep::Dependencies,
     dep::Dependency, error::Error, files::FileAttrs, files::FileEntry, files::Files,
-    macro_context::MacroContext, package::Package, version::Version,
+    logging::LogBehavior, logging::LogLevel, macro_context::MacroContext, package::Package,
+    version::Version,
 };
 
 // Re-export types used in public API

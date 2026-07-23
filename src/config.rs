@@ -77,7 +77,6 @@ pub(crate) fn read_file(config_file: Option<&Path>) -> Result<(), Error> {
             ),
         }
     }
-
     global_state.configured = true;
 
     Ok(())
