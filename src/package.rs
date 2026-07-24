@@ -21,7 +21,6 @@ use crate::dep::Dependencies;
 use crate::files::Files;
 use crate::internal::header::Header;
 use crate::{RpmErrorKind, Tag, TagData};
-use std::convert::TryFrom;
 use std::hash::{Hash, Hasher};
 use std::{fmt, path::Path, time};
 
@@ -260,8 +259,7 @@ impl PackageHeader {
             .expect("BUILDTIME tag missing")
             .as_int32()
             .expect("BUILDTIME tag is not an int32");
-        let buildtime = u64::try_from(buildtime).expect("negative build time");
-        time::SystemTime::UNIX_EPOCH + time::Duration::new(buildtime, 0)
+        time::SystemTime::UNIX_EPOCH + time::Duration::new(buildtime as u32 as u64, 0)
     }
 }
 

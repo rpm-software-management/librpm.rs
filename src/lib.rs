@@ -108,7 +108,7 @@ pub use self::{
 
 // Re-export types used in public API
 pub use self::internal::rc::RpmErrorKind;
-pub use self::internal::tag::Tag;
+pub use self::internal::tag::{ParseTagError, Tag};
 pub use self::internal::td::TagData;
 
 /// Initialize librpm with default configuration.
