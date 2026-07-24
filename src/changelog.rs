@@ -17,7 +17,6 @@
 
 //! Changelog information for RPM packages
 
-use std::convert::TryFrom;
 use std::fmt;
 use std::time;
 
@@ -30,7 +29,7 @@ use crate::internal::header::Header;
 /// valid as long as the originating [`Package`](crate::Package) is alive.
 #[derive(Debug, Clone, Copy)]
 pub struct ChangelogEntry<'a> {
-    timestamp: i32,
+    timestamp: u32,
     name: &'a str,
     text: &'a str,
 }
@@ -38,12 +37,11 @@ pub struct ChangelogEntry<'a> {
 impl<'a> ChangelogEntry<'a> {
     /// Unix timestamp of the changelog entry as a `SystemTime`.
     pub fn time(&self) -> time::SystemTime {
-        let secs = u64::try_from(self.timestamp).expect("negative changelog time");
-        time::SystemTime::UNIX_EPOCH + time::Duration::new(secs, 0)
+        time::SystemTime::UNIX_EPOCH + time::Duration::new(self.timestamp as u64, 0)
     }
 
     /// Raw Unix timestamp of the changelog entry.
-    pub fn timestamp(&self) -> i32 {
+    pub fn timestamp(&self) -> u32 {
         self.timestamp
     }
 
@@ -81,7 +79,7 @@ pub(crate) fn changelogs_from_header<'a>(header: &'a Header) -> Vec<ChangelogEnt
             .zip(names)
             .zip(texts)
             .map(|((timestamp, name), text)| ChangelogEntry {
-                timestamp,
+                timestamp: timestamp as u32,
                 name,
                 text,
             })

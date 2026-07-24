@@ -24,10 +24,17 @@
     clippy::upper_case_acronyms
 )]
 
+use std::ffi::{CStr, CString};
+use std::fmt;
+use std::str::FromStr;
+
+use num_traits::FromPrimitive;
+
 use crate::Index;
 
 /// Identifiers for data in RPM headers (`rpmTag_e` in librpm)
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[repr(isize)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, num_derive::FromPrimitive)]
 pub enum Tag {
     /// Unknown tag
     NOT_FOUND = librpm_sys::Workarounds_W_RPMTAG_NOT_FOUND as isize,
@@ -1033,6 +1040,46 @@ impl From<Tag> for i32 {
 impl From<Tag> for u32 {
     fn from(val: Tag) -> Self {
         val as u32
+    }
+}
+
+impl fmt::Display for Tag {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // Safety: rpmTagGetName operates on librpm's static tag table,
+        // is thread-safe, and does not require initialization.
+        let name = unsafe { librpm_sys::rpmTagGetName(*self as librpm_sys::rpmTagVal) };
+        if name.is_null() {
+            return write!(f, "(unknown:{})", u32::from(*self));
+        }
+        let cstr = unsafe { CStr::from_ptr(name) };
+        f.write_str(cstr.to_str().expect("tag name is not UTF-8"))
+    }
+}
+
+/// Error returned when a string doesn't match any known RPM tag name.
+#[derive(Debug, Clone)]
+pub struct ParseTagError(());
+
+impl fmt::Display for ParseTagError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("unknown RPM tag name")
+    }
+}
+
+impl std::error::Error for ParseTagError {}
+
+impl FromStr for Tag {
+    type Err = ParseTagError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let cstr = CString::new(s).map_err(|_| ParseTagError(()))?;
+        // Safety: rpmTagGetValue operates on librpm's static tag table,
+        // is thread-safe, and does not require initialization.
+        let val = unsafe { librpm_sys::rpmTagGetValue(cstr.as_ptr()) };
+        if val == Tag::NOT_FOUND.into() {
+            return Err(ParseTagError(()));
+        }
+        Tag::from_isize(val as isize).ok_or(ParseTagError(()))
     }
 }
 

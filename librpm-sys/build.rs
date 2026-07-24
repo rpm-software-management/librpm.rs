@@ -175,7 +175,8 @@ fn main() {
         // .allowlist_function("rpmTagGetTagType")
         // .allowlist_function("rpmTagGetReturnType")
         // .allowlist_function("rpmTagGetClass")
-        // .allowlist_function("rpmTagGetValue")
+        .allowlist_function("rpmTagGetName")
+        .allowlist_function("rpmTagGetValue")
         // .allowlist_function("rpmTagGetNames")
         // rpmtd.h — tag data container
         // .allowlist_function("rpmtdNew")

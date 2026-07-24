@@ -36,6 +36,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   temporary database without touching the host's `/`.
 * `Db::import_pubkey()` and `Db::delete_pubkey()` import and delete public keys
   honoring the database's root directory.
+* `Display` and `FromStr` for `Tag`, enabling round-trip conversion between
+  tag names (e.g. "Name", "Version") and `Tag` enum variants. Wraps librpm's
+  `rpmTagGetName` and `rpmTagGetValue`. Also implements `TryFrom<i32>` for
+  converting raw tag numbers back to `Tag` variants.
 
 ## 0.3.0 -- August 3, 2026
 
