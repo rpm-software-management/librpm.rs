@@ -20,6 +20,42 @@
 use bindgen::Builder;
 use std::{env, path::PathBuf};
 
+/// Find all `pub const {prefix}{NAME} :` patterns in the bindgen output,
+/// returning the NAME suffix for each match.
+///
+/// Bindgen may or may not insert newlines between items depending on the
+/// libclang version and formatting settings, so we search the raw text
+/// instead of iterating by line.
+fn find_consts<'a>(src: &'a str, prefix: &'a str) -> impl Iterator<Item = &'a str> {
+    let needle = format!("pub const {prefix}");
+    let needle_len = needle.len();
+    let mut start = 0;
+    std::iter::from_fn(move || {
+        let pos = src[start..].find(&needle)?;
+        let abs = start + pos + needle_len;
+        start = abs;
+        let rest = &src[abs..];
+        let end = rest.find(|c: char| !c.is_ascii_alphanumeric() && c != '_')?;
+        Some(&rest[..end])
+    })
+}
+
+/// Find all `pub fn {prefix}{NAME}(` patterns in the bindgen output,
+/// returning the NAME suffix for each match.
+fn find_fns<'a>(src: &'a str, prefix: &'a str) -> impl Iterator<Item = &'a str> {
+    let needle = format!("pub fn {prefix}");
+    let needle_len = needle.len();
+    let mut start = 0;
+    std::iter::from_fn(move || {
+        let pos = src[start..].find(&needle)?;
+        let abs = start + pos + needle_len;
+        start = abs;
+        let rest = &src[abs..];
+        let end = rest.find(|c: char| !c.is_ascii_alphanumeric() && c != '_')?;
+        Some(&rest[..end])
+    })
+}
+
 /// Bind to librpmsign.so
 fn main() {
     println!("cargo:rustc-link-lib=rpmsign");
@@ -44,22 +80,13 @@ fn main() {
         .unwrap();
 
     let bindings_src = std::fs::read_to_string(&output_path).unwrap();
-    for line in bindings_src.lines() {
-        let trimmed = line.trim();
-        if let Some(rest) = trimmed.strip_prefix("pub const ") {
-            let Some((name, _)) = rest.split_once(':') else {
-                continue;
-            };
-            if let Some(flag) = name.strip_prefix("rpmSignFlags_e_RPMSIGN_FLAG_") {
-                println!("cargo:rpmsignflag_{}=1", flag.to_lowercase());
-            } else if let Some(algo) = name.strip_prefix("pgpHashAlgo_e_PGPHASHALGO_") {
-                println!("cargo:pgphashalgo_{}=1", algo.to_lowercase());
-            }
-        } else if let Some(rest) = trimmed.strip_prefix("pub fn ") {
-            let name = rest.split(&['(', ' '][..]).next().unwrap_or("");
-            if let Some(func) = name.strip_prefix("rpmPkg") {
-                println!("cargo:rpmpkg_{}=1", func.to_lowercase());
-            }
-        }
+    for cap in find_consts(&bindings_src, "rpmSignFlags_e_RPMSIGN_FLAG_") {
+        println!("cargo:rpmsignflag_{}=1", cap.to_lowercase());
+    }
+    for cap in find_consts(&bindings_src, "pgpHashAlgo_e_PGPHASHALGO_") {
+        println!("cargo:pgphashalgo_{}=1", cap.to_lowercase());
+    }
+    for cap in find_fns(&bindings_src, "rpmPkg") {
+        println!("cargo:rpmpkg_{}=1", cap.to_lowercase());
     }
 }

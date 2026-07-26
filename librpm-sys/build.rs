@@ -25,7 +25,26 @@
 use bindgen::Builder;
 use std::{env, path::PathBuf};
 
-/// Bind to librpm.so + librpmio.so
+/// Find all `pub const {prefix}{NAME} :` patterns in the bindgen output,
+/// returning the NAME suffix for each match.
+///
+/// Bindgen may or may not insert newlines between items depending on the
+/// libclang version and formatting settings, so we search the raw text
+/// instead of iterating by line.
+fn find_consts<'a>(src: &'a str, prefix: &'a str) -> impl Iterator<Item = &'a str> {
+    let needle = format!("pub const {prefix}");
+    let needle_len = needle.len();
+    let mut start = 0;
+    std::iter::from_fn(move || {
+        let pos = src[start..].find(&needle)?;
+        let abs = start + pos + needle_len;
+        start = abs;
+        let rest = &src[abs..];
+        let end = rest.find(|c: char| !c.is_ascii_alphanumeric() && c != '_')?;
+        Some(&rest[..end])
+    })
+}
+
 fn main() {
     // Link with librpm.so + librpmio.so
     //
@@ -422,19 +441,13 @@ fn main() {
         .unwrap();
 
     let bindings_src = std::fs::read_to_string(&output_path).unwrap();
-    for line in bindings_src.lines() {
-        let Some(rest) = line.strip_prefix("pub const ") else {
-            continue;
-        };
-        let Some((name, _)) = rest.split_once(':') else {
-            continue;
-        };
-        if let Some(tag) = name.strip_prefix("rpmTag_e_RPMTAG_") {
-            println!("cargo:rpmtag_{}=1", tag.to_lowercase());
-        } else if let Some(tag) = name.strip_prefix("rpmSigTag_e_RPMSIGTAG_") {
-            println!("cargo:rpmsigtag_{}=1", tag.to_lowercase());
-        } else if let Some(flag) = name.strip_prefix("rpmVSFlags_e_RPMVSF_") {
-            println!("cargo:rpmvsflag_{}=1", flag.to_lowercase());
-        }
+    for cap in find_consts(&bindings_src, "rpmTag_e_RPMTAG_") {
+        println!("cargo:rpmtag_{}=1", cap.to_lowercase());
+    }
+    for cap in find_consts(&bindings_src, "rpmSigTag_e_RPMSIGTAG_") {
+        println!("cargo:rpmsigtag_{}=1", cap.to_lowercase());
+    }
+    for cap in find_consts(&bindings_src, "rpmVSFlags_e_RPMVSF_") {
+        println!("cargo:rpmvsflag_{}=1", cap.to_lowercase());
     }
 }
