@@ -38,6 +38,7 @@
 #![doc(html_root_url = "https://rustrpm.org/librpm/")]
 #![warn(missing_docs, trivial_casts, unused_qualifications)]
 
+use std::ffi::CStr;
 use std::path::Path;
 
 /// Error types (defined first due to macros)
@@ -84,8 +85,8 @@ pub mod sign;
 pub use self::{
     archive::ArchiveEntry, archive::PackageReader, changelog::ChangelogEntry, db::Db, db::Index,
     db::MatchMode, dep::DepFlags, dep::Dependencies, dep::Dependency, error::Error,
-    files::FileAttrs, files::FileEntry, files::Files, logging::LogBehavior, logging::LogLevel,
-    macro_context::MacroContext, package::PackageHeader, version::Version,
+    files::FileAttrs, files::FileEntry, files::FileState, files::Files, logging::LogBehavior,
+    logging::LogLevel, macro_context::MacroContext, package::PackageHeader, version::Version,
 };
 
 // Re-export types used in public API
@@ -99,6 +100,38 @@ pub use self::internal::td::TagData;
 /// Can only be called once per process.
 pub fn init() -> Result<(), Error> {
     config::read_file(None)
+}
+
+/// Return the configured architecture name as RPM sees it (e.g. `"x86_64"`).
+///
+/// Returns `None` if librpm has not been initialized or the arch is not set.
+pub fn arch() -> Option<&'static str> {
+    let mut name: *const std::ffi::c_char = std::ptr::null();
+    unsafe { librpm_sys::rpmGetArchInfo(&mut name, std::ptr::null_mut()) };
+    if name.is_null() {
+        return None;
+    }
+    Some(
+        unsafe { CStr::from_ptr(name) }
+            .to_str()
+            .expect("arch name is not UTF-8"),
+    )
+}
+
+/// Return the configured OS name as RPM sees it (e.g. `"linux"`).
+///
+/// Returns `None` if librpm has not been initialized or the OS is not set.
+pub fn os() -> Option<&'static str> {
+    let mut name: *const std::ffi::c_char = std::ptr::null();
+    unsafe { librpm_sys::rpmGetOsInfo(&mut name, std::ptr::null_mut()) };
+    if name.is_null() {
+        return None;
+    }
+    Some(
+        unsafe { CStr::from_ptr(name) }
+            .to_str()
+            .expect("os name is not UTF-8"),
+    )
 }
 
 /// Initialize librpm with custom configuration.

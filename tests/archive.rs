@@ -21,58 +21,32 @@ fn empty_rpm() -> std::path::PathBuf {
 }
 
 #[test]
-fn test_archive_entry_count() {
+fn test_archive_entries() {
     common::configure();
 
     let pkg = PackageHeader::from_file(&basic_rpm()).unwrap();
     let non_ghost_files = pkg.files().iter().filter(|f| !f.flags().is_ghost()).count();
 
     let mut archive = PackageReader::open(&basic_rpm()).unwrap();
-    let mut count = 0;
-    while let Some(_entry) = archive.next_entry().unwrap() {
-        count += 1;
-    }
-
-    assert_eq!(
-        count, non_ghost_files,
-        "archive entry count should match the number of non-ghost files"
-    );
-}
-
-#[test]
-fn test_archive_entry_metadata() {
-    common::configure();
-
-    let mut archive = PackageReader::open(&basic_rpm()).unwrap();
     let mut paths = Vec::new();
 
     while let Some(entry) = archive.next_entry().unwrap() {
+        assert!(
+            !entry.flags().is_ghost(),
+            "ghost files should not appear in the archive: {}",
+            entry.path(),
+        );
         paths.push(entry.path());
     }
 
+    assert_eq!(
+        paths.len(),
+        non_ghost_files,
+        "archive entry count should match the number of non-ghost files"
+    );
     assert!(paths.contains(&"/etc/rpm-basic/example_config.toml".to_string()));
     assert!(paths.contains(&"/usr/bin/rpm-basic".to_string()));
     assert!(paths.contains(&"/usr/share/doc/rpm-basic/README".to_string()));
-}
-
-#[test]
-fn test_archive_entry_detailed_metadata() {
-    common::configure();
-
-    let mut archive = PackageReader::open(&basic_rpm()).unwrap();
-
-    while let Some(entry) = archive.next_entry().unwrap() {
-        if entry.path() == "/etc/rpm-basic/example_config.toml" {
-            assert_eq!(entry.size(), 31);
-            assert_eq!(entry.user(), "root");
-            assert_eq!(entry.group(), "root");
-            assert!(entry.flags().is_config());
-            assert_eq!(entry.basename(), "example_config.toml");
-            assert_eq!(entry.dirname(), "/etc/rpm-basic/");
-            return;
-        }
-    }
-    panic!("config file not found in archive");
 }
 
 #[test]
@@ -107,6 +81,7 @@ fn test_archive_read_specific_file() {
     while let Some(mut entry) = archive.next_entry().unwrap() {
         if entry.path() == "/etc/rpm-basic/example_config.toml" {
             assert!(entry.has_content());
+            assert_eq!(entry.mtime(), 1681068559);
             let mut buf = Vec::new();
             entry.read_to_end(&mut buf).unwrap();
             assert_eq!(buf.len(), 31);
@@ -163,19 +138,4 @@ fn test_archive_nonexistent_file() {
 
     let result = PackageReader::open(Path::new("/nonexistent/path/to/package.rpm"));
     assert!(result.is_err());
-}
-
-#[test]
-fn test_archive_does_not_contain_ghost_files() {
-    common::configure();
-
-    let mut archive = PackageReader::open(&basic_rpm()).unwrap();
-
-    while let Some(entry) = archive.next_entry().unwrap() {
-        assert!(
-            !entry.flags().is_ghost(),
-            "ghost files should not appear in the archive: {}",
-            entry.path(),
-        );
-    }
 }

@@ -60,6 +60,18 @@ impl PackageHeader {
         Ok(PackageHeader { header })
     }
 
+    /// Returns `true` if this package is a source RPM (SRPM).
+    pub fn is_source(&self) -> bool {
+        unsafe { librpm_sys::headerIsSource(self.header.as_ptr()) != 0 }
+    }
+
+    /// Returns `true` if the given tag is present in the header.
+    ///
+    /// Cheaper than `get(tag).is_some()` since it does not decode the tag data.
+    pub fn has_tag(&self, tag: Tag) -> bool {
+        unsafe { librpm_sys::headerIsEntry(self.header.as_ptr(), tag.into()) != 0 }
+    }
+
     /// Look up raw tag data from the underlying RPM header
     pub fn get(&self, tag: Tag) -> Option<TagData<'_>> {
         self.header.get(tag)
