@@ -17,7 +17,7 @@
 
 //! Dependency information for RPM packages
 
-use std::ffi::CStr;
+use std::ffi::{CStr, CString};
 use std::fmt;
 
 use crate::Tag;
@@ -46,6 +46,9 @@ impl Dependencies {
 
         unsafe { librpm_sys::rpmdsInit(ds) };
 
+        let is_weak = unsafe { librpm_sys::rpmdsIsWeak(ds) } != 0;
+        let is_reverse = unsafe { librpm_sys::rpmdsIsReverse(ds) } != 0;
+
         while unsafe { librpm_sys::rpmdsNext(ds) } >= 0 {
             let name = unsafe {
                 let p = librpm_sys::rpmdsN(ds);
@@ -70,8 +73,17 @@ impl Dependencies {
             };
 
             let flags = DepFlags(unsafe { librpm_sys::rpmdsFlags(ds) });
+            let is_rich = unsafe { librpm_sys::rpmdsIsRich(ds) } != 0;
 
-            entries.push(Dependency { name, evr, flags });
+            entries.push(Dependency {
+                name,
+                evr,
+                flags,
+                tag,
+                is_rich,
+                is_weak,
+                is_reverse,
+            });
         }
 
         unsafe { librpm_sys::rpmdsFree(ds) };
@@ -127,6 +139,10 @@ pub struct Dependency {
     name: String,
     evr: Option<String>,
     flags: DepFlags,
+    tag: Tag,
+    is_rich: bool,
+    is_weak: bool,
+    is_reverse: bool,
 }
 
 impl Dependency {
@@ -143,6 +159,73 @@ impl Dependency {
     /// Sense flags describing the version comparison and dependency context.
     pub fn flags(&self) -> DepFlags {
         self.flags
+    }
+
+    /// Returns `true` if this is a rich dependency (e.g. `(foo or bar)`).
+    pub fn is_rich(&self) -> bool {
+        self.is_rich
+    }
+
+    /// Returns `true` if this is a weak dependency (Recommends, Suggests,
+    /// Supplements, or Enhances).
+    pub fn is_weak(&self) -> bool {
+        self.is_weak
+    }
+
+    /// Returns `true` if this is a reverse dependency (Supplements or Enhances).
+    pub fn is_reverse(&self) -> bool {
+        self.is_reverse
+    }
+
+    /// Returns `true` if `self` satisfies `other`.
+    ///
+    /// This is the core operation for dependency resolution: given a Provides
+    /// entry (`self`) and a Requires entry (`other`), it checks whether the
+    /// names match and the version ranges overlap.
+    pub fn satisfies(&self, other: &Dependency) -> bool {
+        let self_name = CString::new(self.name.as_str()).expect("dep name contains NUL");
+        let self_evr_owned;
+        let self_evr = match &self.evr {
+            Some(evr) => {
+                self_evr_owned = CString::new(evr.as_str()).expect("dep EVR contains NUL");
+                self_evr_owned.as_ptr()
+            }
+            None => c"".as_ptr(),
+        };
+
+        let other_name = CString::new(other.name.as_str()).expect("dep name contains NUL");
+        let other_evr_owned;
+        let other_evr = match &other.evr {
+            Some(evr) => {
+                other_evr_owned = CString::new(evr.as_str()).expect("dep EVR contains NUL");
+                other_evr_owned.as_ptr()
+            }
+            None => c"".as_ptr(),
+        };
+
+        unsafe {
+            let ds_a = librpm_sys::rpmdsSinglePool(
+                std::ptr::null_mut(),
+                self.tag as librpm_sys::rpmTagVal,
+                self_name.as_ptr(),
+                self_evr,
+                self.flags.0 as librpm_sys::rpmsenseFlags,
+            );
+            let ds_b = librpm_sys::rpmdsSinglePool(
+                std::ptr::null_mut(),
+                other.tag as librpm_sys::rpmTagVal,
+                other_name.as_ptr(),
+                other_evr,
+                other.flags.0 as librpm_sys::rpmsenseFlags,
+            );
+
+            let result = librpm_sys::rpmdsCompare(ds_a, ds_b);
+
+            librpm_sys::rpmdsFree(ds_a);
+            librpm_sys::rpmdsFree(ds_b);
+
+            result != 0
+        }
     }
 }
 

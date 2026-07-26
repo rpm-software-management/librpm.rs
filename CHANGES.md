@@ -40,6 +40,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * When `LogBehavior::LogCrate` mode is set, you can install any
   `log`-compatible backend (e.g. `env_logger`) and messages appear
   automatically with the target `"librpm"`.
+* `PackageHeader::is_source()` distinguishes SRPMs from binary RPMs
+  via `headerIsSource`.
+* `PackageHeader::has_tag()` checks for the presence of a tag without
+  decoding it, via `headerIsEntry`.
+* `Dependency::is_rich()`, `is_weak()`, `is_reverse()` predicates expose
+  the corresponding librpm `rpmdsIs*` functions.
+* `Dependency::satisfies()` compares two dependencies using `rpmdsCompare`.
+* `FileEntry::mtime()` returns the file modification time as `SystemTime`.
+* `FileEntry::state()` returns the file install state as a new `FileState`
+  enum (also available on `ArchiveEntry`).
+* `Files::find()` looks up a file by path using `rpmfilesFindFN`.
+* `librpm::arch()` and `librpm::os()` return the configured architecture
+  and OS name via `rpmGetArchInfo` / `rpmGetOsInfo`.
 
 ### Fixed
 

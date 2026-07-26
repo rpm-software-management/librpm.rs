@@ -43,7 +43,7 @@ use std::path::Path;
 use std::ptr::NonNull;
 
 use crate::error::ErrorKind;
-use crate::files::{FileAttrs, Files};
+use crate::files::{FileAttrs, FileEntry, FileState, Files};
 use crate::internal::header::Header;
 use crate::package::PackageHeader;
 
@@ -134,10 +134,14 @@ impl PackageReader {
             return Ok(None);
         }
 
+        let files_ptr = self.files.ptr().expect("archive has files");
         Ok(Some(ArchiveEntry {
             fi: self.fi,
-            files: &self.files,
-            index: ix,
+            entry: FileEntry {
+                ptr: files_ptr,
+                index: ix,
+                _marker: PhantomData,
+            },
             _marker: PhantomData,
         }))
     }
@@ -166,113 +170,77 @@ impl Drop for PackageReader {
 /// sequential access at compile time.
 pub struct ArchiveEntry<'a> {
     fi: NonNull<librpm_sys::rpmfi_s>,
-    files: &'a Files,
-    index: i32,
+    entry: FileEntry<'a>,
     _marker: PhantomData<&'a mut PackageReader>,
 }
 
 impl ArchiveEntry<'_> {
     /// Full path of the file.
     pub fn path(&self) -> String {
-        let p = unsafe { librpm_sys::rpmfilesFN(self.files.as_ptr(), self.index) };
-        assert!(!p.is_null());
-        let s = unsafe { CStr::from_ptr(p) }
-            .to_str()
-            .expect("file path is not UTF-8")
-            .to_owned();
-        unsafe { free(p.cast()) };
-        s
+        self.entry.path()
     }
 
     /// Base name of the file (filename without directory).
     pub fn basename(&self) -> &str {
-        let p = unsafe { librpm_sys::rpmfilesBN(self.files.as_ptr(), self.index) };
-        assert!(!p.is_null());
-        unsafe { CStr::from_ptr(p) }
-            .to_str()
-            .expect("file basename is not UTF-8")
+        self.entry.basename()
     }
 
     /// Directory name of the file (including trailing slash).
     pub fn dirname(&self) -> &str {
-        let di = unsafe { librpm_sys::rpmfilesDI(self.files.as_ptr(), self.index) };
-        let p = unsafe { librpm_sys::rpmfilesDN(self.files.as_ptr(), di as i32) };
-        assert!(!p.is_null());
-        unsafe { CStr::from_ptr(p) }
-            .to_str()
-            .expect("file dirname is not UTF-8")
+        self.entry.dirname()
     }
 
     /// File size in bytes.
     pub fn size(&self) -> u64 {
-        unsafe { librpm_sys::rpmfilesFSize(self.files.as_ptr(), self.index) }
+        self.entry.size()
     }
 
     /// File mode (Unix permission bits and file type).
     pub fn mode(&self) -> u16 {
-        unsafe { librpm_sys::rpmfilesFMode(self.files.as_ptr(), self.index) }
+        self.entry.mode()
     }
 
     /// Owner (user name) of the file.
     pub fn user(&self) -> &str {
-        let p = unsafe { librpm_sys::rpmfilesFUser(self.files.as_ptr(), self.index) };
-        assert!(!p.is_null());
-        unsafe { CStr::from_ptr(p) }
-            .to_str()
-            .expect("file user is not UTF-8")
+        self.entry.user()
     }
 
     /// Group of the file.
     pub fn group(&self) -> &str {
-        let p = unsafe { librpm_sys::rpmfilesFGroup(self.files.as_ptr(), self.index) };
-        assert!(!p.is_null());
-        unsafe { CStr::from_ptr(p) }
-            .to_str()
-            .expect("file group is not UTF-8")
+        self.entry.group()
     }
 
     /// File attribute flags (config, doc, ghost, license, etc.).
     pub fn flags(&self) -> FileAttrs {
-        let raw = unsafe { librpm_sys::rpmfilesFFlags(self.files.as_ptr(), self.index) };
-        FileAttrs::from_raw(raw)
+        self.entry.flags()
     }
 
     /// Symlink target, or `None` if this is not a symbolic link.
     pub fn link_target(&self) -> Option<&str> {
-        let p = unsafe { librpm_sys::rpmfilesFLink(self.files.as_ptr(), self.index) };
-        if p.is_null() {
-            return None;
-        }
-        let s = unsafe { CStr::from_ptr(p) }
-            .to_str()
-            .expect("link target is not UTF-8");
-        if s.is_empty() { None } else { Some(s) }
+        self.entry.link_target()
     }
 
     /// File capabilities string, or `None` if no capabilities are set.
     pub fn caps(&self) -> Option<&str> {
-        let p = unsafe { librpm_sys::rpmfilesFCaps(self.files.as_ptr(), self.index) };
-        if p.is_null() {
-            return None;
-        }
-        let s = unsafe { CStr::from_ptr(p) }
-            .to_str()
-            .expect("file caps is not UTF-8");
-        if s.is_empty() { None } else { Some(s) }
+        self.entry.caps()
+    }
+
+    /// File modification time.
+    pub fn mtime(&self) -> u64 {
+        self.entry.mtime()
+    }
+
+    /// File install state.
+    ///
+    /// For packages read from `.rpm` files (as opposed to the RPM database),
+    /// the state is always `Missing` (unavailable).
+    pub fn state(&self) -> FileState {
+        self.entry.state()
     }
 
     /// Binary digest of the file, or `None` if no digest is available.
     pub fn digest(&self) -> Option<&[u8]> {
-        let mut algo: std::ffi::c_int = 0;
-        let mut len: usize = 0;
-        let p = unsafe {
-            librpm_sys::rpmfilesFDigest(self.files.as_ptr(), self.index, &mut algo, &mut len)
-        };
-        if p.is_null() || len == 0 {
-            None
-        } else {
-            Some(unsafe { std::slice::from_raw_parts(p, len) })
-        }
+        self.entry.digest()
     }
 
     /// Whether this entry has file content stored in the archive.

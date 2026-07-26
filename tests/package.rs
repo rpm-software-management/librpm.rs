@@ -4,7 +4,7 @@
 use std::collections::HashSet;
 use std::path::Path;
 
-use librpm::{PackageHeader, Tag, error::ErrorKind};
+use librpm::{FileState, PackageHeader, Tag, error::ErrorKind};
 
 mod common;
 
@@ -454,4 +454,144 @@ fn test_package_hash() {
     let mut set = HashSet::new();
     set.insert(pkg1);
     assert!(set.contains(&pkg2));
+}
+
+// PackageHeader::is_source / has_tag
+
+#[test]
+fn test_is_source() {
+    let pkg = load_basic();
+    assert!(!pkg.is_source());
+}
+
+#[test]
+fn test_has_tag() {
+    let pkg = load_basic();
+    assert!(pkg.has_tag(Tag::NAME));
+    assert!(pkg.has_tag(Tag::EPOCH));
+    assert!(pkg.has_tag(Tag::VERSION));
+
+    common::configure();
+    let empty = PackageHeader::from_file(&assets_path().join("rpm-empty-0-0.x86_64.rpm")).unwrap();
+    assert!(empty.has_tag(Tag::NAME));
+    assert!(!empty.has_tag(Tag::EPOCH));
+}
+
+// Dependency predicates
+
+#[test]
+fn test_dependency_is_weak() {
+    let pkg = load_basic();
+
+    assert!(pkg.recommends().iter().all(|d| d.is_weak()));
+    assert!(pkg.suggests().iter().all(|d| d.is_weak()));
+    assert!(pkg.supplements().iter().all(|d| d.is_weak()));
+    assert!(pkg.enhances().iter().all(|d| d.is_weak()));
+
+    assert!(pkg.requires().iter().all(|d| !d.is_weak()));
+    assert!(pkg.provides().iter().all(|d| !d.is_weak()));
+    assert!(pkg.conflicts().iter().all(|d| !d.is_weak()));
+    assert!(pkg.obsoletes().iter().all(|d| !d.is_weak()));
+}
+
+#[test]
+fn test_dependency_is_reverse() {
+    let pkg = load_basic();
+
+    assert!(pkg.supplements().iter().all(|d| d.is_reverse()));
+    assert!(pkg.enhances().iter().all(|d| d.is_reverse()));
+
+    assert!(pkg.requires().iter().all(|d| !d.is_reverse()));
+    assert!(pkg.provides().iter().all(|d| !d.is_reverse()));
+    assert!(pkg.recommends().iter().all(|d| !d.is_reverse()));
+    assert!(pkg.suggests().iter().all(|d| !d.is_reverse()));
+    assert!(pkg.conflicts().iter().all(|d| !d.is_reverse()));
+    assert!(pkg.obsoletes().iter().all(|d| !d.is_reverse()));
+}
+
+#[test]
+fn test_dependency_satisfies() {
+    let pkg = load_basic();
+    let provides = pkg.provides();
+    let requires = pkg.requires();
+
+    // "shock = 33" provides should satisfy "shock" requires (unversioned)
+    let shock_provides = provides.iter().find(|d| d.name() == "shock").unwrap();
+    let regret_requires = requires.iter().find(|d| d.name() == "regret").unwrap();
+
+    // A provides can always satisfy itself
+    assert!(shock_provides.satisfies(shock_provides));
+
+    // Different names should not satisfy
+    assert!(!shock_provides.satisfies(regret_requires));
+
+    // "methylamine >= 1.0.0-1" should be satisfied by a matching provides
+    let methylamine = requires.iter().find(|d| d.name() == "methylamine").unwrap();
+    assert!(!shock_provides.satisfies(methylamine));
+
+    // Self-provides satisfy self-requires
+    let config_prov = provides
+        .iter()
+        .find(|d| d.name() == "config(rpm-basic)")
+        .unwrap();
+    let config_req = requires
+        .iter()
+        .find(|d| d.name() == "config(rpm-basic)")
+        .unwrap();
+    assert!(config_prov.satisfies(config_req));
+}
+
+// Files::find
+
+#[test]
+fn test_files_find() {
+    let pkg = load_basic();
+    let files = pkg.files();
+
+    let entry = files
+        .find("/etc/rpm-basic/example_config.toml")
+        .expect("config file should be found");
+    assert_eq!(entry.basename(), "example_config.toml");
+    assert_eq!(entry.size(), 31);
+    assert!(entry.flags().is_config());
+    assert_eq!(entry.mtime(), 1681068559);
+
+    assert!(files.find("/nonexistent/path").is_none());
+
+    common::configure();
+    let empty = PackageHeader::from_file(&assets_path().join("rpm-empty-0-0.x86_64.rpm")).unwrap();
+    assert!(empty.files().find("/anything").is_none());
+}
+
+// arch / os
+
+#[test]
+fn test_arch() {
+    common::configure();
+    let arch = librpm::arch().expect("arch should be set after init");
+    assert!(!arch.is_empty());
+}
+
+#[test]
+fn test_os() {
+    common::configure();
+    let os = librpm::os().expect("os should be set after init");
+    assert!(!os.is_empty());
+}
+
+// FileEntry::state
+
+#[test]
+fn test_file_state_from_rpm() {
+    let pkg = load_basic();
+    let files = pkg.files();
+
+    for file in files.iter() {
+        assert_eq!(
+            file.state(),
+            FileState::Missing,
+            "files from .rpm should have Missing (unavailable) state: {}",
+            file.path()
+        );
+    }
 }

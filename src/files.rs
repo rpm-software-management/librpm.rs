@@ -17,7 +17,7 @@
 
 //! File information for RPM packages
 
-use std::ffi::CStr;
+use std::ffi::{CStr, CString};
 use std::fmt;
 use std::marker::PhantomData;
 use std::ptr::NonNull;
@@ -51,6 +51,10 @@ impl Files {
             Some(ptr) => ptr.as_ptr(),
             None => std::ptr::null_mut(),
         }
+    }
+
+    pub(crate) fn ptr(&self) -> Option<NonNull<librpm_sys::rpmfiles_s>> {
+        self.ptr
     }
 
     pub(crate) fn from_header(header: &Header) -> Self {
@@ -88,6 +92,25 @@ impl Files {
         match self.ptr {
             Some(ptr) => unsafe { librpm_sys::rpmfilesDigestAlgo(ptr.as_ptr()) },
             None => 0,
+        }
+    }
+
+    /// Look up a file by path, returning its entry if found.
+    ///
+    /// This is more efficient than iterating and comparing paths, as it
+    /// uses librpm's internal index.
+    pub fn find(&self, path: &str) -> Option<FileEntry<'_>> {
+        let ptr = self.ptr?;
+        let c_path = CString::new(path).ok()?;
+        let ix = unsafe { librpm_sys::rpmfilesFindFN(ptr.as_ptr(), c_path.as_ptr()) };
+        if ix < 0 {
+            None
+        } else {
+            Some(FileEntry {
+                ptr,
+                index: ix,
+                _marker: PhantomData,
+            })
         }
     }
 
@@ -129,9 +152,9 @@ impl<'a> IntoIterator for &'a Files {
 
 /// A single file entry within an RPM package.
 pub struct FileEntry<'a> {
-    ptr: NonNull<librpm_sys::rpmfiles_s>,
-    index: i32,
-    _marker: PhantomData<&'a Files>,
+    pub(crate) ptr: NonNull<librpm_sys::rpmfiles_s>,
+    pub(crate) index: i32,
+    pub(crate) _marker: PhantomData<&'a Files>,
 }
 
 impl FileEntry<'_> {
@@ -224,6 +247,20 @@ impl FileEntry<'_> {
         if s.is_empty() { None } else { Some(s) }
     }
 
+    /// File modification time.
+    pub fn mtime(&self) -> u64 {
+        (unsafe { librpm_sys::rpmfilesFMtime(self.ptr.as_ptr(), self.index) } as u64)
+    }
+
+    /// File install state.
+    ///
+    /// Only meaningful for packages queried from the RPM database.
+    /// For packages read from `.rpm` files, the state is always `Normal`.
+    pub fn state(&self) -> FileState {
+        let raw = unsafe { librpm_sys::rpmfilesFState(self.ptr.as_ptr(), self.index) };
+        FileState::from_raw(raw)
+    }
+
     /// Binary digest of the file, or `None` if no digest is available.
     pub fn digest(&self) -> Option<&[u8]> {
         let mut algo: std::ffi::c_int = 0;
@@ -277,7 +314,8 @@ impl ExactSizeIterator for FileIter<'_> {}
 pub struct FileAttrs(u32);
 
 impl FileAttrs {
-    pub(crate) fn from_raw(raw: u32) -> Self {
+    /// Construct from raw flag bits.
+    pub fn from_raw(raw: u32) -> Self {
         FileAttrs(raw)
     }
 
@@ -319,5 +357,37 @@ impl FileAttrs {
     /// File is an artifact (`%artifact`).
     pub fn is_artifact(self) -> bool {
         self.0 & librpm_sys::rpmfileAttrs_e_RPMFILE_ARTIFACT != 0
+    }
+}
+
+/// File install state from the RPM database.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FileState {
+    /// File is present and unmodified.
+    Normal,
+    /// File has been replaced by a newer version.
+    Replaced,
+    /// File was not installed (e.g. excluded by language or arch).
+    NotInstalled,
+    /// File lives on a network share and is not managed locally.
+    NetShared,
+    /// File was skipped due to arch color mismatch (multilib).
+    WrongColor,
+    /// State data is unavailable (e.g. package loaded from an `.rpm` file
+    /// rather than the RPM database).
+    Missing,
+}
+
+impl FileState {
+    pub(crate) fn from_raw(raw: librpm_sys::rpmfileState) -> Self {
+        #[allow(non_upper_case_globals)]
+        match raw {
+            librpm_sys::rpmfileState_e_RPMFILE_STATE_NORMAL => FileState::Normal,
+            librpm_sys::rpmfileState_e_RPMFILE_STATE_REPLACED => FileState::Replaced,
+            librpm_sys::rpmfileState_e_RPMFILE_STATE_NOTINSTALLED => FileState::NotInstalled,
+            librpm_sys::rpmfileState_e_RPMFILE_STATE_NETSHARED => FileState::NetShared,
+            librpm_sys::rpmfileState_e_RPMFILE_STATE_WRONGCOLOR => FileState::WrongColor,
+            _ => FileState::Missing,
+        }
     }
 }
