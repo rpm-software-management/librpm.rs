@@ -235,9 +235,9 @@ fn main() {
         // .allowlist_function("rpmtsSetDBMode")
         .allowlist_function("rpmtsRebuildDB")
         .allowlist_function("rpmtsVerifyDB")
-        // .allowlist_function("rpmtsImportPubkey")
-        // .allowlist_function("rpmtxnImportPubkey")
-        // .allowlist_function("rpmtxnDeletePubkey")
+        .allowlist_function("rpmtsImportPubkey")
+        .allowlist_function("rpmtxnImportPubkey")
+        .allowlist_function("rpmtxnDeletePubkey")
         // .allowlist_function("rpmtxnRebuildKeystore")
         .allowlist_function("rpmtxnBegin")
         .allowlist_function("rpmtxnEnd")
@@ -469,6 +469,9 @@ fn main() {
         "rpmPubkeyArmorWrap",
         "rpmPubkeyLink",
         "rpmKeyringLink",
+        "rpmtsImportPubkey",
+        "rpmtxnImportPubkey",
+        "rpmtxnDeletePubkey",
     ] {
         if bindings_src.contains(name) {
             println!("cargo:rpmkeyring_{name}=1");

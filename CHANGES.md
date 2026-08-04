@@ -28,6 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * New cfg-gated APIs for newer RPM versions: `Keyring::remove_key()`,
   `Keyring::lookup()`, `Keyring::keys()` iterator, `PubKey::from_file()`,
   `PubKey::fingerprint_hex()`, `PubKey::key_id_hex()`.
+* `Keyring::import_to_rpmdb()` and `Keyring::delete_from_rpmdb()` for
+  persistent key management
 
 ## 0.3.0 -- August 3, 2026
 

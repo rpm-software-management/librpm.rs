@@ -21,7 +21,7 @@ librpm.rs decomposes this into purpose-specific types:
 | `Db` | `rpmts` (1:1) | Read-only database queries |
 | `Transaction<'db>` | borrows `Db`'s `rpmts` | Install/erase lifecycle (mutating) |
 | `PackageHeader::from_file()` | ephemeral `rpmts` | Read a `.rpm` file (no DB needed) |
-| `Keyring` | `rpmKeyring` (standalone) | Trusted key management |
+| `Keyring` | `rpmKeyring` (standalone) | In-memory trusted key management; also persistent keystore import/delete |
 | `PubKey` | `rpmPubkey` (standalone) | Individual public key |
 | `VerifyOptions` | flags + optional `Keyring` | Verification configuration |
 | `VerificationFlags` | `rpmVSFlags_e` | Control verification checks |
@@ -70,7 +70,9 @@ Key relationships:
 
 - **`Keyring`** wraps a refcounted `rpmKeyring`. Clone increments the
   refcount (`rpmKeyringLink`); Drop decrements it (`rpmKeyringFree`).
-  Independent of any `Db` or transaction set.
+  Independent of any `Db` or transaction set. Static methods
+  `import_to_rpmdb()` and `delete_from_rpmdb()` modify the persistent
+  system keystore using ephemeral transaction sets.
 
 - **`PubKey`** wraps a refcounted `rpmPubkey`. Same Link/Free pattern.
   Independent of the `Keyring` that may contain it.
