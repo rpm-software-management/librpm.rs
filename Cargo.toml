@@ -2,7 +2,7 @@
 members = ["librpm-sys", "librpmbuild-sys", "librpmsign-sys"]
 
 [workspace.package]
-version = "0.2.1"
+version = "0.3.0"
 license = "MPL-2.0"
 authors = [
     "Tony Arcieri <tony@iqlusion.io>",
@@ -15,9 +15,9 @@ keywords = ["rpm", "linux", "redhat", "fedora", "centos"]
 
 [workspace.dependencies]
 bindgen = "0.72"
-librpm-sys = { version = "0.2.1", path = "librpm-sys" }
-librpmbuild-sys = { version = "0.2.1", path = "librpmbuild-sys" }
-librpmsign-sys = { version = "0.2.1", path = "librpmsign-sys" }
+librpm-sys = { version = "0.3.0", path = "librpm-sys" }
+librpmbuild-sys = { version = "0.3.0", path = "librpmbuild-sys" }
+librpmsign-sys = { version = "0.3.0", path = "librpmsign-sys" }
 
 [package]
 name = "librpm"
