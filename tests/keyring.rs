@@ -173,3 +173,51 @@ fn test_keyring_from_rpmdb() {
     let keyring = Keyring::from_rpmdb().unwrap();
     let _debug = format!("{keyring:?}");
 }
+
+#[cfg(all(
+    has_rpmkeyring_rpmtxnimportpubkey,
+    has_rpmkeyring_rpmtxndeletepubkey,
+    has_rpmkeyring_rpmtsimportpubkey,
+    has_rpmkeyring_rpmkeyringlookupkey,
+))]
+#[test]
+#[ignore = "modifies system rpmdb, requires root"]
+fn test_import_to_rpmdb() {
+    common::configure();
+    let key_data = std::fs::read(test_key_path()).unwrap();
+    Keyring::import_to_rpmdb(&key_data).unwrap();
+
+    // Clean up: delete the imported key
+    let db = librpm::Db::open().unwrap();
+    let keyring = db.keyring();
+    let test_key = PubKey::from_file(&test_key_path()).unwrap();
+    if keyring.lookup(&test_key).is_some() {
+        Keyring::delete_from_rpmdb(&test_key).unwrap();
+    }
+}
+
+#[cfg(all(
+    has_rpmkeyring_rpmtxnimportpubkey,
+    has_rpmkeyring_rpmtxndeletepubkey,
+    has_rpmkeyring_rpmkeyringlookupkey,
+))]
+#[test]
+#[ignore = "modifies system rpmdb, requires root"]
+fn test_delete_from_rpmdb() {
+    common::configure();
+    let key_data = std::fs::read(test_key_path()).unwrap();
+
+    // Import first so we have something to delete
+    Keyring::import_to_rpmdb(&key_data).unwrap();
+
+    let test_key = PubKey::from_file(&test_key_path()).unwrap();
+    Keyring::delete_from_rpmdb(&test_key).unwrap();
+
+    // Verify deletion
+    let db = librpm::Db::open().unwrap();
+    let keyring = db.keyring();
+    assert!(
+        keyring.lookup(&test_key).is_none(),
+        "key should no longer be in the keyring after deletion"
+    );
+}

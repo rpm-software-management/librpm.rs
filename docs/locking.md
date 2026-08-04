@@ -52,9 +52,10 @@ points `librpm::init()` and `librpm::init_with()` both call
 4. Sets `configured = true` and releases the lock.
 
 Other operations that require configuration (`Db::open()`,
-`Keyring::from_rpmdb()`) also acquire the `ConfigState` lock and check the
-flag, returning an error if `init()` has not been called. This prevents
-use-before-init rather than relying on opaque C-level failures.
+`Keyring::from_rpmdb()`, `Keyring::import_to_rpmdb()`,
+`Keyring::delete_from_rpmdb()`) also acquire the `ConfigState` lock and
+check the flag, returning an error if `init()` has not been called. This
+prevents use-before-init rather than relying on opaque C-level failures.
 
 ### Transaction set lazy initialization
 
@@ -181,6 +182,8 @@ librpm.rs uses a second process-wide `Mutex<()>` (`mutation_lock()` in
 | Call site | FFI function(s) | Side effects |
 |-----------|----------------|--------------|
 | `Transaction::run()` | `rpmtxnBegin`, `rpmtsRun`, `rpmtxnEnd` | All of the above |
+| `Keyring::import_to_rpmdb()` | `rpmtxnImportPubkey` (or `rpmtsImportPubkey` on older RPM) | Keystore write |
+| `Keyring::delete_from_rpmdb()` | `rpmtxnBegin`, `rpmtxnDeletePubkey`, `rpmtxnEnd` | Keystore write |
 | `Db::init_db()` | `rpmtsInitDB` | Database file creation |
 | `Db::rebuild()` | `rpmtsRebuildDB` | Database rewrite |
 | `Db::verify()` | `rpmtsVerifyDB` | Database read (but shares chroot path) |
