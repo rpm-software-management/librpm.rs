@@ -273,6 +273,98 @@ impl Db {
         }
     }
 
+    /// Import a public key into this database's keystore.
+    ///
+    /// This persistently stores the key in the RPM database, making it
+    /// available for signature verification across all future operations.
+    /// This is the programmatic equivalent of `rpm --import`.
+    ///
+    /// Honors this database's root directory (see [`Db::open_with_root`]), so
+    /// the key is written to *this* database. This is the programmatic
+    /// equivalent of `rpm --import`;
+    /// [`Keyring::import_to_rpmdb`](crate::keyring::Keyring::import_to_rpmdb)
+    /// is the static, root-`/` convenience wrapper around it.
+    ///
+    /// Expects binary PGP packet data, not ASCII-armored keys. Typically
+    /// requires root privileges when operating on the system database.
+    #[cfg(any(has_rpmkeyring_rpmtxnimportpubkey, has_rpmkeyring_rpmtsimportpubkey))]
+    pub fn import_pubkey(&self, key_data: &[u8]) -> Result<(), Error> {
+        let _mutation = mutation_lock();
+        // Importing a pubkey writes a gpg-pubkey "package" to the database,
+        // opening it (rpmdbRock) on RPM <= 4.18. Lock ordering: mutation_lock
+        // first, then rpm_global_lock. See docs/locking.md.
+        let _global = rpm_global_lock();
+
+        #[cfg(has_rpmkeyring_rpmtxnimportpubkey)]
+        let rc = {
+            let txn = unsafe {
+                librpm_sys::rpmtxnBegin(self.ts.as_ptr(), librpm_sys::rpmtxnFlags_e_RPMTXN_WRITE)
+            };
+            if txn.is_null() {
+                fail!(
+                    crate::error::ErrorKind::Keyring,
+                    "failed to acquire RPM lock"
+                );
+            }
+            let rc =
+                unsafe { librpm_sys::rpmtxnImportPubkey(txn, key_data.as_ptr(), key_data.len()) };
+            unsafe { librpm_sys::rpmtxnEnd(txn) };
+            rc
+        };
+
+        #[cfg(not(has_rpmkeyring_rpmtxnimportpubkey))]
+        let rc = unsafe {
+            librpm_sys::rpmtsImportPubkey(self.ts.as_ptr(), key_data.as_ptr(), key_data.len())
+        };
+
+        if rc != librpm_sys::rpmRC_e_RPMRC_OK {
+            fail!(
+                crate::error::ErrorKind::Keyring,
+                "failed to import key into RPM database (rc={})",
+                rc
+            );
+        }
+        Ok(())
+    }
+
+    /// Delete a public key from this database's keystore.
+    ///
+    /// Removes the key from the RPM database so it will no longer be
+    /// used for signature verification. This is the programmatic
+    /// equivalent of `rpm -e gpg-pubkey-...`.
+    ///
+    /// Honors this database's root directory. Typically requires root privileges
+    /// when operating on the system database.
+    #[cfg(has_rpmkeyring_rpmtxndeletepubkey)]
+    pub fn delete_pubkey(&self, key: &crate::keyring::PubKey) -> Result<(), Error> {
+        let _mutation = mutation_lock();
+        // Deleting a pubkey erases the gpg-pubkey "package" from the database,
+        // opening it (rpmdbRock) on RPM <= 4.18. Lock ordering: mutation_lock
+        // first, then rpm_global_lock. See docs/locking.md.
+        let _global = rpm_global_lock();
+
+        let txn = unsafe {
+            librpm_sys::rpmtxnBegin(self.ts.as_ptr(), librpm_sys::rpmtxnFlags_e_RPMTXN_WRITE)
+        };
+        if txn.is_null() {
+            fail!(
+                crate::error::ErrorKind::Keyring,
+                "failed to acquire RPM lock"
+            );
+        }
+        let rc = unsafe { librpm_sys::rpmtxnDeletePubkey(txn, key.as_ptr()) };
+        unsafe { librpm_sys::rpmtxnEnd(txn) };
+
+        if rc != librpm_sys::rpmRC_e_RPMRC_OK {
+            fail!(
+                crate::error::ErrorKind::Keyring,
+                "failed to delete key from RPM database (rc={})",
+                rc
+            );
+        }
+        Ok(())
+    }
+
     pub(crate) fn ts_ptr(&self) -> *mut librpm_sys::rpmts_s {
         self.ts.as_ptr()
     }

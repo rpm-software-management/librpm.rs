@@ -88,9 +88,7 @@ Key relationships:
 
 - **`Keyring`** wraps a refcounted `rpmKeyring`. Clone increments the
   refcount (`rpmKeyringLink`); Drop decrements it (`rpmKeyringFree`).
-  Independent of any `Db` or transaction set. Static methods
-  `import_to_rpmdb()` and `delete_from_rpmdb()` modify the persistent
-  system keystore using ephemeral transaction sets.
+  Independent of any `Db` or transaction set.
 
 - **`PubKey`** wraps a refcounted `rpmPubkey`. Same Link/Free pattern.
   Independent of the `Keyring` that may contain it.
