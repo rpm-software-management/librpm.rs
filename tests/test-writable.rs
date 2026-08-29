@@ -322,6 +322,63 @@ fn test_dry_run() {
     }
 }
 
+// --- Alternate root (Db::open_with_root) ---
+
+#[test]
+fn test_open_with_root_relative_rejected() {
+    common::init_writable();
+
+    let err = librpm::Db::open_with_root(Path::new("relative/path"))
+        .expect_err("a relative root directory should be rejected");
+    assert_eq!(err.kind(), librpm::error::ErrorKind::InvalidArg);
+}
+
+#[test]
+fn test_install_into_alternate_root() {
+    // Ensures librpm is configured; the process-wide `_dbpath` is absolute,
+    // and rpm resolves the database at `<root>/<_dbpath>`, so a fresh root
+    // gives us a database fully isolated from the shared writable fixture.
+    common::init_writable();
+
+    let root = tempfile::tempdir().expect("failed to create temp root");
+
+    // Initialize a brand-new, empty database under the alternate root.
+    {
+        let db = librpm::Db::open_with_root(root.path()).expect("open_with_root failed");
+        db.init_db(0o644).expect("init_db failed");
+        assert_eq!(
+            db.installed_packages().count(),
+            0,
+            "a freshly initialized database should be empty"
+        );
+    }
+
+    // Actually install (not a dry run) rpm-empty. JUSTDB records the package
+    // in the database without laying down files or chrooting, so the test is
+    // hermetic and needs no special privileges.
+    {
+        let mut db = librpm::Db::open_with_root(root.path()).expect("open_with_root failed");
+        let pkg = rpm_empty();
+        let mut txn = db.transaction();
+        txn.add_install(&pkg, &rpm_empty_path(), false).unwrap();
+        txn.set_flags(TransactionFlags::JUSTDB);
+        txn.set_problem_filter(ProblemFilter::IGNORE_OS | ProblemFilter::IGNORE_ARCH);
+        txn.check().expect("dependency check should pass for rpm-empty");
+        txn.order().expect("order should succeed");
+        txn.run().expect("install should succeed");
+    }
+
+    // Re-open the same root and confirm the package really landed in the DB.
+    let db = librpm::Db::open_with_root(root.path()).expect("re-open failed");
+    let installed: Vec<PackageHeader> = db.installed_packages().collect();
+    assert_eq!(
+        installed.len(),
+        1,
+        "exactly one package should be installed in the alternate root"
+    );
+    assert_eq!(installed[0].name(), "rpm-empty");
+}
+
 // --- Progress callback ---
 
 #[test]
