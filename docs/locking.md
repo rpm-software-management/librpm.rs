@@ -171,6 +171,7 @@ Indirect list-touching calls (open the DB and/or create iterators internally):
 | `Db::keyring()` / `Keyring::from_rpmdb()` | `rpmtsGetKeyring(ts, 1)` | `loadKeyringFromDB` -> `rpmtsInitIterator` (gpg-pubkey lookup) |
 | `Keyring::import_to_rpmdb()` / `delete_from_rpmdb()` | `rpmtxnImportPubkey` / `rpmtxnDeletePubkey` | writes a gpg-pubkey "package", opening the DB |
 | `Db::init_db()` / `rebuild()` / `verify()` | `rpmtsInitDB` / `rpmtsRebuildDB` / `rpmtsVerifyDB` | open/create the database |
+| `PackageHeader::from_file()` / `archive::PackageReader` | `rpmReadPackageFile` | with signature checking (`RPMVSF_DEFAULT`) and no explicit keyring, calls `rpmtsGetKeyring(ts, 1)` -> `loadKeyringFromDB` -> opens the DB + gpg-pubkey iterator |
 
 For the brief direct calls the lock is held only for the duration of the FFI
 call. For calls that do substantial work under the lock (`rpmtsCheck`,
