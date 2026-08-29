@@ -42,6 +42,10 @@
 //! # }
 //! ```
 
+use std::ffi::CString;
+use std::os::unix::ffi::OsStrExt;
+use std::path::Path;
+
 use crate::error::Error;
 use crate::internal::iterator::{MatchIterator, MireMode};
 use crate::internal::tag::DBIndexTag;
@@ -81,11 +85,81 @@ pub struct Db {
 }
 
 impl Db {
-    /// Open the default RPM database.
+    /// Open the default RPM database, rooted at `/`.
     ///
     /// Returns an error if configuration has not been loaded yet via
     /// [`librpm::init`](crate::init) or [`librpm::init_with`](crate::init_with).
     pub fn open() -> Result<Self, Error> {
+        Ok(Db {
+            ts: Self::configured_ts()?,
+        })
+    }
+
+    /// Open the RPM database rooted at `root`.
+    ///
+    /// This is the library equivalent of `rpm --root <root>` /
+    /// `dnf --installroot <root>`: the database lives at `<root>/<_dbpath>`
+    /// and every transaction operation treats `<root>` as the filesystem
+    /// root. `root` must be an absolute path.
+    ///
+    /// Use this to operate on a database in an alternate root — an OS image
+    /// or chroot being built, or an isolated database in a temporary
+    /// directory — without touching the host's `/`. The database *path*
+    /// (`_dbpath`) is still controlled independently via
+    /// [`librpm::init_with`](crate::init_with); this only changes the root
+    /// it is resolved against.
+    ///
+    /// Returns an error if configuration has not been loaded yet via
+    /// [`librpm::init`](crate::init), or if `root` is not absolute.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # fn main() -> Result<(), librpm::error::Error> {
+    /// use std::path::Path;
+    /// use librpm::Db;
+    ///
+    /// librpm::init()?;
+    /// // Initialize and query a fresh database under an alternate root.
+    /// let db = Db::open_with_root(Path::new("/mnt/sysimage"))?;
+    /// db.init_db(0o644)?;
+    /// println!("{} packages installed", db.installed_packages().count());
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn open_with_root(root: &Path) -> Result<Self, Error> {
+        // rpmtsSetRootDir rejects a non-absolute path (returns -1); check up
+        // front so callers get a clear message rather than an opaque failure.
+        if !root.is_absolute() {
+            fail!(
+                crate::error::ErrorKind::InvalidArg,
+                "root directory must be an absolute path: {}",
+                root.display()
+            );
+        }
+        let c_root = CString::new(root.as_os_str().as_bytes()).map_err(|_| {
+            format_err!(
+                crate::error::ErrorKind::InvalidArg,
+                "root path contains an interior NUL byte: {}",
+                root.display()
+            )
+        })?;
+
+        let ts = Self::configured_ts()?;
+        // Override the "/" default that TransactionSet::create() applies.
+        let rc = unsafe { librpm_sys::rpmtsSetRootDir(ts.as_ptr(), c_root.as_ptr()) };
+        if rc != 0 {
+            fail!(
+                crate::error::ErrorKind::InvalidArg,
+                "failed to set root directory: {}",
+                root.display()
+            );
+        }
+        Ok(Db { ts })
+    }
+
+    /// Create a transaction set after confirming RPM has been configured.
+    fn configured_ts() -> Result<TransactionSet, Error> {
         let global_state = crate::internal::ConfigState::lock();
         if !global_state.configured {
             fail!(
@@ -93,9 +167,7 @@ impl Db {
                 "RPM has not been configured; call librpm::init() first"
             );
         }
-        Ok(Db {
-            ts: TransactionSet::create(),
-        })
+        Ok(TransactionSet::create())
     }
 
     /// Find an exact match for `key` in the given `index`.

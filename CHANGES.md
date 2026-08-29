@@ -30,6 +30,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `PubKey::fingerprint_hex()`, `PubKey::key_id_hex()`.
 * `Keyring::import_to_rpmdb()` and `Keyring::delete_from_rpmdb()` for
   persistent key management
+* `Db::open_with_root()` opens the database rooted at an alternate directory,
+  the equivalent of `rpm --root` / `dnf --installroot`. The database is
+  resolved at `<root>/<_dbpath>` and transactions treat `<root>` as the
+  filesystem root, enabling operations on an image, chroot, or isolated
+  temporary database without touching the host's `/`.
 
 ## 0.3.0 -- August 3, 2026
 
