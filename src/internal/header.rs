@@ -110,6 +110,13 @@ impl Header {
             }
 
             let mut hdr_ptr: librpm_sys::Header = std::ptr::null_mut();
+            // rpmReadPackageFile looks like pure file I/O, but with signature
+            // checking enabled (RPMVSF_DEFAULT) and no explicit keyring it
+            // calls rpmtsGetKeyring(ts, 1) -> loadKeyringFromDB, which opens
+            // the database (rpmdbRock) and creates a match iterator (rpmmiRock),
+            // mutating the RPM <= 4.18 global tracking lists. Hold
+            // rpm_global_lock across the call. See docs/locking.md.
+            let _lock = crate::internal::rpm_global_lock();
             let rc = librpm_sys::rpmReadPackageFile(raw_ts, fd, std::ptr::null(), &mut hdr_ptr);
 
             match RpmReturnCode::from_raw(rc) {
