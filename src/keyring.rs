@@ -192,8 +192,14 @@ impl Keyring {
         }
 
         let ts = TransactionSet::create();
-        // autoload=1: load the keyring from the database if not already loaded
-        let kr_ptr = unsafe { librpm_sys::rpmtsGetKeyring(ts.as_ptr(), 1) };
+        // autoload=1: load the keyring from the database if not already loaded.
+        // rpmtsGetKeyring -> loadKeyringFromDB opens the database and creates a
+        // match iterator (gpg-pubkey lookup), mutating the RPM <= 4.18 global
+        // tracking lists. See docs/locking.md.
+        let kr_ptr = {
+            let _lock = crate::internal::rpm_global_lock();
+            unsafe { librpm_sys::rpmtsGetKeyring(ts.as_ptr(), 1) }
+        };
         if kr_ptr.is_null() {
             fail!(ErrorKind::Keyring, "failed to load system keyring");
         }
@@ -224,7 +230,11 @@ impl Keyring {
         drop(global_state);
 
         let ts = TransactionSet::create();
-        let _lock = crate::internal::mutation_lock();
+        let _mutation = crate::internal::mutation_lock();
+        // Importing a pubkey writes a gpg-pubkey "package" to the database,
+        // opening it (rpmdbRock) on RPM <= 4.18. Lock ordering: mutation_lock
+        // first, then rpm_global_lock. See docs/locking.md.
+        let _global = crate::internal::rpm_global_lock();
 
         #[cfg(has_rpmkeyring_rpmtxnimportpubkey)]
         let rc = {
@@ -275,7 +285,11 @@ impl Keyring {
         drop(global_state);
 
         let ts = TransactionSet::create();
-        let _lock = crate::internal::mutation_lock();
+        let _mutation = crate::internal::mutation_lock();
+        // Deleting a pubkey erases the gpg-pubkey "package" from the database,
+        // opening it (rpmdbRock) on RPM <= 4.18. Lock ordering: mutation_lock
+        // first, then rpm_global_lock. See docs/locking.md.
+        let _global = crate::internal::rpm_global_lock();
 
         let txn =
             unsafe { librpm_sys::rpmtxnBegin(ts.as_ptr(), librpm_sys::rpmtxnFlags_e_RPMTXN_WRITE) };

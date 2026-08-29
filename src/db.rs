@@ -44,9 +44,9 @@
 
 use crate::error::Error;
 use crate::internal::iterator::{MatchIterator, MireMode};
-use crate::internal::mutation_lock;
 use crate::internal::tag::DBIndexTag;
 use crate::internal::ts::TransactionSet;
+use crate::internal::{mutation_lock, rpm_global_lock};
 use crate::package::PackageHeader;
 use crate::transaction::Transaction;
 use streaming_iterator::StreamingIterator;
@@ -141,7 +141,11 @@ impl Db {
     ///
     /// This is the equivalent of `rpm --initdb`.
     pub fn init_db(&self, perms: i32) -> Result<(), Error> {
-        let _lock = mutation_lock();
+        let _mutation = mutation_lock();
+        // rpmtsInitDB opens/creates the database, mutating the RPM <= 4.18
+        // global tracking list (rpmdbRock). Lock ordering: mutation_lock first,
+        // then rpm_global_lock. See docs/locking.md.
+        let _global = rpm_global_lock();
         let rc = unsafe { librpm_sys::rpmtsInitDB(self.ts.as_ptr(), perms) };
         if rc != 0 {
             fail!(
@@ -157,7 +161,11 @@ impl Db {
     /// This is the equivalent of `rpm --rebuilddb`. It recreates the
     /// database indices from the installed package headers.
     pub fn rebuild(&self) -> Result<(), Error> {
-        let _lock = mutation_lock();
+        let _mutation = mutation_lock();
+        // rpmtsRebuildDB opens the old database and creates a new one, mutating
+        // the RPM <= 4.18 global tracking list (rpmdbRock). Lock ordering:
+        // mutation_lock first, then rpm_global_lock. See docs/locking.md.
+        let _global = rpm_global_lock();
         let rc = unsafe { librpm_sys::rpmtsRebuildDB(self.ts.as_ptr()) };
         if rc != 0 {
             fail!(
@@ -183,6 +191,10 @@ impl Db {
     /// RPM database's trusted keys. The returned keyring is an
     /// independent refcounted object — it can outlive the `Db`.
     pub fn keyring(&self) -> crate::keyring::Keyring {
+        // rpmtsGetKeyring with autoload=1 -> loadKeyringFromDB opens the
+        // database and creates a match iterator (gpg-pubkey lookup), mutating
+        // the RPM <= 4.18 global tracking lists. See docs/locking.md.
+        let _lock = rpm_global_lock();
         unsafe {
             let raw = librpm_sys::rpmtsGetKeyring(self.ts.as_ptr(), 1);
             crate::keyring::Keyring::from_raw(raw)
@@ -198,7 +210,11 @@ impl Db {
     /// This is the equivalent of `rpmdb --verifydb`. Returns an error
     /// if the database has integrity problems.
     pub fn verify(&self) -> Result<(), Error> {
-        let _lock = mutation_lock();
+        let _mutation = mutation_lock();
+        // rpmtsVerifyDB opens the database, mutating the RPM <= 4.18 global
+        // tracking list (rpmdbRock). Lock ordering: mutation_lock first, then
+        // rpm_global_lock. See docs/locking.md.
+        let _global = rpm_global_lock();
         let rc = unsafe { librpm_sys::rpmtsVerifyDB(self.ts.as_ptr()) };
         if rc != 0 {
             fail!(
