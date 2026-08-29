@@ -64,6 +64,8 @@ first time it is called: opening the database (`rpmtsOpenDB`) and loading the
 keyring (`loadKeyring`). These are check-then-act patterns without locks,
 making them unsafe under concurrent `&rpmts` access.
 
+After lazy init, it only reads from the ts.
+
 librpm.rs marks `TransactionSet` as `Send` but `!Sync`, preventing concurrent
 `&self` access to a single instance. Each `Db` owns its own `TransactionSet`,
 so lazy-init races within a single `rpmts` cannot occur.

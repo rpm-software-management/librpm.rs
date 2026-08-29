@@ -15,24 +15,53 @@
  * file, You can obtain one at <https://mozilla.org/MPL/2.0/>.
  */
 
-//! Transaction support integration tests.
+//! Tests that require a writable RPM database.
 //!
-//! Gated behind the `test-transaction` feature because they exercise
-//! write-path APIs (element manipulation, dependency checking, dry-run
-//! execution) that require a writable database fixture.
+//! This binary copies the CentOS Stream 9 rpmdb snapshot to a temporary
+//! directory and initializes librpm against that copy, so write operations
+//! (transactions, keyring import/delete) run without root or host modification.
 //!
-//! Run with: `cargo test --features test-transaction --test transaction`
-
-#![cfg(feature = "test-transaction")]
+//! This must be a separate binary because librpm can only be initialized once
+//! per process.
 
 use std::path::{Path, PathBuf};
 
 use librpm::db::Index;
+use librpm::keyring::{Keyring, PubKey};
 use librpm::problem::ProblemType;
 use librpm::transaction::{CallbackEvent, ElementType, ProblemFilter, TransactionFlags};
-use librpm::{Package, VerifyOptions};
+use librpm::{PackageHeader, VerifyOptions};
 
 mod common;
+
+/// Helper to convert ASCII-armored PGP key to binary packet data
+fn dearmor_key(armored_data: &[u8]) -> Vec<u8> {
+    use base64::prelude::*;
+
+    let armored = String::from_utf8_lossy(armored_data);
+    let mut base64_lines = Vec::new();
+
+    // Skip header and footer, collect base64 content
+    let mut in_body = false;
+    for line in armored.lines() {
+        if line.starts_with("-----BEGIN") {
+            in_body = true;
+            continue;
+        }
+        if line.starts_with("-----END") {
+            break;
+        }
+        if in_body && !line.is_empty() && !line.starts_with('=') {
+            // Skip empty lines and checksum lines (starting with '=')
+            base64_lines.push(line);
+        }
+    }
+
+    let base64_content = base64_lines.join("");
+    BASE64_STANDARD
+        .decode(base64_content.as_bytes())
+        .expect("failed to decode base64")
+}
 
 fn assets_path() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("testdata")
@@ -46,21 +75,29 @@ fn rpm_empty_path() -> PathBuf {
     assets_path().join("rpms/rpm-empty-0-0.x86_64.rpm")
 }
 
-fn rpm_basic() -> Package {
-    let skip = VerifyOptions::skip_verification();
-    Package::from_file(&rpm_basic_path(), Some(&skip)).expect("failed to read rpm-basic")
+fn test_key_path() -> PathBuf {
+    assets_path().join("keys/rpm-testkey-v4-rsa4096.asc")
 }
 
-fn rpm_empty() -> Package {
+fn rpm_basic() -> PackageHeader {
     let skip = VerifyOptions::skip_verification();
-    Package::from_file(&rpm_empty_path(), Some(&skip)).expect("failed to read rpm-empty")
+    PackageHeader::from_file(&rpm_basic_path(), Some(&skip)).expect("failed to read rpm-basic")
 }
+
+fn rpm_empty() -> PackageHeader {
+    let skip = VerifyOptions::skip_verification();
+    PackageHeader::from_file(&rpm_empty_path(), Some(&skip)).expect("failed to read rpm-empty")
+}
+
+// ========================
+// Transaction tests
+// ========================
 
 // --- Transaction lifecycle ---
 
 #[test]
 fn test_transaction_lifecycle() {
-    let mut db = common::init(&common::CENTOS_STREAM_9);
+    let mut db = common::init_writable();
 
     {
         let txn = db.transaction();
@@ -79,7 +116,7 @@ fn test_transaction_lifecycle() {
 
 #[test]
 fn test_add_install() {
-    let mut db = common::init(&common::CENTOS_STREAM_9);
+    let mut db = common::init_writable();
     let pkg = rpm_empty();
 
     let mut txn = db.transaction();
@@ -95,7 +132,7 @@ fn test_add_install() {
 
 #[test]
 fn test_add_upgrade() {
-    let mut db = common::init(&common::CENTOS_STREAM_9);
+    let mut db = common::init_writable();
     let pkg = rpm_empty();
 
     let mut txn = db.transaction();
@@ -109,10 +146,10 @@ fn test_add_upgrade() {
 
 #[test]
 fn test_add_erase() {
-    let mut db = common::init(&common::CENTOS_STREAM_9);
+    let mut db = common::init_writable();
 
     // Query an installed package from the offline database
-    let alternatives: Package = db
+    let alternatives: PackageHeader = db
         .find(Index::Name, "alternatives")
         .next()
         .expect("alternatives should be in the centos-stream-9 fixture");
@@ -128,7 +165,7 @@ fn test_add_erase() {
 
 #[test]
 fn test_multiple_elements() {
-    let mut db = common::init(&common::CENTOS_STREAM_9);
+    let mut db = common::init_writable();
     let empty = rpm_empty();
     let basic = rpm_basic();
 
@@ -147,7 +184,7 @@ fn test_multiple_elements() {
 
 #[test]
 fn test_element_accessors() {
-    let mut db = common::init(&common::CENTOS_STREAM_9);
+    let mut db = common::init_writable();
     let pkg = rpm_basic();
 
     let mut txn = db.transaction();
@@ -170,7 +207,7 @@ fn test_element_accessors() {
 
 #[test]
 fn test_transaction_flags() {
-    let mut db = common::init(&common::CENTOS_STREAM_9);
+    let mut db = common::init_writable();
 
     let mut txn = db.transaction();
 
@@ -192,7 +229,7 @@ fn test_transaction_flags() {
 
 #[test]
 fn test_check_unsatisfied_deps() {
-    let mut db = common::init(&common::CENTOS_STREAM_9);
+    let mut db = common::init_writable();
     let pkg = rpm_basic();
 
     let mut txn = db.transaction();
@@ -222,7 +259,7 @@ fn test_check_unsatisfied_deps() {
 
 #[test]
 fn test_check_no_deps() {
-    let mut db = common::init(&common::CENTOS_STREAM_9);
+    let mut db = common::init_writable();
     let pkg = rpm_empty();
 
     let mut txn = db.transaction();
@@ -236,7 +273,7 @@ fn test_check_no_deps() {
 
 #[test]
 fn test_order() {
-    let mut db = common::init(&common::CENTOS_STREAM_9);
+    let mut db = common::init_writable();
     let pkg = rpm_empty();
 
     let mut txn = db.transaction();
@@ -250,7 +287,7 @@ fn test_order() {
 
 #[test]
 fn test_dry_run() {
-    let mut db = common::init(&common::CENTOS_STREAM_9);
+    let mut db = common::init_writable();
     let pkg = rpm_empty();
 
     let mut txn = db.transaction();
@@ -289,7 +326,7 @@ fn test_dry_run() {
 
 #[test]
 fn test_set_callback() {
-    let mut db = common::init(&common::CENTOS_STREAM_9);
+    let mut db = common::init_writable();
     let pkg = rpm_empty();
 
     let called = std::cell::Cell::new(false);
@@ -306,7 +343,7 @@ fn test_set_callback() {
 
 #[test]
 fn test_clear_callback() {
-    let mut db = common::init(&common::CENTOS_STREAM_9);
+    let mut db = common::init_writable();
     let pkg = rpm_empty();
 
     let mut txn = db.transaction();
@@ -352,7 +389,7 @@ fn test_callback_open_close_file_debug() {
 
 #[test]
 fn test_problems_display() {
-    let mut db = common::init(&common::CENTOS_STREAM_9);
+    let mut db = common::init_writable();
     let pkg = rpm_basic();
 
     let mut txn = db.transaction();
@@ -370,7 +407,7 @@ fn test_problems_display() {
 
 #[test]
 fn test_problem_accessors() {
-    let mut db = common::init(&common::CENTOS_STREAM_9);
+    let mut db = common::init_writable();
     let pkg = rpm_basic();
 
     let mut txn = db.transaction();
@@ -399,7 +436,7 @@ fn test_problem_accessors() {
 
 #[test]
 fn test_transaction_error_display() {
-    let mut db = common::init(&common::CENTOS_STREAM_9);
+    let mut db = common::init_writable();
     let pkg = rpm_basic();
 
     let mut txn = db.transaction();
@@ -415,7 +452,7 @@ fn test_transaction_error_display() {
 
 #[test]
 fn test_transaction_error_into_problems() {
-    let mut db = common::init(&common::CENTOS_STREAM_9);
+    let mut db = common::init_writable();
     let pkg = rpm_basic();
 
     let mut txn = db.transaction();
@@ -424,4 +461,61 @@ fn test_transaction_error_into_problems() {
     let err = txn.check().expect_err("check should fail");
     let problems = err.into_problems();
     assert!(!problems.is_empty());
+}
+
+// ========================
+// Keyring mutation tests
+// ========================
+
+#[cfg(all(
+    has_rpmkeyring_rpmtxnimportpubkey,
+    has_rpmkeyring_rpmtxndeletepubkey,
+    has_rpmkeyring_rpmtsimportpubkey,
+    has_rpmkeyring_rpmkeyringlookupkey,
+))]
+#[test]
+fn test_import_to_rpmdb() {
+    common::init_writable();
+
+    // Read ASCII-armored key and convert to binary
+    let armored_key = std::fs::read(test_key_path()).unwrap();
+    let binary_key = dearmor_key(&armored_key);
+
+    Keyring::import_to_rpmdb(&binary_key).unwrap();
+
+    // Clean up: delete the imported key
+    let db = librpm::Db::open().unwrap();
+    let keyring = db.keyring();
+    let test_key = PubKey::from_file(&test_key_path()).unwrap();
+    if keyring.lookup(&test_key).is_some() {
+        Keyring::delete_from_rpmdb(&test_key).unwrap();
+    }
+}
+
+#[cfg(all(
+    has_rpmkeyring_rpmtxnimportpubkey,
+    has_rpmkeyring_rpmtxndeletepubkey,
+    has_rpmkeyring_rpmkeyringlookupkey,
+))]
+#[test]
+fn test_delete_from_rpmdb() {
+    common::init_writable();
+
+    // Read ASCII-armored key and convert to binary
+    let armored_key = std::fs::read(test_key_path()).unwrap();
+    let binary_key = dearmor_key(&armored_key);
+
+    // Import first so we have something to delete
+    Keyring::import_to_rpmdb(&binary_key).unwrap();
+
+    let test_key = PubKey::from_file(&test_key_path()).unwrap();
+    Keyring::delete_from_rpmdb(&test_key).unwrap();
+
+    // Verify deletion
+    let db = librpm::Db::open().unwrap();
+    let keyring = db.keyring();
+    assert!(
+        keyring.lookup(&test_key).is_none(),
+        "key should no longer be in the keyring after deletion"
+    );
 }

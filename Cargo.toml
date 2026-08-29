@@ -44,12 +44,12 @@ streaming-iterator = "0.1.5"
 default = ["build", "sign"]
 build = ["dep:librpmbuild-sys"]
 test-current-system = []
-test-transaction = []
 sign = ["dep:librpmsign-sys"]
 
 [dev-dependencies]
 env_logger = "0.11"
 tempfile = "3"
+base64 = "0.23"
 
 [lints.rust]
 # WARNING: this also silences typos in #[cfg(…)] attributes.

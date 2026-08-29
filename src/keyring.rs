@@ -255,7 +255,6 @@ impl Keyring {
         Ok(())
     }
 
-
     /// Delete a public key from the system RPM keystore.
     ///
     /// Removes the key from the RPM database so it will no longer be

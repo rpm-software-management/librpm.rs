@@ -14,9 +14,11 @@ use std::time;
 
 use librpm::db::MatchMode;
 use librpm::{Db, Index, PackageHeader};
+use tempfile::TempDir;
 
 static INIT: OnceLock<()> = OnceLock::new();
 static DISTRO: OnceLock<&'static str> = OnceLock::new();
+static WRITABLE_DIR: OnceLock<TempDir> = OnceLock::new();
 
 pub fn configure() -> Db {
     INIT.get_or_init(|| {
@@ -34,6 +36,18 @@ pub fn init(distro: &DistroTestCase) -> Db {
         *prev, distro.db_subdir,
         "cannot use two different distro databases in one process"
     );
+    Db::open().unwrap()
+}
+
+pub fn init_writable() -> Db {
+    WRITABLE_DIR.get_or_init(|| {
+        let tmp = tempfile::tempdir().expect("failed to create tempdir");
+        let src = get_assets_path().join("centos-stream-9");
+        std::fs::copy(src.join("rpmdb.sqlite"), tmp.path().join("rpmdb.sqlite"))
+            .expect("failed to copy rpmdb snapshot");
+        librpm::init_with(None, Some(tmp.path())).unwrap();
+        tmp
+    });
     Db::open().unwrap()
 }
 
