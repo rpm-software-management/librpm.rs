@@ -24,13 +24,24 @@
 //!
 //! - **`rpm_global_lock()`** — serializes FFI calls that touch the
 //!   process-global iterator/database tracking lists (`rpmmiRock`,
-//!   `rpmdbRock`, `rpmiiRock`) in RPM <= 4.18. Held briefly during
-//!   iterator/ts create and destroy. Harmless no-op on RPM 4.19+.
+//!   `rpmdbRock`, `rpmiiRock`) in RPM <= 4.18. Required not only by the
+//!   direct iterator/ts create/destroy calls but by every higher-level call
+//!   that may lazily open the DB or create iterators internally
+//!   (`rpmtsCheck`, `rpmtsRun`, `rpmtsAdd*Element`, `rpmtsGetKeyring`,
+//!   `rpmtsInitDB`/`RebuildDB`/`VerifyDB`). Still serves spec/build
+//!   serialization on RPM 4.19+, where the tracking lists are gone.
 //!
 //! - **`mutation_lock()`** — serializes write operations (`rpmtsRun`,
-//!   `rpmtsInitDB`, `rpmtsRebuildDB`) that have process-global side
-//!   effects: POSIX `fcntl` lock semantics, chroot state, signal masks,
-//!   and SIGPIPE handler. See `docs/threading.md` for details.
+//!   `rpmtsInitDB`, `rpmtsRebuildDB`, pubkey import/delete) that have
+//!   process-global side effects present in ALL RPM versions: POSIX `fcntl`
+//!   lock semantics, chroot state, signal masks, and SIGPIPE handler.
+//!
+//! **Lock ordering:** write paths acquire `mutation_lock` first, then
+//! `rpm_global_lock` (a write op needs both — the latter because it opens the
+//! DB / creates iterators internally). No path takes `mutation_lock` while
+//! holding `rpm_global_lock`, so this ordering is deadlock-free. The two are
+//! not redundant: they guard different invariants over different RPM version
+//! ranges. See `docs/locking.md` for the full rationale.
 
 use std::sync::{Mutex, MutexGuard, OnceLock};
 

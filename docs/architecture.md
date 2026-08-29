@@ -32,6 +32,24 @@ The internal `TransactionSet` wrapper owns the `rpmts` pointer and is
 always held inside a `Db`. External callers never interact with
 `TransactionSet` directly.
 
+### The read/write boundary is not clean (locking implication)
+
+The type decomposition above suggests a tidy split — `Db` reads, `Transaction`
+writes — but librpm does not honor that boundary internally. Almost any
+operation may **lazily open the database** (`rpmtsOpenDB`) and **create match
+iterators** on first use, including calls that look purely read-only or purely
+in-memory: adding a transaction element (`rpmtsAddInstallElement` resolves
+upgrades/obsoletes), checking dependencies (`rpmtsCheck`), loading a keyring
+(`rpmtsGetKeyring` scans for gpg-pubkey headers), and running a transaction
+(`rpmtsRun` fingerprints and conflict-checks throughout).
+
+On RPM <= 4.18 those lazy opens and iterator churn mutate process-global
+tracking lists that are not internally synchronized. This is why the locking
+model cannot simply wrap "the write methods": it must cover every entry point
+that may touch the database, regardless of which Rust type exposes it. See
+[locking.md](locking.md) for the full call-site inventory and the
+`mutation_lock` / `rpm_global_lock` ordering.
+
 ## Ownership and lifetimes
 
 ```text

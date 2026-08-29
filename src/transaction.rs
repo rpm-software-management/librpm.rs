@@ -46,7 +46,7 @@ use std::{fmt, ptr};
 
 use crate::db::Db;
 use crate::error::Error;
-use crate::internal::mutation_lock;
+use crate::internal::{mutation_lock, rpm_global_lock};
 use crate::package::PackageHeader;
 use crate::problem::Problems;
 
@@ -725,6 +725,10 @@ impl<'db> Transaction<'db> {
         let key = c_path.as_ptr() as librpm_sys::fnpyKey;
         self.paths.push(c_path);
         let upgrade_flag = if upgrade { 1 } else { 0 };
+        // rpmtsAddInstallElement -> addPackage internally opens the database
+        // (rpmtsOpenDB) and creates match iterators to resolve upgrades/obsoletes,
+        // mutating the RPM <= 4.18 global tracking lists. See docs/locking.md.
+        let _lock = rpm_global_lock();
         let rc = unsafe {
             librpm_sys::rpmtsAddInstallElement(self.ts, header, key, upgrade_flag, ptr::null_mut())
         };
@@ -746,6 +750,8 @@ impl<'db> Transaction<'db> {
         let c_path = CString::new(path.as_os_str().as_bytes()).unwrap();
         let key = c_path.as_ptr() as librpm_sys::fnpyKey;
         self.paths.push(c_path);
+        // See add_install: addPackage opens the DB and creates iterators internally.
+        let _lock = rpm_global_lock();
         let rc = unsafe { librpm_sys::rpmtsAddReinstallElement(self.ts, header, key) };
         if rc != 0 {
             fail!(
@@ -762,6 +768,9 @@ impl<'db> Transaction<'db> {
     /// which can be obtained from a database query via [`Iter::offset()`](crate::db::Iter::offset).
     pub fn add_erase(&mut self, pkg: &PackageHeader) -> Result<(), Error> {
         let header = pkg.header_ptr();
+        // rpmtsAddEraseElement -> removePackage internally creates match iterators
+        // over the database, mutating the RPM <= 4.18 global tracking lists.
+        let _lock = rpm_global_lock();
         let rc = unsafe { librpm_sys::rpmtsAddEraseElement(self.ts, header, -1) };
         if rc != 0 {
             fail!(
@@ -776,6 +785,8 @@ impl<'db> Transaction<'db> {
     #[cfg(has_rpmelementtype_tr_restored)]
     pub fn add_restore(&mut self, pkg: &PackageHeader) -> Result<(), Error> {
         let header = pkg.header_ptr();
+        // See add_install: element addition opens the DB / creates iterators internally.
+        let _lock = rpm_global_lock();
         let rc = unsafe { librpm_sys::rpmtsAddRestoreElement(self.ts, header) };
         if rc != 0 {
             fail!(
@@ -824,7 +835,12 @@ impl<'db> Transaction<'db> {
     /// Returns `Ok(())` if no problems are found, or a
     /// [`TransactionError`] with the problem set.
     pub fn check(&mut self) -> Result<(), TransactionError> {
+        // rpmtsCheck opens the database (rpmtsOpenDB) and creates many match
+        // iterators to resolve dependencies, mutating the RPM <= 4.18 global
+        // tracking lists (rpmdbRock, rpmmiRock). See docs/locking.md.
+        let lock = rpm_global_lock();
         let rc = unsafe { librpm_sys::rpmtsCheck(self.ts) };
+        drop(lock);
         if rc != 0 {
             let ps = unsafe { librpm_sys::rpmtsProblems(self.ts) };
             let problems = unsafe { Problems::from_ptr(ps) };
@@ -861,7 +877,13 @@ impl<'db> Transaction<'db> {
     /// **Warning:** `rpmtsRun` mutates the transaction flags internally (expanding `NOSCRIPTS`
     /// into individual sub-flags). This wrapper saves and restores the flags around each call.
     pub fn run(&mut self) -> Result<(), TransactionError> {
-        let _lock = mutation_lock();
+        let _mutation = mutation_lock();
+        // rpmtsRun -> rpmtsSetup/rpmtsPrepare opens the database and creates
+        // match iterators (fingerprinting, conflict checks) throughout its
+        // execution, mutating the RPM <= 4.18 global tracking lists. Hold
+        // rpm_global_lock for the whole run. Lock ordering is always
+        // mutation_lock first, then rpm_global_lock. See docs/locking.md.
+        let _global = rpm_global_lock();
 
         // Acquire cross-process lock
         let txn =

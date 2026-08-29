@@ -98,6 +98,40 @@ This was verified with a C reproducer: 4 threads each creating an `rpmts`,
 iterating the database, and freeing it. Crash rate was ~25% over 200 runs on
 CentOS Stream 9 (RPM 4.16). Sequential-only runs: 0 crashes in 200 runs.
 
+#### Recognizing this race (symptoms)
+
+This bug is easy to misdiagnose because the crash is spatially and temporally
+disconnected from the code that caused it. If you see the following pattern,
+suspect the tracking-list race:
+
+- **Crash *after* all work succeeds, at process exit.** A test binary reports
+  every test as `ok`/passed and *then* the process dies. In CI you see the
+  test summary line followed by a signal, e.g. `error: test failed, ...
+  (signal: 11, SIGSEGV: invalid memory reference)` with no failing assertion.
+  Exit-time `atexit` handlers run after `main`/the test harness returns, so the
+  logs look like a clean pass right up to the crash.
+- **SIGSEGV (signal 11), not a Rust panic.** The corruption is in C-owned
+  memory, so there is no Rust backtrace, just a raw segfault or occasionally
+  a `double free`/`free(): invalid pointer` from glibc.
+- **The backtrace bottoms out in librpm exit cleanup.** Frames to look for:
+  `rpmAtExit`, `rpmdbClose`, `dbiCursorFree`, `rpmdbFreeIterator`,
+  `rpmmiFree` — all reached from `__run_exit_handlers` / `exit`, *not* from
+  your call sites. The offending code has long since returned.
+- **Nondeterministic and concurrency-gated.** It reproduces only when multiple
+  threads (or multiple `Db`/`rpmts` instances across threads) open the DB or
+  create/free iterators concurrently. Serial runs never crash; adding threads
+  raises the rate. Expect flakiness (~25% in the reproducer above), not a
+  100% failure — a passing run does not mean the bug is absent.
+- **Version-specific: only RPM <= 4.18.** Reproduces on e.g. CentOS Stream 9
+  (RPM 4.16) but *not* on Fedora 40+/RHEL 10 (RPM 4.19+) or RPM 6.x, where the
+  lists were removed. A crash that appears only on the older-RPM CI leg is a
+  strong tell.
+
+The practical lesson for maintainers: any newly added FFI call that could
+lazily open the database or create a match iterator — even one that looks
+read-only or purely in-memory — must acquire `rpm_global_lock`, or it
+reopens this exact failure mode. See the call-site tables below.
+
 **RPM 4.19+ removed these global lists entirely**, eliminating the issue.
 The `rpmAtExit` function and the `rpmmiRock`/`rpmiiRock`/`rpmdbRock` variables
 no longer exist.
@@ -105,23 +139,53 @@ no longer exist.
 #### librpm.rs mitigation
 
 librpm.rs uses a process-wide `Mutex<()>` (`rpm_global_lock()` in
-`src/internal/global_state.rs`) to serialize the specific FFI calls that
-touch these global lists:
+`src/internal/global_state.rs`) to serialize the FFI calls that touch these
+global lists.
+
+**Many higher-level librpm calls touch these lists internally**, without any
+obvious iterator or database API in the signature. Any call that may lazily
+open the database (`rpmtsOpenDB` -> `rpmdbRock`) or create/free a match iterator
+(`rpmtsInitIterator`/`rpmdbFreeIterator` -> `rpmmiRock`) must hold the lock,
+even if it looks like a pure transaction or keyring operation. The direct calls
+are the obvious cases; the indirect ones below are where the original locking
+model had a gap that caused SIGSEGV at `rpmAtExit`.
+
+Direct list-touching calls:
 
 | Call site | FFI function | List affected |
 |-----------|-------------|---------------|
-| `MatchIterator::new()` | `rpmtsInitIterator` | `rpmmiRock` (+ `rpmdbRock` via lazy DB open) |
+| `MatchIterator::new()` / `new_re()` | `rpmtsInitIterator` | `rpmmiRock` (+ `rpmdbRock` via lazy DB open) |
 | `MatchIterator::drop()` | `rpmdbFreeIterator` | `rpmmiRock` |
 | `TransactionSet::drop()` | `rpmtsFree` | `rpmdbRock` (via `rpmtsCloseDB` -> `rpmdbClose`) |
 | `Spec::parse()` | `rpmSpecParse` | Macro context, global rpmts |
 | `Spec::build()` | `rpmSpecBuild` | Macro context, global rpmts |
 
-The lock is held only for the duration of each FFI call, not for the lifetime
-of iterators or transaction sets. Database iteration (`rpmdbNextIterator`) and
-all read-only header operations run entirely without the lock.
+Indirect list-touching calls (open the DB and/or create iterators internally):
 
-On RPM 4.19+, the lock is also used for spec/build serialization (see below)
-even though the global tracking lists no longer exist.
+| Call site | FFI function | Internal path |
+|-----------|-------------|---------------|
+| `Transaction::add_install()` / `add_reinstall()` | `rpmtsAddInstallElement` / `rpmtsAddReinstallElement` | `addPackage` -> `rpmtsOpenDB` + upgrade/obsolete iterators |
+| `Transaction::add_erase()` / `add_restore()` | `rpmtsAddEraseElement` / `rpmtsAddRestoreElement` | `removePackage` -> match iterators over the DB |
+| `Transaction::check()` | `rpmtsCheck` | `rpmtsOpenDB` + many dependency-resolution iterators |
+| `Transaction::run()` | `rpmtsRun` | `rpmtsSetup`/`rpmtsPrepare` open the DB and create iterators throughout execution |
+| `Db::keyring()` / `Keyring::from_rpmdb()` | `rpmtsGetKeyring(ts, 1)` | `loadKeyringFromDB` -> `rpmtsInitIterator` (gpg-pubkey lookup) |
+| `Keyring::import_to_rpmdb()` / `delete_from_rpmdb()` | `rpmtxnImportPubkey` / `rpmtxnDeletePubkey` | writes a gpg-pubkey "package", opening the DB |
+| `Db::init_db()` / `rebuild()` / `verify()` | `rpmtsInitDB` / `rpmtsRebuildDB` / `rpmtsVerifyDB` | open/create the database |
+
+For the brief direct calls the lock is held only for the duration of the FFI
+call. For calls that do substantial work under the lock (`rpmtsCheck`,
+`rpmtsRun`), the lock is held for the entire call because librpm creates and
+frees iterators at points we do not control. Database iteration
+(`rpmdbNextIterator`) and all read-only header operations still run entirely
+without the lock.
+
+On RPM 4.19+, the tracking lists no longer exist, so the only remaining
+justification for `rpm_global_lock` is spec/build serialization (see below).
+The indirect call sites above still acquire it uniformly rather than
+version-gating each site; keeping the lock a single, always-on primitive is
+simpler and the contention it adds on 4.19+ is negligible. It could be made a
+version-gated no-op in the future without affecting `mutation_lock` — see
+"Are the two locks redundant?" below.
 
 ### Spec parsing and package building
 
@@ -190,25 +254,57 @@ librpm.rs uses a second process-wide `Mutex<()>` (`mutation_lock()` in
 | `Db::rebuild()` | `rpmtsRebuildDB` | Database rewrite |
 | `Db::verify()` | `rpmtsVerifyDB` | Database read (but shares chroot path) |
 
-#### Interaction with `rpm_global_lock`
+#### Interaction with `rpm_global_lock` (lock ordering)
 
-The two locks are independent and protect different things:
+The two locks protect different invariants (see "Are the two locks
+redundant?" below), but a single write operation legitimately needs **both**:
+`mutation_lock` for its process-global side effects, and `rpm_global_lock`
+because it opens the DB / creates iterators internally.
 
-- **`rpm_global_lock`**: protects RPM <= 4.18 global linked lists. Held
-  briefly (~microseconds) during iterator/ts create and destroy.
+- **`rpm_global_lock`**: protects RPM <= 4.18 global linked lists (and
+  spec/build). For a bare iterator create/destroy it is held only briefly
+  (~microseconds); for `rpmtsCheck`/`rpmtsRun` it is held for the whole call.
 - **`mutation_lock`**: serializes write operations. Held for the duration of
   `rpmtsRun` (potentially seconds or minutes for large transactions).
 
-They are never held simultaneously. A write operation may cause internal
-iterator or ts creation/destruction, but those acquire `rpm_global_lock`
-internally through the existing call sites.
+**Lock ordering: always acquire `mutation_lock` first, then
+`rpm_global_lock`.** Every write path follows this order —
+`Transaction::run()`, `Db::init_db()`, `Db::rebuild()`, `Db::verify()`,
+`Keyring::import_to_rpmdb()`, `Keyring::delete_from_rpmdb()`. Read paths and
+element-addition (`add_install` etc.) take only `rpm_global_lock`. Because no
+path ever acquires `mutation_lock` while already holding `rpm_global_lock`,
+this ordering is deadlock-free.
+
+#### Are the two locks redundant?
+
+Given that "anything that mutates the DB may open the DB," it is reasonable to
+ask whether `mutation_lock` is now subsumed by `rpm_global_lock`. It is not,
+for two reasons:
+
+1. **Different invariants, different version-applicability.**
+   `rpm_global_lock` is fundamentally a RPM <= 4.18 workaround (the tracking
+   lists) plus spec/build serialization. `mutation_lock` guards hazards
+   present in *every* RPM version, including 4.19+ and 6.x: the `fcntl`
+   per-(process,inode) `.rpm.lock` semantics, chroot `rootState`, signal
+   masks, and the SIGPIPE handler. These do not disappear when the tracking
+   lists do.
+
+2. **Neither caller set is a subset of the other.** Reads (`find`,
+   `installed_packages`, keyring load) and spec/build take `rpm_global_lock`
+   but never `mutation_lock`. Writes take both. Merging the two would conflate
+   independent concerns and would forever prevent making `rpm_global_lock` a
+   version-gated no-op on 4.19+ while *keeping* write serialization — a valid
+   future optimization, since on 4.19+ the tracking-list rationale is gone but
+   the `fcntl`/chroot/signal rationale remains.
 
 #### Interaction with `rpmtxnBegin`/`rpmtxnEnd`
 
-`Transaction::run()` acquires both locks:
+`Transaction::run()` acquires three locks, in this order:
 
-1. `mutation_lock()` — serializes within the process
-2. `rpmtxnBegin(ts, RPMTXN_WRITE)` — acquires the cross-process `.rpm.lock`
+1. `mutation_lock()` — serializes write operations within the process
+2. `rpm_global_lock()` — guards the RPM <= 4.18 tracking lists that `rpmtsRun`
+   churns internally
+3. `rpmtxnBegin(ts, RPMTXN_WRITE)` — acquires the cross-process `.rpm.lock`
    file lock via `fcntl`
 
 The Rust-side lock prevents the `fcntl` hazard (multiple fds to the same
