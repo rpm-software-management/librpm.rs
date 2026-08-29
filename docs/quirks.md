@@ -1,8 +1,33 @@
-# librpmbuild API quirks
+# librpm API quirks
 
-This document records non-obvious behavior in the librpmbuild C API that
-librpm.rs works around, with enough context to understand why each
+This document records non-obvious behavior in the librpm / librpmbuild C API
+that librpm.rs works around, with enough context to understand why each
 workaround exists.
+
+## NULL transaction root dir crashes plugins (RPM 4.19+)
+
+**Symptom**: `Transaction::run()` segfaults (SIGSEGV) inside an RPM
+transaction plugin — e.g. `syslog_tsm_pre` in `/usr/lib64/rpm-plugins/syslog.so`
+— reached from `rpmtsRun()`. Deterministic (100%), and version-specific to
+RPM 4.19+ / CentOS Stream 10, where the syslog plugin is enabled by default.
+
+**Root cause**: `rpmtsCreate()` initializes `ts->rootDir` to NULL and never
+defaults it; `rpmtsRootDir(ts)` returns that NULL verbatim. The root dir only
+becomes non-NULL when `rpmtsSetRootDir()` is called — which the `rpm`/`dnf`
+CLIs as well as the Python bindings always do (`rpmtsSetRootDir(ts, "/")`).
+
+**Why the CLIs are not affected**: `rpm` and `dnf` always call
+`rpmtsSetRootDir(ts, "/")` (or the `--root` value) right after creating the
+transaction set, so `rpmtsRootDir()` is never NULL for them.
+
+**Workaround**: `TransactionSet::create()` sets the root dir to `"/"` when it
+is unset. This is the single chokepoint through which every `rpmts` in
+librpm.rs is created, and it runs before anything can set the root, so it
+guarantees no librpm.rs `rpmts` ever has a NULL root dir. There is no RPM
+macro or init-time setting for the root directory (unlike the database path,
+which is the `_dbpath` macro), so this is the only place the default can be
+applied. It is applied conditionally so a future chroot/root API — or an
+upstream `rpmtsCreate()` that grows its own default — is not clobbered.
 
 ## Double finalization (NOFINALIZE)
 
