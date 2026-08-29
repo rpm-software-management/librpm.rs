@@ -52,10 +52,10 @@ points `librpm::init()` and `librpm::init_with()` both call
 4. Sets `configured = true` and releases the lock.
 
 Other operations that require configuration (`Db::open()`,
-`Keyring::from_rpmdb()`, `Keyring::import_to_rpmdb()`,
-`Keyring::delete_from_rpmdb()`) also acquire the `ConfigState` lock and
-check the flag, returning an error if `init()` has not been called. This
-prevents use-before-init rather than relying on opaque C-level failures.
+`Keyring::from_rpmdb()`, `Db::import_pubkey()`, `Db::delete_pubkey()`)
+also acquire the `ConfigState` lock and check the flag, returning an
+error if `init()` has not been called. This prevents use-before-init
+rather than relying on opaque C-level failures.
 
 ### Transaction set lazy initialization
 
@@ -169,7 +169,7 @@ Indirect list-touching calls (open the DB and/or create iterators internally):
 | `Transaction::check()` | `rpmtsCheck` | `rpmtsOpenDB` + many dependency-resolution iterators |
 | `Transaction::run()` | `rpmtsRun` | `rpmtsSetup`/`rpmtsPrepare` open the DB and create iterators throughout execution |
 | `Db::keyring()` / `Keyring::from_rpmdb()` | `rpmtsGetKeyring(ts, 1)` | `loadKeyringFromDB` -> `rpmtsInitIterator` (gpg-pubkey lookup) |
-| `Keyring::import_to_rpmdb()` / `delete_from_rpmdb()` | `rpmtxnImportPubkey` / `rpmtxnDeletePubkey` | writes a gpg-pubkey "package", opening the DB |
+| `Db::import_pubkey()` / `delete_pubkey()` | `rpmtxnImportPubkey` / `rpmtxnDeletePubkey` | writes a gpg-pubkey "package", opening the DB |
 | `Db::init_db()` / `rebuild()` / `verify()` | `rpmtsInitDB` / `rpmtsRebuildDB` / `rpmtsVerifyDB` | open/create the database |
 | `PackageHeader::from_file()` / `archive::PackageReader` | `rpmReadPackageFile` | with signature checking (`RPMVSF_DEFAULT`) and no explicit keyring, calls `rpmtsGetKeyring(ts, 1)` -> `loadKeyringFromDB` -> opens the DB + gpg-pubkey iterator |
 
@@ -249,8 +249,8 @@ librpm.rs uses a second process-wide `Mutex<()>` (`mutation_lock()` in
 | Call site | FFI function(s) | Side effects |
 |-----------|----------------|--------------|
 | `Transaction::run()` | `rpmtxnBegin`, `rpmtsRun`, `rpmtxnEnd` | All of the above |
-| `Keyring::import_to_rpmdb()` | `rpmtxnImportPubkey` (or `rpmtsImportPubkey` on older RPM) | Keystore write |
-| `Keyring::delete_from_rpmdb()` | `rpmtxnBegin`, `rpmtxnDeletePubkey`, `rpmtxnEnd` | Keystore write |
+| `Db::import_pubkey()` | `rpmtxnImportPubkey` (or `rpmtsImportPubkey` on older RPM) | Keystore write |
+| `Db::delete_pubkey()` | `rpmtxnBegin`, `rpmtxnDeletePubkey`, `rpmtxnEnd` | Keystore write |
 | `Db::init_db()` | `rpmtsInitDB` | Database file creation |
 | `Db::rebuild()` | `rpmtsRebuildDB` | Database rewrite |
 | `Db::verify()` | `rpmtsVerifyDB` | Database read (but shares chroot path) |
@@ -271,10 +271,10 @@ because it opens the DB / creates iterators internally.
 **Lock ordering: always acquire `mutation_lock` first, then
 `rpm_global_lock`.** Every write path follows this order —
 `Transaction::run()`, `Db::init_db()`, `Db::rebuild()`, `Db::verify()`,
-`Keyring::import_to_rpmdb()`, `Keyring::delete_from_rpmdb()`. Read paths and
-element-addition (`add_install` etc.) take only `rpm_global_lock`. Because no
-path ever acquires `mutation_lock` while already holding `rpm_global_lock`,
-this ordering is deadlock-free.
+`Db::import_pubkey()`, `Db::delete_pubkey()`. Read paths and element-addition
+(`add_install` etc.) take only `rpm_global_lock`. Because no path ever acquires
+`mutation_lock` while already holding `rpm_global_lock`, this ordering is
+deadlock-free.
 
 #### Are the two locks redundant?
 

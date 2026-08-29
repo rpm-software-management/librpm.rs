@@ -51,6 +51,68 @@ pub fn init_writable() -> Db {
     Db::open().unwrap()
 }
 
+/// Whether the current process can `chroot()`.
+///
+/// Real transactions (`Transaction::run`) into a non-`/` root call `chroot()`,
+/// which requires `CAP_SYS_CHROOT` (i.e. root). Unprivileged CI runners —
+/// notably the non-container Ubuntu integration job — lack it, so tests that
+/// run a real rooted transaction gate on this and skip gracefully otherwise.
+/// Keyring import/delete do *not* chroot, so they need no such gate.
+pub fn can_chroot() -> bool {
+    // geteuid() from libc; 0 == root.
+    unsafe extern "C" {
+        fn geteuid() -> u32;
+    }
+    unsafe { geteuid() == 0 }
+}
+
+/// Open a fresh, empty database under a throwaway alternate root.
+///
+/// The database lives at `<root>/<_dbpath>`, so each call is fully isolated
+/// from the shared writable snapshot and from other tests. Returns the
+/// `TempDir` (keep it alive for the test's duration) and an initialized `Db`.
+pub fn fresh_root_db() -> (TempDir, Db) {
+    // Ensure librpm is configured; this also fixes the process-wide _dbpath.
+    init_writable();
+    let root = tempfile::tempdir().expect("failed to create temp root");
+    let db = Db::open_with_root(root.path()).expect("open_with_root failed");
+    db.init_db(0o644).expect("init_db failed");
+    (root, db)
+}
+
+/// Open an isolated *populated* database under a throwaway alternate root.
+///
+/// Seeds `<root>/<_dbpath>` with the pristine CentOS Stream 9 snapshot so the
+/// returned `Db` sees the full fixture, but every write lands in the throwaway
+/// root rather than the snapshot other tests share.
+pub fn populated_root_db() -> (TempDir, Db) {
+    init_writable();
+    // init_writable() sets _dbpath to the WRITABLE_DIR temp dir; rpm resolves
+    // the database at <root>/<_dbpath>, so recreate that path under the root
+    // and seed it from the read-only snapshot asset.
+    let dbpath = WRITABLE_DIR
+        .get()
+        .expect("init_writable() must run first")
+        .path();
+    let rel = dbpath
+        .strip_prefix("/")
+        .expect("_dbpath should be absolute");
+
+    let root = tempfile::tempdir().expect("failed to create temp root");
+    let db_dir = root.path().join(rel);
+    std::fs::create_dir_all(&db_dir).expect("failed to create db dir under root");
+    std::fs::copy(
+        get_assets_path()
+            .join("centos-stream-9")
+            .join("rpmdb.sqlite"),
+        db_dir.join("rpmdb.sqlite"),
+    )
+    .expect("failed to seed rpmdb snapshot");
+
+    let db = Db::open_with_root(root.path()).expect("open_with_root failed");
+    (root, db)
+}
+
 pub fn get_assets_path() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("testdata")
 }

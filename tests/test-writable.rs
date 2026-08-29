@@ -27,7 +27,7 @@
 use std::path::{Path, PathBuf};
 
 use librpm::db::Index;
-use librpm::keyring::{Keyring, PubKey};
+use librpm::keyring::PubKey;
 use librpm::problem::ProblemType;
 use librpm::transaction::{CallbackEvent, ElementType, ProblemFilter, TransactionFlags};
 use librpm::{PackageHeader, VerifyOptions};
@@ -335,35 +335,31 @@ fn test_open_with_root_relative_rejected() {
 
 #[test]
 fn test_install_into_alternate_root() {
-    // Ensures librpm is configured; the process-wide `_dbpath` is absolute,
-    // and rpm resolves the database at `<root>/<_dbpath>`, so a fresh root
-    // gives us a database fully isolated from the shared writable fixture.
-    common::init_writable();
-
-    let root = tempfile::tempdir().expect("failed to create temp root");
-
-    // Initialize a brand-new, empty database under the alternate root.
-    {
-        let db = librpm::Db::open_with_root(root.path()).expect("open_with_root failed");
-        db.init_db(0o644).expect("init_db failed");
-        assert_eq!(
-            db.installed_packages().count(),
-            0,
-            "a freshly initialized database should be empty"
-        );
+    // A real transaction into a non-"/" root calls chroot(); skip when we
+    // can't (e.g. the unprivileged Ubuntu CI job).
+    if !common::can_chroot() {
+        eprintln!("skipping test_install_into_alternate_root: requires CAP_SYS_CHROOT");
+        return;
     }
 
+    // fresh_root_db() gives an empty, isolated database at <root>/<_dbpath>.
+    let (root, mut db) = common::fresh_root_db();
+    assert_eq!(
+        db.installed_packages().count(),
+        0,
+        "a freshly initialized database should be empty"
+    );
+
     // Actually install (not a dry run) rpm-empty. JUSTDB records the package
-    // in the database without laying down files or chrooting, so the test is
-    // hermetic and needs no special privileges.
+    // in the database without laying down files, so nothing escapes the root.
     {
-        let mut db = librpm::Db::open_with_root(root.path()).expect("open_with_root failed");
         let pkg = rpm_empty();
         let mut txn = db.transaction();
         txn.add_install(&pkg, &rpm_empty_path(), false).unwrap();
         txn.set_flags(TransactionFlags::JUSTDB);
         txn.set_problem_filter(ProblemFilter::IGNORE_OS | ProblemFilter::IGNORE_ARCH);
-        txn.check().expect("dependency check should pass for rpm-empty");
+        txn.check()
+            .expect("dependency check should pass for rpm-empty");
         txn.order().expect("order should succeed");
         txn.run().expect("install should succeed");
     }
@@ -377,6 +373,56 @@ fn test_install_into_alternate_root() {
         "exactly one package should be installed in the alternate root"
     );
     assert_eq!(installed[0].name(), "rpm-empty");
+}
+
+#[test]
+fn test_erase_from_populated_root() {
+    // A real transaction into a non-"/" root calls chroot(); skip when we
+    // can't (e.g. the unprivileged Ubuntu CI job).
+    if !common::can_chroot() {
+        eprintln!("skipping test_erase_from_populated_root: requires CAP_SYS_CHROOT");
+        return;
+    }
+
+    // populated_root_db() seeds the snapshot into an isolated root, so this
+    // real erase never touches the shared fixture.
+    let (root, mut db) = common::populated_root_db();
+    let before = db.installed_packages().count();
+    assert!(
+        before > 0,
+        "seeded root should contain the snapshot packages"
+    );
+
+    let alternatives: PackageHeader = db
+        .find(Index::Name, "alternatives")
+        .next()
+        .expect("alternatives should be in the seeded snapshot");
+
+    {
+        let mut txn = db.transaction();
+        txn.add_erase(&alternatives).unwrap();
+        txn.set_flags(TransactionFlags::JUSTDB);
+        txn.set_problem_filter(ProblemFilter::IGNORE_OS | ProblemFilter::IGNORE_ARCH);
+        // Other packages in the snapshot require `alternatives`, so a
+        // dependency check would (correctly) fail. This test only exercises
+        // the database write, so we skip the check — the equivalent of
+        // `rpm -e --nodeps`. rpmtsRun does not re-check dependencies.
+        txn.order().expect("order should succeed");
+        txn.run().expect("erase should succeed");
+    }
+
+    // Re-open the same root and confirm the package is really gone.
+    let db = librpm::Db::open_with_root(root.path()).expect("re-open failed");
+    assert_eq!(
+        db.installed_packages().count(),
+        before - 1,
+        "erasing one package should reduce the count by exactly one"
+    );
+    assert_eq!(
+        db.find(Index::Name, "alternatives").count(),
+        0,
+        "alternatives should no longer be in the database"
+    );
 }
 
 // --- Progress callback ---
@@ -525,51 +571,57 @@ fn test_transaction_error_into_problems() {
 // ========================
 
 #[cfg(all(
-    has_rpmkeyring_rpmtxnimportpubkey,
-    has_rpmkeyring_rpmtxndeletepubkey,
-    has_rpmkeyring_rpmtsimportpubkey,
+    any(has_rpmkeyring_rpmtxnimportpubkey, has_rpmkeyring_rpmtsimportpubkey),
     has_rpmkeyring_rpmkeyringlookupkey,
 ))]
 #[test]
 fn test_import_to_rpmdb() {
-    common::init_writable();
+    // Import into an isolated, populated root so we never mutate the shared
+    // writable snapshot. Keyring import does not chroot, so no privilege gate
+    // is needed. Exercises the root-aware Db::import_pubkey directly.
+    let (root, db) = common::populated_root_db();
 
     // Read ASCII-armored key and convert to binary
     let armored_key = std::fs::read(test_key_path()).unwrap();
     let binary_key = dearmor_key(&armored_key);
 
-    Keyring::import_to_rpmdb(&binary_key).unwrap();
+    db.import_pubkey(&binary_key).unwrap();
 
-    // Clean up: delete the imported key
-    let db = librpm::Db::open().unwrap();
+    // Re-open the same root (a fresh ts avoids any cached keyring) and confirm
+    // the key really landed in this database.
+    let db = librpm::Db::open_with_root(root.path()).unwrap();
     let keyring = db.keyring();
     let test_key = PubKey::from_file(&test_key_path()).unwrap();
-    if keyring.lookup(&test_key).is_some() {
-        Keyring::delete_from_rpmdb(&test_key).unwrap();
-    }
+    assert!(
+        keyring.lookup(&test_key).is_some(),
+        "imported key should be present in the keyring"
+    );
 }
 
 #[cfg(all(
-    has_rpmkeyring_rpmtxnimportpubkey,
+    any(has_rpmkeyring_rpmtxnimportpubkey, has_rpmkeyring_rpmtsimportpubkey),
     has_rpmkeyring_rpmtxndeletepubkey,
     has_rpmkeyring_rpmkeyringlookupkey,
 ))]
 #[test]
 fn test_delete_from_rpmdb() {
-    common::init_writable();
+    // Isolated, populated root — no shared-state mutation, no cleanup needed.
+    // Exercises the root-aware Db::delete_pubkey directly.
+    let (root, db) = common::populated_root_db();
 
     // Read ASCII-armored key and convert to binary
     let armored_key = std::fs::read(test_key_path()).unwrap();
     let binary_key = dearmor_key(&armored_key);
 
-    // Import first so we have something to delete
-    Keyring::import_to_rpmdb(&binary_key).unwrap();
+    // Import first so we have something to delete.
+    db.import_pubkey(&binary_key).unwrap();
 
     let test_key = PubKey::from_file(&test_key_path()).unwrap();
-    Keyring::delete_from_rpmdb(&test_key).unwrap();
+    db.delete_pubkey(&test_key).unwrap();
 
-    // Verify deletion
-    let db = librpm::Db::open().unwrap();
+    // Re-open the same root (fresh ts avoids a cached keyring) and verify the
+    // key is really gone.
+    let db = librpm::Db::open_with_root(root.path()).unwrap();
     let keyring = db.keyring();
     assert!(
         keyring.lookup(&test_key).is_none(),

@@ -14,13 +14,15 @@
 
 use std::path::Path;
 
-use librpm::keyring::{Keyring, PubKey};
+use librpm::{Db, Keyring, PubKey};
 
 fn main() {
     librpm::init().expect("failed to initialize librpm");
 
     let base = Path::new(env!("CARGO_MANIFEST_DIR")).join("testdata");
     let key_path = base.join("keys/rpm-testkey-v4-rsa4096.asc");
+
+    let db = Db::open().expect("failed to open database");
 
     println!("=== Keyring Management Demo ===\n");
 
@@ -83,7 +85,7 @@ fn main() {
                     println!("   Skipping import (would need base64 decoding)");
                     println!("   Tip: Use `gpg --dearmor < key.asc > key.gpg` to convert");
                 } else {
-                    match Keyring::import_to_rpmdb(&key_data) {
+                    match db.import_pubkey(&key_data) {
                         Ok(()) => {
                             println!("   Successfully imported binary key");
 
@@ -166,7 +168,7 @@ fn main() {
         match std::fs::read(&key_path) {
             Ok(key_data) => {
                 if let Ok(key) = PubKey::new(&key_data) {
-                    match Keyring::delete_from_rpmdb(&key) {
+                    match db.delete_pubkey(&key) {
                         Ok(()) => {
                             println!("   Successfully deleted key");
 

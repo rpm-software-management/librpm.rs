@@ -11,16 +11,28 @@
 use std::path::Path;
 
 use librpm::transaction::{CallbackEvent, TransactionFlags};
-use librpm::{Db, PackageHeader};
+use librpm::{Db, PackageHeader, VerifyOptions};
 
 fn main() {
     librpm::init().expect("failed to initialize librpm");
 
     let rpm_path = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("testdata/rpms/rpm-basic-with-rsa4096-2.3.4-5.el9.noarch.rpm");
+    let rpm_empty_path =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("testdata/rpms/rpm-empty-0-0.x86_64.rpm");
 
-    let pkg = PackageHeader::from_file(&rpm_path, None).expect("failed to read RPM");
+    let pkg = PackageHeader::from_file(&rpm_path, Some(&VerifyOptions::skip_verification()))
+        .expect("failed to read RPM");
+    let empty_pkg =
+        PackageHeader::from_file(&rpm_empty_path, Some(&VerifyOptions::skip_verification()))
+            .expect("failed to read RPM");
+
     println!("Loaded package: {} ({})", pkg.nevra(), pkg.summary());
+    println!(
+        "Loaded package: {} ({})",
+        empty_pkg.nevra(),
+        empty_pkg.summary()
+    );
 
     let mut db = Db::open().expect("failed to open RPM database");
 
@@ -28,6 +40,10 @@ fn main() {
     let mut txn = db.transaction();
     txn.add_install(&pkg, &rpm_path, true)
         .expect("failed to add install element");
+    txn.add_install(&empty_pkg, &rpm_empty_path, true)
+        .expect("failed to add install element");
+
+    // Set the TEST flag to avoid actually making any system changes - comment this line to actually attempt installation
     txn.set_flags(TransactionFlags::TEST);
 
     // Register a progress callback (events only fire during run())
@@ -80,6 +96,9 @@ fn main() {
         Ok(unordered) => println!("  Ordered ({unordered} unorderable elements)"),
         Err(e) => println!("  Ordering failed: {e}"),
     }
+
+    // uncomment this to actually attempt transaction execution
+    // txn.run().expect("Could not execute transaction");
 
     println!("\nDone. No changes were made to the system (TEST mode).");
 }
