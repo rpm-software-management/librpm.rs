@@ -179,21 +179,31 @@ impl Db {
         ))
     }
 
-    /// Find packages where `index` matches `pattern` using glob or regex.
+    /// Find packages where `index` matches `pattern` using regex.
     ///
     /// The pattern is applied as a secondary filter on an initial full-index
     /// scan: librpm's `rpmdbSetIteratorRE` narrows the result set after the
     /// iterator is created over all entries for the given tag.
-    pub fn find_re<S: AsRef<str>>(&self, index: Index, pattern: S, mode: MatchMode) -> Iter {
-        let mire = match mode {
-            MatchMode::Glob => MireMode::Glob,
-            MatchMode::Regex => MireMode::Regex,
-        };
+    pub fn find_regex<S: AsRef<str>>(&self, index: Index, pattern: S) -> Iter {
         Iter(MatchIterator::new_re(
             self.ts.as_ptr(),
             index.into(),
             pattern.as_ref(),
-            mire,
+            MireMode::Regex,
+        ))
+    }
+
+    /// Find packages where `index` matches `pattern` using glob.
+    ///
+    /// The pattern is applied as a secondary filter on an initial full-index
+    /// scan: librpm's `rpmdbSetIteratorRE` narrows the result set after the
+    /// iterator is created over all entries for the given tag.
+    pub fn find_glob<S: AsRef<str>>(&self, index: Index, pattern: S) -> Iter {
+        Iter(MatchIterator::new_re(
+            self.ts.as_ptr(),
+            index.into(),
+            pattern.as_ref(),
+            MireMode::Glob,
         ))
     }
 
@@ -458,13 +468,4 @@ pub enum Index {
     Filetriggername,
     /// Search by transactional file trigger dependency name.
     Transfiletriggername,
-}
-
-/// Pattern matching mode for [`Db::find_re`].
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum MatchMode {
-    /// POSIX glob pattern (fnmatch-style).
-    Glob,
-    /// POSIX extended regular expression.
-    Regex,
 }

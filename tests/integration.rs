@@ -5,7 +5,7 @@
 //! on specific CS9 package contents, or because they test tag data access
 //! and macro operations rather than index queries.
 
-use librpm::db::{Index, MatchMode};
+use librpm::db::Index;
 use librpm::{Db, PackageHeader, Tag};
 
 mod common;
@@ -110,7 +110,7 @@ fn db_find_test_multiple() {
 fn find_re_glob_returns_superset() {
     let db = common::init(&common::CENTOS_STREAM_9);
 
-    let results: Vec<PackageHeader> = db.find_re(Index::Name, "glibc*", MatchMode::Glob).collect();
+    let results: Vec<PackageHeader> = db.find_glob(Index::Name, "glibc*").collect();
     assert!(
         results.len() >= 2,
         "glob 'glibc*' should match glibc and glibc-common (got {})",
@@ -148,12 +148,10 @@ fn iterator_outlives_db() {
 }
 
 #[test]
-fn find_re_regex_returns_superset() {
+fn find_regex_returns_superset() {
     let db = common::init(&common::CENTOS_STREAM_9);
 
-    let results: Vec<PackageHeader> = db
-        .find_re(Index::Name, "^glibc", MatchMode::Regex)
-        .collect();
+    let results: Vec<PackageHeader> = db.find_regex(Index::Name, "^glibc").collect();
     assert!(
         results.len() >= 2,
         "regex '^glibc' should match glibc and glibc-common (got {})",
@@ -203,12 +201,10 @@ fn concurrent_db_instances() {
 }
 
 #[test]
-fn find_re_glob_by_providename() {
+fn find_glob_by_providename() {
     let db = common::init(&common::CENTOS_STREAM_9);
 
-    let results: Vec<PackageHeader> = db
-        .find_re(Index::Providename, "glibc*", MatchMode::Glob)
-        .collect();
+    let results: Vec<PackageHeader> = db.find_glob(Index::Providename, "glibc*").collect();
     assert!(
         !results.is_empty(),
         "glob on Providename for 'glibc*' should match at least one package",

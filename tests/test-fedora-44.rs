@@ -41,18 +41,18 @@ fn test_fedora_44_find_by_dirnames() {
 }
 
 #[test]
-fn test_fedora_44_find_re_glob() {
-    common::assert_find_re_glob(&common::FEDORA_44);
+fn test_fedora_44_find_glob() {
+    common::assert_find_glob(&common::FEDORA_44);
 }
 
 #[test]
-fn test_fedora_44_find_re_regex() {
-    common::assert_find_re_regex(&common::FEDORA_44);
+fn test_fedora_44_find_regex() {
+    common::assert_find_regex(&common::FEDORA_44);
 }
 
 #[test]
-fn test_fedora_44_find_re_no_match() {
-    common::assert_find_re_no_match(&common::FEDORA_44);
+fn test_fedora_44_find_regex_no_match() {
+    common::assert_find_regex_no_match(&common::FEDORA_44);
 }
 
 #[test]

@@ -12,7 +12,6 @@ use std::{
 
 use std::time;
 
-use librpm::db::MatchMode;
 use librpm::{Db, Index, PackageHeader};
 use tempfile::TempDir;
 
@@ -236,7 +235,7 @@ pub fn assert_find_by_dirnames(distro: &DistroTestCase) {
 // offline test databases captured from container images — the fingerprint
 // comparison always fails and the lookup silently returns zero results.
 //
-// The `find_re` (glob/regex) path works because `rpmdbSetIteratorRE` filters
+// The `find_glob` / `find_regex` path works because `rpmdbSetIteratorRE` filters
 // headers purely by tag string comparison without filesystem access.  However,
 // this iterates every matching header and is too slow for CI when applied to
 // file-based indices.
@@ -244,12 +243,10 @@ pub fn assert_find_by_dirnames(distro: &DistroTestCase) {
 // `Index::Dirnames` exact-match lookups work fine because they use simple string
 // index lookups without fingerprinting.
 
-pub fn assert_find_re_glob(distro: &DistroTestCase) {
+pub fn assert_find_glob(distro: &DistroTestCase) {
     let db = init(distro);
 
-    let results: Vec<PackageHeader> = db
-        .find_re(Index::Name, "alternatives*", MatchMode::Glob)
-        .collect();
+    let results: Vec<PackageHeader> = db.find_glob(Index::Name, "alternatives*").collect();
     assert!(
         results.iter().any(|p| p.name() == "alternatives"),
         "{}: glob 'alternatives*' should match the alternatives package",
@@ -257,12 +254,10 @@ pub fn assert_find_re_glob(distro: &DistroTestCase) {
     );
 }
 
-pub fn assert_find_re_regex(distro: &DistroTestCase) {
+pub fn assert_find_regex(distro: &DistroTestCase) {
     let db = init(distro);
 
-    let results: Vec<PackageHeader> = db
-        .find_re(Index::Name, "^alternatives$", MatchMode::Regex)
-        .collect();
+    let results: Vec<PackageHeader> = db.find_regex(Index::Name, "^alternatives$").collect();
     assert_eq!(
         results.len(),
         1,
@@ -272,12 +267,10 @@ pub fn assert_find_re_regex(distro: &DistroTestCase) {
     assert_eq!(results[0].name(), "alternatives", "{}", distro.name);
 }
 
-pub fn assert_find_re_no_match(distro: &DistroTestCase) {
+pub fn assert_find_regex_no_match(distro: &DistroTestCase) {
     let db = init(distro);
 
-    let results: Vec<PackageHeader> = db
-        .find_re(Index::Name, "zzz-nonexistent*", MatchMode::Glob)
-        .collect();
+    let results: Vec<PackageHeader> = db.find_glob(Index::Name, "zzz-nonexistent*").collect();
     assert_eq!(
         results.len(),
         0,

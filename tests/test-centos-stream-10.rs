@@ -41,18 +41,18 @@ fn test_centos_stream_10_find_by_dirnames() {
 }
 
 #[test]
-fn test_centos_stream_10_find_re_glob() {
-    common::assert_find_re_glob(&common::CENTOS_STREAM_10);
+fn test_centos_stream_10_find_glob() {
+    common::assert_find_glob(&common::CENTOS_STREAM_10);
 }
 
 #[test]
-fn test_centos_stream_10_find_re_regex() {
-    common::assert_find_re_regex(&common::CENTOS_STREAM_10);
+fn test_centos_stream_10_find_regex() {
+    common::assert_find_regex(&common::CENTOS_STREAM_10);
 }
 
 #[test]
-fn test_centos_stream_10_find_re_no_match() {
-    common::assert_find_re_no_match(&common::CENTOS_STREAM_10);
+fn test_centos_stream_10_find_regex_no_match() {
+    common::assert_find_regex_no_match(&common::CENTOS_STREAM_10);
 }
 
 #[test]
