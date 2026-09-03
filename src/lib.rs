@@ -100,10 +100,10 @@ pub mod sign;
 
 pub use self::{
     archive::ArchiveEntry, archive::PackageReader, changelog::ChangelogEntry, db::Db, db::Index,
-    db::MatchMode, dep::DepFlags, dep::Dependencies, dep::Dependency, error::Error,
-    files::FileAttrs, files::FileEntry, files::FileState, files::Files, keyring::Keyring,
-    keyring::PubKey, logging::LogBehavior, logging::LogLevel, macro_context::MacroContext,
-    package::PackageHeader, verify::VerificationFlags, verify::VerifyOptions, version::Version,
+    dep::DepFlags, dep::Dependencies, dep::Dependency, error::Error, files::FileAttrs,
+    files::FileEntry, files::FileState, files::Files, keyring::Keyring, keyring::PubKey,
+    logging::LogBehavior, logging::LogLevel, macro_context::MacroContext, package::PackageHeader,
+    verify::VerificationFlags, verify::VerifyOptions, version::Version,
 };
 
 // Re-export types used in public API

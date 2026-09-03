@@ -2,7 +2,7 @@
 //!
 //! Run with: cargo run --example database_query
 
-use librpm::{Db, Index, MatchMode};
+use librpm::{Db, Index};
 
 fn main() {
     librpm::init().expect("failed to initialize librpm");
@@ -41,13 +41,13 @@ fn main() {
 
     // Glob search by name
     println!("\n=== Glob search: python3* ===");
-    for pkg in db.find_re(Index::Name, "python3*", MatchMode::Glob) {
+    for pkg in db.find_glob(Index::Name, "python3*") {
         println!("  {}", pkg.nevra());
     }
 
     // Regex search by name
     println!("\n=== Regex search: ^lib.*-devel$ ===");
-    for pkg in db.find_re(Index::Name, "^lib.*-devel$", MatchMode::Regex) {
+    for pkg in db.find_regex(Index::Name, "^lib.*-devel$") {
         println!("  {}", pkg.nevra());
     }
 

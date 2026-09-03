@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 0.4.0 -- August 30, 2026
 
+### Changed
+
+* **Breaking**: `MatchMode` enum removed
+* **Breaking**: `Db::find_re` removed, replaced by `Db::find_regex` and `Db::find_glob`
+  functions which do not take a `MatchMode` parameter.
+
 ### Added
 
 * `Db::init_db()`, `Db::rebuild()`, and `Db::verify()` for RPM database
