@@ -7,9 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+* `OwnedTagData` provides ergonomic typed accessors matching `TagData`.
+
 ### 0.5.0 -- September 4, 2026
 
-### Added
+## Added
 
 * Transactions can configure package verification with `VerifyOptions`, including a custom keyring.
 * `PackageHeader::get_owned()` retrieves tags (including extension tags) as owned typed values.
@@ -19,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Transaction verification flags and keyrings are restored when transactions are dropped.
 * Transaction callbacks cannot unwind through the C ABI, and transaction cleanup is serialized with RPM global state.
 
-### 0.4.0 -- August 30, 2026
+## 0.4.0 -- August 30, 2026
 
 ### Changed
 

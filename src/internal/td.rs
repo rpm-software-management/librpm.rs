@@ -59,31 +59,6 @@ pub enum TagData<'hdr> {
     Bin(&'hdr [u8]),
 }
 
-/// Owned data found in an RPM header.
-#[derive(Debug, Clone, PartialEq)]
-pub enum OwnedTagData {
-    /// No data associated with this tag
-    Null,
-    /// Character array
-    Char(Vec<u8>),
-    /// 8-bit integer array
-    Int8(Vec<i8>),
-    /// 16-bit integer array
-    Int16(Vec<i16>),
-    /// 32-bit integer array
-    Int32(Vec<i32>),
-    /// 64-bit integer array
-    Int64(Vec<i64>),
-    /// String
-    Str(String),
-    /// String array
-    StrArray(Vec<String>),
-    /// Internationalized string array
-    I18NStr(Vec<String>),
-    /// Binary data
-    Bin(Vec<u8>),
-}
-
 impl<'hdr> TagData<'hdr> {
     /// Convert an `rpmtd_s` into a `TagData::Char`
     pub(crate) unsafe fn char(td: &librpm_sys::rpmtd_s) -> Self {
@@ -347,6 +322,182 @@ impl<'hdr> TagData<'hdr> {
     pub fn as_bytes(&self) -> Option<&[u8]> {
         match *self {
             TagData::Bin(b) => Some(b),
+            _ => None,
+        }
+    }
+
+    /// Is this value binary data?
+    pub fn is_bytes(&self) -> bool {
+        self.as_bytes().is_some()
+    }
+}
+
+/// Owned data found in an RPM header.
+#[derive(Debug, Clone, PartialEq)]
+pub enum OwnedTagData {
+    /// No data associated with this tag
+    Null,
+    /// Character array
+    Char(Vec<u8>),
+    /// 8-bit integer array
+    Int8(Vec<i8>),
+    /// 16-bit integer array
+    Int16(Vec<i16>),
+    /// 32-bit integer array
+    Int32(Vec<i32>),
+    /// 64-bit integer array
+    Int64(Vec<i64>),
+    /// String
+    Str(String),
+    /// String array
+    StrArray(Vec<String>),
+    /// Internationalized string array
+    I18NStr(Vec<String>),
+    /// Binary data
+    Bin(Vec<u8>),
+}
+
+impl OwnedTagData {
+    /// Is this tag data NULL?
+    pub fn is_null(&self) -> bool {
+        matches!(self, Self::Null)
+    }
+
+    /// Obtain the first char value, if this is a char.
+    pub fn as_char(&self) -> Option<u8> {
+        self.as_char_array()
+            .and_then(|values| values.first().copied())
+    }
+
+    /// Obtain a char slice, if this is a char.
+    pub fn as_char_array(&self) -> Option<&[u8]> {
+        match self {
+            Self::Char(values) => Some(values),
+            _ => None,
+        }
+    }
+
+    /// Is this value a char?
+    pub fn is_char(&self) -> bool {
+        self.as_char_array().is_some()
+    }
+
+    /// Obtain the first int8 value, if this is an int8.
+    pub fn as_int8(&self) -> Option<i8> {
+        self.as_int8_array()
+            .and_then(|values| values.first().copied())
+    }
+
+    /// Obtain an int8 slice, if this is an int8.
+    pub fn as_int8_array(&self) -> Option<&[i8]> {
+        match self {
+            Self::Int8(values) => Some(values),
+            _ => None,
+        }
+    }
+
+    /// Is this value an int8?
+    pub fn is_int8(&self) -> bool {
+        self.as_int8_array().is_some()
+    }
+
+    /// Obtain the first int16 value, if this is an int16.
+    pub fn as_int16(&self) -> Option<i16> {
+        self.as_int16_array()
+            .and_then(|values| values.first().copied())
+    }
+
+    /// Obtain an int16 slice, if this is an int16.
+    pub fn as_int16_array(&self) -> Option<&[i16]> {
+        match self {
+            Self::Int16(values) => Some(values),
+            _ => None,
+        }
+    }
+
+    /// Is this value an int16?
+    pub fn is_int16(&self) -> bool {
+        self.as_int16_array().is_some()
+    }
+
+    /// Obtain the first int32 value, if this is an int32.
+    pub fn as_int32(&self) -> Option<i32> {
+        self.as_int32_array()
+            .and_then(|values| values.first().copied())
+    }
+
+    /// Obtain an int32 slice, if this is an int32.
+    pub fn as_int32_array(&self) -> Option<&[i32]> {
+        match self {
+            Self::Int32(values) => Some(values),
+            _ => None,
+        }
+    }
+
+    /// Is this value an int32?
+    pub fn is_int32(&self) -> bool {
+        self.as_int32_array().is_some()
+    }
+
+    /// Obtain the first int64 value, if this is an int64.
+    pub fn as_int64(&self) -> Option<i64> {
+        self.as_int64_array()
+            .and_then(|values| values.first().copied())
+    }
+
+    /// Obtain an int64 slice, if this is an int64.
+    pub fn as_int64_array(&self) -> Option<&[i64]> {
+        match self {
+            Self::Int64(values) => Some(values),
+            _ => None,
+        }
+    }
+
+    /// Is this value an int64?
+    pub fn is_int64(&self) -> bool {
+        self.as_int64_array().is_some()
+    }
+
+    /// Obtain a string reference, so long as this value is a string type.
+    /// For I18NStr, returns the first (locale-selected) string.
+    pub fn as_str(&self) -> Option<&str> {
+        match self {
+            Self::Str(value) => Some(value),
+            Self::I18NStr(values) => values.first().map(String::as_str),
+            _ => None,
+        }
+    }
+
+    /// Is this value a string?
+    pub fn is_str(&self) -> bool {
+        self.as_str().is_some()
+    }
+
+    /// Obtain the full array of locale strings, if this is an I18NStr.
+    pub fn as_i18n_str_array(&self) -> Option<&[String]> {
+        match self {
+            Self::I18NStr(values) => Some(values),
+            _ => None,
+        }
+    }
+
+    /// Obtain a slice of strings, if this value is a string array.
+    pub fn as_str_array(&self) -> Option<&[String]> {
+        match self {
+            Self::StrArray(values) => Some(values),
+            _ => None,
+        }
+    }
+
+    /// Is this value a string array?
+    pub fn is_str_array(&self) -> bool {
+        self.as_str_array().is_some()
+    }
+
+    /// Obtain a byte slice, if this value contains binary data.
+    pub fn as_bytes(&self) -> Option<&[u8]> {
+        match self {
+            Self::Bin(values) => Some(values),
             _ => None,
         }
     }
