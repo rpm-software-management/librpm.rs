@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 * Transaction verification flags and keyrings are restored when transactions are dropped.
+* Transaction callbacks cannot unwind through the C ABI, and transaction cleanup is serialized with RPM global state.
 
 ### 0.4.0 -- August 30, 2026
 
