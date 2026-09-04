@@ -59,6 +59,31 @@ pub enum TagData<'hdr> {
     Bin(&'hdr [u8]),
 }
 
+/// Owned data found in an RPM header.
+#[derive(Debug, Clone, PartialEq)]
+pub enum OwnedTagData {
+    /// No data associated with this tag
+    Null,
+    /// Character array
+    Char(Vec<u8>),
+    /// 8-bit integer array
+    Int8(Vec<i8>),
+    /// 16-bit integer array
+    Int16(Vec<i16>),
+    /// 32-bit integer array
+    Int32(Vec<i32>),
+    /// 64-bit integer array
+    Int64(Vec<i64>),
+    /// String
+    Str(String),
+    /// String array
+    StrArray(Vec<String>),
+    /// Internationalized string array
+    I18NStr(Vec<String>),
+    /// Binary data
+    Bin(Vec<u8>),
+}
+
 impl<'hdr> TagData<'hdr> {
     /// Convert an `rpmtd_s` into a `TagData::Char`
     pub(crate) unsafe fn char(td: &librpm_sys::rpmtd_s) -> Self {

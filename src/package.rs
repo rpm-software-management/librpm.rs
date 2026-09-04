@@ -20,7 +20,7 @@ use crate::changelog::{self, ChangelogEntry};
 use crate::dep::Dependencies;
 use crate::files::Files;
 use crate::internal::header::Header;
-use crate::{RpmErrorKind, Tag, TagData};
+use crate::{OwnedTagData, RpmErrorKind, Tag, TagData};
 use std::hash::{Hash, Hasher};
 use std::{fmt, path::Path, time};
 
@@ -46,6 +46,24 @@ use std::{fmt, path::Path, time};
 /// is alive. No allocation or copy occurs.
 pub struct PackageHeader {
     header: Header,
+}
+
+/// Options for [`PackageHeader::get_owned`].
+#[derive(Debug, Clone, Copy)]
+pub struct GetOptions {
+    /// Look up computed extension tags in addition to stored tags.
+    pub extensions: bool,
+    /// Return raw values instead of locale-selected values for i18n tags.
+    pub raw: bool,
+}
+
+impl Default for GetOptions {
+    fn default() -> Self {
+        Self {
+            extensions: true,
+            raw: false,
+        }
+    }
 }
 
 impl PackageHeader {
@@ -95,6 +113,20 @@ impl PackageHeader {
         self.header.get(tag)
     }
 
+    /// Look up tag data as an owned value.
+    ///
+    /// Extension tags are enabled by default. Unlike [`get`](Self::get), the
+    /// returned value owns all of its data and remains valid independently of
+    /// the package header.
+    pub fn get_owned(&self, tag: Tag) -> Option<OwnedTagData> {
+        self.get_owned_with_options(tag, GetOptions::default())
+    }
+
+    /// Look up tag data as an owned value using the supplied options.
+    pub fn get_owned_with_options(&self, tag: Tag, options: GetOptions) -> Option<OwnedTagData> {
+        self.header.get_owned(tag, options.raw, options.extensions)
+    }
+
     /// Name of the package
     pub fn name(&self) -> &str {
         self.header
@@ -138,19 +170,17 @@ impl PackageHeader {
 
     /// EVR (epoch, version, release) of the package
     pub fn evr(&self) -> String {
-        if let Some(epoch) = self.epoch() {
-            format!("{}:{}-{}", epoch, self.version(), self.release())
-        } else {
-            format!("{}-{}", self.version(), self.release())
+        match self.get_owned(Tag::EVR) {
+            Some(OwnedTagData::Str(value)) => value,
+            _ => panic!("EVR extension missing or is not a string"),
         }
     }
 
     /// NEVRA (name, epoch, version, release, arch) of the package
     pub fn nevra(&self) -> String {
-        if let Some(arch) = self.arch() {
-            format!("{}-{}.{}", self.name(), self.evr(), arch)
-        } else {
-            format!("{}-{}", self.name(), self.evr())
+        match self.get_owned(Tag::NEVRA) {
+            Some(OwnedTagData::Str(value)) => value,
+            _ => panic!("NEVRA extension missing or is not a string"),
         }
     }
 

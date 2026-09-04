@@ -102,14 +102,14 @@ pub use self::{
     archive::ArchiveEntry, archive::PackageReader, changelog::ChangelogEntry, db::Db, db::Index,
     dep::DepFlags, dep::Dependencies, dep::Dependency, error::Error, files::FileAttrs,
     files::FileEntry, files::FileState, files::Files, keyring::Keyring, keyring::PubKey,
-    logging::LogBehavior, logging::LogLevel, macro_context::MacroContext, package::PackageHeader,
-    verify::VerificationFlags, verify::VerifyOptions, version::Version,
+    logging::LogBehavior, logging::LogLevel, macro_context::MacroContext, package::GetOptions,
+    package::PackageHeader, verify::VerificationFlags, verify::VerifyOptions, version::Version,
 };
 
 // Re-export types used in public API
 pub use self::internal::rc::RpmErrorKind;
 pub use self::internal::tag::{ParseTagError, Tag};
-pub use self::internal::td::TagData;
+pub use self::internal::td::{OwnedTagData, TagData};
 
 /// Initialize librpm with default configuration.
 ///

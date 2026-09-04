@@ -23,7 +23,7 @@ use std::path::Path;
 
 use super::rc::{RpmErrorKind, RpmReturnCode};
 use super::ts::TransactionSet;
-use super::{tag::Tag, td::TagData};
+use super::{tag::Tag, td::OwnedTagData, td::TagData};
 
 unsafe extern "C" {
     fn free(ptr: *mut std::ffi::c_void);
@@ -198,6 +198,90 @@ impl Header {
             librpm_sys::rpmtdFreeData(&mut td);
         }
 
+        Some(data)
+    }
+
+    /// Get owned tag data, including computed extension tags.
+    pub(crate) fn get_owned(&self, tag: Tag, raw: bool, extensions: bool) -> Option<OwnedTagData> {
+        let mut td: librpm_sys::rpmtd_s = unsafe { mem::zeroed() };
+        unsafe {
+            librpm_sys::rpmtdReset(&mut td);
+        }
+
+        let mut flags = librpm_sys::headerGetFlags_e_HEADERGET_ALLOC;
+        if extensions {
+            flags |= librpm_sys::headerGetFlags_e_HEADERGET_EXT;
+        }
+        if raw {
+            flags |= librpm_sys::headerGetFlags_e_HEADERGET_RAW;
+        }
+
+        let rc = unsafe { librpm_sys::headerGet(self.0, tag.into(), &mut td, flags) };
+        if rc == 0 {
+            return None;
+        }
+
+        let data = match td.type_ {
+            librpm_sys::rpmTagType_e_RPM_NULL_TYPE => OwnedTagData::Null,
+            librpm_sys::rpmTagType_e_RPM_CHAR_TYPE => OwnedTagData::Char(unsafe {
+                std::slice::from_raw_parts(td.data as *const u8, td.count as usize).to_vec()
+            }),
+            librpm_sys::rpmTagType_e_RPM_INT8_TYPE => OwnedTagData::Int8(unsafe {
+                std::slice::from_raw_parts(td.data as *const i8, td.count as usize).to_vec()
+            }),
+            librpm_sys::rpmTagType_e_RPM_INT16_TYPE => OwnedTagData::Int16(unsafe {
+                std::slice::from_raw_parts(td.data as *const i16, td.count as usize).to_vec()
+            }),
+            librpm_sys::rpmTagType_e_RPM_INT32_TYPE => OwnedTagData::Int32(unsafe {
+                std::slice::from_raw_parts(td.data as *const i32, td.count as usize).to_vec()
+            }),
+            librpm_sys::rpmTagType_e_RPM_INT64_TYPE => OwnedTagData::Int64(unsafe {
+                std::slice::from_raw_parts(td.data as *const i64, td.count as usize).to_vec()
+            }),
+            librpm_sys::rpmTagType_e_RPM_STRING_TYPE => OwnedTagData::Str(unsafe {
+                CStr::from_ptr(td.data as *const std::ffi::c_char)
+                    .to_string_lossy()
+                    .into_owned()
+            }),
+            librpm_sys::rpmTagType_e_RPM_STRING_ARRAY_TYPE => {
+                let mut values = Vec::with_capacity(td.count as usize);
+                loop {
+                    let value = unsafe { librpm_sys::rpmtdNextString(&mut td) };
+                    if value.is_null() {
+                        break;
+                    }
+                    values.push(
+                        unsafe { CStr::from_ptr(value) }
+                            .to_string_lossy()
+                            .into_owned(),
+                    );
+                }
+                OwnedTagData::StrArray(values)
+            }
+            librpm_sys::rpmTagType_e_RPM_I18NSTRING_TYPE => {
+                let mut values = Vec::with_capacity(td.count as usize);
+                loop {
+                    let value = unsafe { librpm_sys::rpmtdNextString(&mut td) };
+                    if value.is_null() {
+                        break;
+                    }
+                    values.push(
+                        unsafe { CStr::from_ptr(value) }
+                            .to_string_lossy()
+                            .into_owned(),
+                    );
+                }
+                OwnedTagData::I18NStr(values)
+            }
+            librpm_sys::rpmTagType_e_RPM_BIN_TYPE => OwnedTagData::Bin(unsafe {
+                std::slice::from_raw_parts(td.data as *const u8, td.count as usize).to_vec()
+            }),
+            other => panic!("unsupported rpmtd tag type: {other}"),
+        };
+
+        unsafe {
+            librpm_sys::rpmtdFreeData(&mut td);
+        }
         Some(data)
     }
 

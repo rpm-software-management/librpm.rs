@@ -4,7 +4,7 @@
 use std::collections::HashSet;
 use std::path::Path;
 
-use librpm::{FileState, PackageHeader, Tag, VerifyOptions, error::ErrorKind};
+use librpm::{FileState, OwnedTagData, PackageHeader, Tag, VerifyOptions, error::ErrorKind};
 
 mod common;
 
@@ -44,6 +44,53 @@ fn test_from_file_basic_metadata() {
     );
     assert_eq!(pkg.nevra(), "rpm-basic-1:2.3.4-5.el9.noarch");
     assert_eq!(pkg.evr(), "1:2.3.4-5.el9");
+}
+
+/// Extension tags are computed by librpm and must be copied before their
+/// temporary `rpmtd` storage is freed. The owned accessor supports both
+/// ordinary and computed tags without exposing pointers owned by librpm.
+#[test]
+fn test_extension_tags() {
+    let pkg = load_basic();
+
+    assert_eq!(
+        pkg.get_owned(Tag::EVR),
+        Some(OwnedTagData::Str("1:2.3.4-5.el9".to_string()))
+    );
+    assert_eq!(
+        pkg.get_owned(Tag::NEVRA),
+        Some(OwnedTagData::Str(
+            "rpm-basic-1:2.3.4-5.el9.noarch".to_string()
+        ))
+    );
+    assert_eq!(
+        pkg.get_owned(Tag::EPOCHNUM),
+        Some(OwnedTagData::Int32(vec![1]))
+    );
+    assert_eq!(
+        pkg.get_owned(Tag::EVR),
+        Some(OwnedTagData::Str("1:2.3.4-5.el9".to_string()))
+    );
+    #[cfg(has_rpmtag_archsuffix)]
+    assert_eq!(
+        pkg.get_owned(Tag::ARCHSUFFIX),
+        Some(OwnedTagData::Str(".noarch".to_string()))
+    );
+    match pkg.get_owned(Tag::FILENAMES) {
+        Some(OwnedTagData::StrArray(values)) => {
+            assert_eq!(values.len(), 11);
+            assert!(values.contains(&"/etc/rpm-basic/example_config.toml".to_string()));
+            assert!(values.contains(&"/usr/bin/rpm-basic".to_string()));
+        }
+        other => panic!("unexpected FILENAMES value: {other:?}"),
+    }
+    match pkg.get_owned(Tag::FILESIZES) {
+        Some(OwnedTagData::Int32(values)) => {
+            assert_eq!(values.len(), 11);
+            assert_eq!(&values[..2], &[31, 120]);
+        }
+        other => panic!("unexpected FILESIZES value: {other:?}"),
+    }
 }
 
 #[test]
