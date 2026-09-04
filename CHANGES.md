@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### 0.5.0 -- September 4, 2026
+
 ### Added
 
 * Transactions can configure package verification with `VerifyOptions`, including a custom keyring.

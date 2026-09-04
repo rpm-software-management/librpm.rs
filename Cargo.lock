@@ -299,7 +299,7 @@ dependencies = [
 
 [[package]]
 name = "librpm"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "base64",
  "env_logger",
@@ -315,21 +315,21 @@ dependencies = [
 
 [[package]]
 name = "librpm-sys"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "bindgen",
 ]
 
 [[package]]
 name = "librpmbuild-sys"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "bindgen",
 ]
 
 [[package]]
 name = "librpmsign-sys"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "bindgen",
 ]
