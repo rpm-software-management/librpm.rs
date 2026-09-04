@@ -19,7 +19,9 @@
 //!
 //! A `Transaction` is created from a [`Db`](crate::Db) via
 //! [`Db::transaction()`](crate::Db::transaction). It borrows the `Db`
-//! exclusively (`&mut`), preventing queries while a transaction is active.
+//! exclusively (`&mut`), preventing new queries from being started through the
+//! `Db` while a transaction is active. Existing database iterators are
+//! independent of the `Db` and may remain alive.
 //!
 //! # Lifecycle
 //!

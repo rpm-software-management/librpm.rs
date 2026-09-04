@@ -7,18 +7,18 @@ workaround exists.
 ## NULL transaction root dir crashes plugins (RPM 4.19+)
 
 **Symptom**: `Transaction::run()` segfaults (SIGSEGV) inside an RPM
-transaction plugin — e.g. `syslog_tsm_pre` in `/usr/lib64/rpm-plugins/syslog.so`
-— reached from `rpmtsRun()`. Deterministic (100%), and version-specific to
-RPM 4.19+ / CentOS Stream 10, where the syslog plugin is enabled by default.
+transaction plugin (e.g. `syslog_tsm_pre`) if the `rpmts` is not initialized
+using `rpmtsRootDir()` when the transaction is executed ()`rpmtsRun()`).
+Often version-specific to RPM 4.19+ / CentOS Stream 10, where the syslog
+plugin is enabled by default.
 
 **Root cause**: `rpmtsCreate()` initializes `ts->rootDir` to NULL and never
 defaults it; `rpmtsRootDir(ts)` returns that NULL verbatim. The root dir only
-becomes non-NULL when `rpmtsSetRootDir()` is called — which the `rpm`/`dnf`
+becomes non-NULL when `rpmtsSetRootDir()` is called - which the `rpm`/`dnf`
 CLIs as well as the Python bindings always do (`rpmtsSetRootDir(ts, "/")`).
 
-**Why the CLIs are not affected**: `rpm` and `dnf` always call
-`rpmtsSetRootDir(ts, "/")` (or the `--root` value) right after creating the
-transaction set, so `rpmtsRootDir()` is never NULL for them.
+Initializing the ts is a [documented requirement](https://rpm.org/docs/6.0.x/api/group__rpmts.html#ga3212cf94e6299cc6ec114f2c49e93acd)
+but nonetheless a context-specific segfault is unexpected.
 
 **Workaround**: `TransactionSet::create()` sets the root dir to `"/"` when it
 is unset. This is the single chokepoint through which every `rpmts` in
@@ -61,8 +61,8 @@ Note that `NOFINALIZE` must *not* be used for source-only builds (where no
 header (missing Os, Platform, Optflags, and Sourcerpm tags).
 
 **Workaround**: Use `Spec::parse_for_build()`, which inspects the `BuildArgs`
-to determine whether `NOFINALIZE` is needed — matching rpmbuild's logic.  For
-callers using `Spec::parse()` directly, `SpecFlags::nofinalize_or_none()`
+to determine whether `NOFINALIZE` is needed, trying to match what rpmbuild does.
+For callers using `Spec::parse()` directly, `SpecFlags::nofinalize_or_none()`
 returns `NOFINALIZE` on RPM versions that have it and `NONE` on older versions
 (where the flag and the double-finalization issue both do not exist), but the
 caller must ensure it is only applied for binary builds.

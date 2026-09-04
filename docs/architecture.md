@@ -14,28 +14,33 @@ keyring, root directory, transaction elements, ordering state, and more.
 A single `rpmts` is used for both read-only queries and mutating
 transactions.
 
-librpm.rs decomposes this into purpose-specific types:
+librpm.rs decomposes much of this functionality into purpose-specific types
+or functions that de-emphasizes the role of the transaction set:
 
 | Rust type | Wraps | Role |
 |-----------|-------|------|
-| `Db` | `rpmts` (1:1) | Read-only database queries |
+| `Db` | `rpmts` (1:1) | Read-only database queries, persistent system keyring management |
 | `Transaction<'db>` | borrows `Db`'s `rpmts` | Install/erase lifecycle (mutating) |
-| `PackageHeader::from_file()` | ephemeral `rpmts` | Read a `.rpm` file (no DB needed) |
-| `Keyring` | `rpmKeyring` (standalone) | In-memory trusted key management; also persistent keystore import/delete |
-| `PubKey` | `rpmPubkey` (standalone) | Individual public key |
+| `PackageHeader::from_file()` | creates ephemeral `rpmts` | Read a `.rpm` file (no DB needed) |
+| `Spec::build()` | `rpmSpec` (via ephemeral `rpmts`) | Spec file parsing and building (`build` feature) |
+
+External callers never interact with `TransactionSet` or `rpmts` directly.
+The `TransactionSet` wrapper is kept internal and owns the `rpmts` pointer.
+
+librpm.rs also creates additional wrappers and composite types to minimize the
+centrality of `TransactionSet`.
+
+| Rust type | Wraps | Role |
+|-----------|-------|------|
 | `VerifyOptions` | flags + optional `Keyring` | Verification configuration |
 | `VerificationFlags` | `rpmVSFlags_e` | Control verification checks |
-| `Spec` | `rpmSpec` (via `rpmts`) | Spec file parsing and building (`build` feature) |
-| `sign::sign_package()` | no `rpmts` | Signing via `librpmsign` (`sign` feature) |
+| `Keyring` | `rpmKeyring` (standalone) | In-memory trusted key management |
+| `PubKey` | `rpmPubkey` (standalone) | Individual public key |
 
-The internal `TransactionSet` wrapper owns the `rpmts` pointer and is
-always held inside a `Db`. External callers never interact with
-`TransactionSet` directly.
+### Note: the read/write boundary is not clean
 
-### The read/write boundary is not clean (locking implication)
-
-The type decomposition above suggests a tidy split — `Db` reads, `Transaction`
-writes — but librpm does not honor that boundary internally. Almost any
+The type decomposition above suggests a tidy split - `Db` reads, `Transaction`
+writes - but librpm does not honor that boundary internally. Almost any
 operation may **lazily open the database** (`rpmtsOpenDB`) and **create match
 iterators** on first use, including calls that look purely read-only or purely
 in-memory: adding a transaction element (`rpmtsAddInstallElement` resolves
@@ -44,11 +49,15 @@ upgrades/obsoletes), checking dependencies (`rpmtsCheck`), loading a keyring
 (`rpmtsRun` fingerprints and conflict-checks throughout).
 
 On RPM <= 4.18 those lazy opens and iterator churn mutate process-global
-tracking lists that are not internally synchronized. This is why the locking
+tracking lists that are not internally synchronized, so the locking
 model cannot simply wrap "the write methods": it must cover every entry point
 that may touch the database, regardless of which Rust type exposes it. See
 [locking.md](locking.md) for the full call-site inventory and the
 `mutation_lock` / `rpm_global_lock` ordering.
+
+The goal with librpm.rs is to provide one library which works across different
+versions of librpm, therefore, we perform locking which may be superfluous on
+newer versions but is required to keep older versions safe.
 
 ## Ownership and lifetimes
 
@@ -74,9 +83,11 @@ Key relationships:
   with an independent database connection.
 
 - **`Transaction<'db>` borrows `&mut Db`** exclusively via `PhantomData`.
-  This prevents queries while a transaction is active, which is necessary
-  because `rpmtsRun` mutates the `rpmts` state (flags, ordering, problem
-  set). Users must collect query results before creating a transaction.
+  This prevents new queries from being started through `Db` while a
+  transaction is active, which is necessary because `rpmtsRun` mutates the
+  `rpmts` state (flags, ordering, problem set). Existing `Iter` values do not
+  borrow `Db`; their C-level references keep the database and transaction set
+  alive across transaction creation and cleanup.
 
 - **`Iter` / `MatchIterator`** hold internal refcounted links to the
   `rpmts` and `rpmdb` (via `rpmtsLink`/`rpmdbLink` inside
@@ -143,10 +154,6 @@ librpm.rs uses several error types, each scoped to its domain:
 `ErrorKind` is `#[non_exhaustive]` to allow adding new variants without
 breaking downstream.
 
-`TransactionError` wraps a `Problems` set rather than a string, so
-callers can programmatically inspect individual problems (type, affected
-package, disk need, etc.).
-
 ## Configuration model
 
 1. **Process-global initialization**: `librpm::init()` (or `init_with()`)
@@ -154,8 +161,9 @@ package, disk need, etc.).
    once per process, enforced by `ConfigState`.
 
 2. **Macro context**: RPM's key-value configuration system. Internally
-   locked since RPM 4.12 (per-context recursive mutex). librpm.rs does
-   not add additional synchronization.
+   locked since RPM 4.12 (with a per-context recursive mutex). librpm.rs does
+   not add additional synchronization as we presume a more recent version
+   of librpm.
 
 3. **Per-`Db` transaction set**: Each `Db` owns an independent `rpmts`
    with lazy database open and keyring load. Multiple `Db` instances

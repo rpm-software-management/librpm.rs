@@ -55,21 +55,11 @@ impl TransactionSet {
         // Safety: rpmtsCreate returns a valid, non-null transaction set pointer.
         let ts = unsafe { librpm_sys::rpmtsCreate() };
         // rpmtsCreate() leaves ts->rootDir NULL; setting it is the caller's job.
-        // `rpm`, `dnf` and the Python bindings always call rpmtsSetRootDir(ts, "/")).
+        // Python bindings always call rpmtsSetRootDir(ts, "/")) during initialization,
+        // so we will do the same.
 
         // Without this step (which is documented to be required), segfaults
         // can be encountered in during `rpmtsRun()`.
-
-        // There is no RPM macro or init-time setting for the root directory
-        // (unlike the database path, which is the `_dbpath` macro), so this is
-        // the only place a default can be applied. `create()` is the single
-        // chokepoint for every rpmts we own, and it runs before anything can
-        // set the root, so applying "/" here guarantees the invariant "no
-        // librpm.rs rpmts ever has a NULL rootDir." We set it only when unset,
-        // so a future chroot/root API (which would call rpmtsSetRootDir after
-        // create()) — or an upstream rpmtsCreate() that grows its own default —
-        // is preserved rather than clobbered. The database location remains
-        // controlled independently via the `_dbpath` macro.
         unsafe {
             if librpm_sys::rpmtsRootDir(ts).is_null() {
                 librpm_sys::rpmtsSetRootDir(ts, c"/".as_ptr());
