@@ -127,10 +127,9 @@ suspect the tracking-list race:
   lists were removed. A crash that appears only on the older-RPM CI leg is a
   strong tell.
 
-The practical lesson for maintainers: any newly added FFI call that could
-lazily open the database or create a match iterator — even one that looks
-read-only or purely in-memory — must acquire `rpm_global_lock`, or it
-reopens this exact failure mode. See the call-site tables below.
+Any FFI call that could lazily open the database or create a match iterator -
+even one that looks read-only or purely in-memory - must acquire `rpm_global_lock`,
+or it risks this failure mode. See the call-site tables below.
 
 **RPM 4.19+ removed these global lists entirely**, eliminating the issue.
 The `rpmAtExit` function and the `rpmmiRock`/`rpmiiRock`/`rpmdbRock` variables
@@ -220,26 +219,44 @@ parsing must ensure those macros remain consistent through the build. Since
 is a window between macro setup and `Spec::parse()` where another thread
 could overwrite the values. Callers performing concurrent builds should use
 their own higher-level synchronization to cover the entire
-define → parse → build sequence.
+define -> parse -> build sequence.
 
-### Write-operation serialization (`mutation_lock`)
+### Mutation-sensitive operation serialization (`mutation_lock`)
 
-**This lock serializes all RPM write operations within the process.**
+**This lock serializes RPM operations with process-global mutation hazards.**
 
-`rpmtsRun`, `rpmtsInitDB`, `rpmtsRebuildDB`, and `rpmtsVerifyDB` have
-process-global side effects that are unsafe under concurrent execution:
+`rpmtsRun`, database management operations, and public-key import/deletion have
+process-global side effects that are unsafe under concurrent execution.
 
-| State | Location | Impact |
-|-------|----------|--------|
-| Chroot (`rootState`) | `rpmchroot.cc` | Only one rootDir active at a time; concurrent `rpmtsRun` with different roots will corrupt |
-| Signal blocking (`blocked`, `oldMask`) | `rpmsq.cc` | Shared refcount; concurrent write transactions will nest incorrectly |
-| SIGPIPE handler | `transaction.cc` | `sigaction` save/restore races if two `rpmtsRun` overlap |
-| `.rpm.lock` via `fcntl` | `rpmlock.cc` | POSIX `fcntl` locks are per-(process,inode), not per-fd: closing any fd to the lock file releases ALL locks the process holds on that inode |
+The individual process-global hazards are:
 
-The `fcntl` issue is the most subtle: if transaction set A holds a write lock
-and transaction set B is dropped (closing B's fd to `.rpm.lock`), A's lock
-silently disappears. This means at most one `Db` should perform write
-operations at a time.
+- **Chroot (`rootState`)**: `rpmchroot.cc` keeps the active root directory in
+  process-global state while a transaction runs. `rpmtsRun()` changes this
+  state before invoking package scripts and filesystem operations, then restores
+  it afterward. If two transactions with different roots overlap, one can
+  observe the other transaction's root, so files and scripts may be evaluated
+  against the wrong filesystem.
+- **Signal blocking (`blocked`, `oldMask`)**: `rpmsq.cc` implements signal
+  blocking with unsynchronized process-global bookkeeping rather than state
+  owned by a transaction set. Concurrent begin/end pairs race on the shared
+  counter and saved mask, so signals may be unblocked too early or the caller's
+  original mask may not be restored.
+- **SIGPIPE handler**: transaction setup in `transaction.cc` temporarily changes
+  the process-wide SIGPIPE disposition and saves the previous action for later
+  restoration. Overlapping `rpmtsRun()` calls can overwrite each other's saved
+  action; the first transaction to finish may then restore the wrong handler or
+  undo the second transaction's active handler.
+- **`.rpm.lock` via `fcntl`**: `rpmlock.cc` uses POSIX record locks, whose
+  ownership is associated with the process and inode, not with an individual
+  file descriptor. Consequently, closing any descriptor for the same lock file
+  can release locks acquired through another descriptor in that process. Two
+  `Db` instances can therefore interfere even when they refer to the same RPM
+  database and their C-side transaction locks appear independent.
+
+These are separate from the cross-process protection provided by `.rpm.lock`:
+that file lock coordinates with another process such as `rpm` or `dnf`, but it
+cannot make multiple file descriptors in this process safe. `mutation_lock`
+provides the missing in-process serialization around the entire operation.
 
 #### librpm.rs mitigation
 
@@ -253,7 +270,7 @@ librpm.rs uses a second process-wide `Mutex<()>` (`mutation_lock()` in
 | `Db::delete_pubkey()` | `rpmtxnBegin`, `rpmtxnDeletePubkey`, `rpmtxnEnd` | Keystore write |
 | `Db::init_db()` | `rpmtsInitDB` | Database file creation |
 | `Db::rebuild()` | `rpmtsRebuildDB` | Database rewrite |
-| `Db::verify()` | `rpmtsVerifyDB` | Database read (but shares chroot path) |
+| `Db::verify()` | `rpmtsVerifyDB` | Database verification; shares chroot/process-global state |
 
 #### Interaction with `rpm_global_lock` (lock ordering)
 
@@ -312,6 +329,16 @@ The Rust-side lock prevents the `fcntl` hazard (multiple fds to the same
 lock file within one process), while the C-side lock prevents concurrent
 writes from other processes (e.g. `dnf` or `rpm` CLI running simultaneously).
 
+#### Callback restrictions
+
+The transaction callback runs synchronously from inside `rpmtsRun()`, while
+`mutation_lock`, `rpm_global_lock`, and the cross-process RPM transaction lock
+are held. A callback must not call back into librpm operations that acquire
+these locks, including another transaction or database-management operation,
+because that can deadlock. The Rust callback trampoline catches a callback
+panic and resumes it only after `rpmtsRun()` and the lock release sequence have
+completed, so a panic cannot unwind through the C ABI.
+
 #### Transaction flags stickiness
 
 See [Transaction flags are temporarily expanded](quirks.md#transaction-flags-are-temporarily-expanded)
@@ -344,9 +371,10 @@ may still be advanced. Separate `Db` instances have separate transaction sets,
 but write operations remain process-wide serialized and should not be treated
 as independent concurrent writers.
 
-Write operations are serialized by `mutation_lock`. Only one `Transaction::run()`,
-`Db::init_db()`, `Db::rebuild()`, or `Db::verify()` call can execute at a time
-across all threads in the process.
+Mutation-sensitive operations are serialized by `mutation_lock`. Only one
+`Transaction::run()`, database-management operation, or public-key
+import/deletion operation can execute at a time across all threads in the
+process.
 
 #### File I/O in the callback trampoline
 

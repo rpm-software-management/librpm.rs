@@ -43,6 +43,7 @@
 use std::ffi::{CStr, CString, c_void};
 use std::marker::PhantomData;
 use std::os::unix::ffi::OsStrExt;
+use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::Path;
 use std::{fmt, ptr};
 
@@ -492,6 +493,20 @@ pub enum CallbackEvent {
 struct CallbackState<'a> {
     user_callback: Option<Box<dyn FnMut(CallbackEvent) + 'a>>,
     open_fd: Option<librpm_sys::FD_t>,
+    callback_panic: Option<Box<dyn std::any::Any + Send>>,
+}
+
+impl CallbackState<'_> {
+    fn call(&mut self, event: CallbackEvent) {
+        if self.callback_panic.is_some() {
+            return;
+        }
+        if let Some(callback) = &mut self.user_callback {
+            if let Err(panic) = catch_unwind(AssertUnwindSafe(|| callback(event))) {
+                self.callback_panic = Some(panic);
+            }
+        }
+    }
 }
 
 /// Extract NEVRA from callback's `h` parameter (style 1: rpmte pointer, RPM >= 4.17).
@@ -560,11 +575,9 @@ unsafe extern "C" fn callback_trampoline(
             return ptr::null_mut();
         }
         state.open_fd = Some(fd);
-        if let Some(cb) = &mut state.user_callback {
-            cb(CallbackEvent::InstOpenFile {
-                nevra: nevra_from_callback(h),
-            });
-        }
+        state.call(CallbackEvent::InstOpenFile {
+            nevra: nevra_from_callback(h),
+        });
         return fd as *mut c_void;
     }
 
@@ -572,11 +585,9 @@ unsafe extern "C" fn callback_trampoline(
         if let Some(fd) = state.open_fd.take() {
             unsafe { librpm_sys::Fclose(fd) };
         }
-        if let Some(cb) = &mut state.user_callback {
-            cb(CallbackEvent::InstCloseFile {
-                nevra: nevra_from_callback(h),
-            });
-        }
+        state.call(CallbackEvent::InstCloseFile {
+            nevra: nevra_from_callback(h),
+        });
         return ptr::null_mut();
     }
 
@@ -638,9 +649,7 @@ unsafe extern "C" fn callback_trampoline(
         _ => return ptr::null_mut(),
     };
 
-    if let Some(cb) = &mut state.user_callback {
-        cb(event);
-    }
+    state.call(event);
 
     ptr::null_mut()
 }
@@ -692,10 +701,17 @@ impl<'db> Transaction<'db> {
         let saved_verification_flags = unsafe { librpm_sys::rpmtsVSFlags(ts) };
         // rpmtsGetKeyring(ts, 0) does not auto-load the system keyring and
         // returns an owned reference when a keyring is already configured.
-        let saved_keyring = unsafe { librpm_sys::rpmtsGetKeyring(ts, 0) };
+        let saved_keyring = {
+            // Keep transaction-set initialization consistent with other RPM
+            // calls that may touch global database/iterator state. See
+            // docs/locking.md.
+            let _lock = rpm_global_lock();
+            unsafe { librpm_sys::rpmtsGetKeyring(ts, 0) }
+        };
         let mut callback_state = Box::new(CallbackState {
             user_callback: None,
             open_fd: None,
+            callback_panic: None,
         });
         let data_ptr: *mut c_void = {
             let ptr: *mut CallbackState = &mut *callback_state;
@@ -911,6 +927,9 @@ impl<'db> Transaction<'db> {
     ///
     /// Acquires the process-wide `mutation_lock` and RPM's cross-process `.rpm.lock` before
     /// executing. On failure, returns a [`TransactionError`] containing the problem set.
+    /// The user callback, if configured, runs while these locks are held and must not call back
+    /// into librpm operations that acquire them. If the callback panics, the panic is caught while
+    /// inside librpm and resumed after RPM has returned and its locks have been released.
     ///
     /// **Warning:** `rpmtsRun` mutates the transaction flags internally (expanding `NOSCRIPTS`
     /// into individual sub-flags). This wrapper saves and restores the flags around each call.
@@ -961,8 +980,14 @@ impl<'db> Transaction<'db> {
         // Restore flags
         unsafe { librpm_sys::rpmtsSetFlags(self.ts, pre_run_flags) };
 
+        let callback_panic = self.callback_state.callback_panic.take();
+
         // Release cross-process lock
         unsafe { librpm_sys::rpmtxnEnd(txn) };
+
+        if let Some(panic) = callback_panic {
+            std::panic::resume_unwind(panic);
+        }
 
         if rc != 0 {
             let ps = unsafe { librpm_sys::rpmtsProblems(self.ts) };
@@ -1001,6 +1026,9 @@ impl<'db> Transaction<'db> {
 
 impl Drop for Transaction<'_> {
     fn drop(&mut self) {
+        // Restoring the transaction set and emptying its elements can release
+        // RPM objects tracked in process-global state. See docs/locking.md.
+        let _lock = rpm_global_lock();
         unsafe {
             librpm_sys::rpmtsSetNotifyCallback(self.ts, None, ptr::null_mut());
         }
