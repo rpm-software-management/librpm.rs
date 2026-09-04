@@ -37,6 +37,26 @@ centrality of `TransactionSet`.
 | `Keyring` | `rpmKeyring` (standalone) | In-memory trusted key management |
 | `PubKey` | `rpmPubkey` (standalone) | Individual public key |
 
+## Public API type overview
+
+The main public types are organized around the operations they support:
+
+| Area | Important types | Purpose |
+|------|-----------------|---------|
+| Database | `Db`, `Iter`, `Index` | Open an RPM database, query package headers, and select database indices |
+| Transactions | `Transaction`, `TransactionFlags`, `ProblemFilter`, `Element`, `ElementType` | Build, inspect, check, order, and run package transactions |
+| Packages | `PackageHeader`, `Tag`, `TagData`, `Files`, `FileEntry`, `FileAttrs`, `FileState`, `ChangelogEntry` | Read package metadata, file lists, attributes, and changelogs |
+| Verification | `VerifyOptions`, `VerificationFlags`, `Keyring`, `PubKey` | Configure signature/digest verification and trusted keys |
+| Payloads | `PackageReader`, `ArchiveEntry` | Read files from an RPM payload sequentially or by entry |
+| Dependencies | `Dependency`, `Dependencies`, `DepFlags` | Inspect and compare package dependencies |
+| Build and signing | `Spec`, `BuildArgs`, `BuildFlags`, `SignArgs` | Parse/build spec files and sign packages when the corresponding features are enabled |
+| Configuration and errors | `MacroContext`, `Version`, `Error`, `RpmErrorKind`, `TransactionError` | Expand RPM macros, parse versions, and report failures |
+| Logging | `LogBehavior`, `LogLevel` | Control librpm logging and its Rust `log` integration |
+
+Most public wrappers own or reference refcounted RPM objects. The lifetime
+relationships and exceptions to ordinary Rust borrowing are described in the
+ownership section below.
+
 ### Note: the read/write boundary is not clean
 
 The type decomposition above suggests a tidy split - `Db` reads, `Transaction`
@@ -87,7 +107,9 @@ Key relationships:
   transaction is active, which is necessary because `rpmtsRun` mutates the
   `rpmts` state (flags, ordering, problem set). Existing `Iter` values do not
   borrow `Db`; their C-level references keep the database and transaction set
-  alive across transaction creation and cleanup.
+  alive across transaction creation and cleanup. The exclusive borrow also
+  prevents `Db::keyring()` and other `Db` methods from changing the shared
+  transaction-set configuration before `Transaction` restores it.
 
 - **`Iter` / `MatchIterator`** hold internal refcounted links to the
   `rpmts` and `rpmdb` (via `rpmtsLink`/`rpmdbLink` inside
@@ -106,8 +128,9 @@ Key relationships:
 
 - **`VerifyOptions`** bundles `VerificationFlags` with an optional
   `Keyring`. When passed to `PackageHeader::from_file()`, the ephemeral
-  `rpmts` is configured with the given flags and keyring. Cloning is
-  cheap (keyring clone is a refcount increment).
+  `rpmts` is configured with the given flags and keyring. It can also be
+  applied to a `Transaction` with `set_verify_options()`. Cloning is cheap
+  (keyring clone is a refcount increment).
 
 ```text
 Keyring (standalone, refcounted rpmKeyring)
@@ -140,6 +163,19 @@ VerifyOptions
   `rpmProblemFree` and `rpmpsFree`). They can outlive the transaction
   that produced them.
 
+## Transaction configuration lifetime
+
+`Transaction` temporarily configures the `rpmts` owned by its `Db`. On
+creation it snapshots the transaction flags, verification flags, and current
+keyring. `set_verify_options()` can then replace both the verification flags
+and keyring for that transaction. When the transaction is dropped, all three
+settings are restored; the keyring snapshot uses RPM's own reference-counted
+`rpmtsGetKeyring(ts, 0)` handle. This prevents verification configuration from
+bleeding into later transactions using the same `Db`. The RPM-specific reasons
+for restoring these settings are detailed in [API quirks][transaction quirks].
+
+[transaction quirks]: quirks.md#transaction-flags-are-temporarily-expanded
+
 ## Error handling strategy
 
 librpm.rs uses several error types, each scoped to its domain:
@@ -167,4 +203,7 @@ breaking downstream.
 
 3. **Per-`Db` transaction set**: Each `Db` owns an independent `rpmts`
    with lazy database open and keyring load. Multiple `Db` instances
-   can coexist on different threads for concurrent read-only queries.
+   can coexist on different threads for concurrent read-only queries. The
+   configured `_dbpath` remains process-global; see [API quirks][dbpath quirk].
+
+[dbpath quirk]: quirks.md#rpm-database-path-is-process-global

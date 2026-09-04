@@ -32,7 +32,7 @@
 //! 5. `run` the transaction.
 //!
 //! On drop, the transaction cleans up all elements via `rpmtsEmpty` and
-//! restores the original transaction flags.
+//! restores the original transaction flags, verification flags, and keyring.
 //!
 //! # Thread safety
 //!
@@ -51,6 +51,7 @@ use crate::error::Error;
 use crate::internal::{mutation_lock, rpm_global_lock};
 use crate::package::PackageHeader;
 use crate::problem::Problems;
+use crate::verify::{VerificationFlags, VerifyOptions};
 
 #[cfg(not(has_rpmts_set_notify_style))]
 unsafe extern "C" {
@@ -676,6 +677,8 @@ unsafe extern "C" fn callback_trampoline(
 pub struct Transaction<'db> {
     ts: *mut librpm_sys::rpmts_s,
     saved_flags: u32,
+    saved_verification_flags: u32,
+    saved_keyring: librpm_sys::rpmKeyring,
     problem_filter: ProblemFilter,
     callback_state: Box<CallbackState<'db>>,
     paths: Vec<CString>,
@@ -686,6 +689,10 @@ impl<'db> Transaction<'db> {
     pub(crate) fn new(db: &'db mut Db) -> Self {
         let ts = db.ts_ptr();
         let saved_flags = unsafe { librpm_sys::rpmtsFlags(ts) };
+        let saved_verification_flags = unsafe { librpm_sys::rpmtsVSFlags(ts) };
+        // rpmtsGetKeyring(ts, 0) does not auto-load the system keyring and
+        // returns an owned reference when a keyring is already configured.
+        let saved_keyring = unsafe { librpm_sys::rpmtsGetKeyring(ts, 0) };
         let mut callback_state = Box::new(CallbackState {
             user_callback: None,
             open_fd: None,
@@ -704,6 +711,8 @@ impl<'db> Transaction<'db> {
         Self {
             ts,
             saved_flags,
+            saved_verification_flags,
+            saved_keyring,
             problem_filter: ProblemFilter::NONE,
             callback_state,
             paths: Vec::new(),
@@ -809,6 +818,33 @@ impl<'db> Transaction<'db> {
         TransactionFlags(unsafe { librpm_sys::rpmtsFlags(self.ts) })
     }
 
+    /// Set the signature and digest verification flags used while processing
+    /// package files during this transaction.
+    pub fn set_verification_flags(&mut self, flags: VerificationFlags) {
+        unsafe { librpm_sys::rpmtsSetVSFlags(self.ts, flags.bits()) };
+    }
+
+    /// Get the signature and digest verification flags for this transaction.
+    pub fn verification_flags(&self) -> VerificationFlags {
+        VerificationFlags::from_bits(unsafe { librpm_sys::rpmtsVSFlags(self.ts) })
+    }
+
+    /// Configure package verification for this transaction.
+    ///
+    /// This applies both the signature/digest verification flags and the
+    /// optional keyring from `options`. If no keyring is configured, RPM will
+    /// load the system keyring when needed.
+    pub fn set_verify_options(&mut self, options: &VerifyOptions) {
+        unsafe {
+            librpm_sys::rpmtsSetVSFlags(self.ts, options.flags.bits());
+            let keyring = options
+                .keyring
+                .as_ref()
+                .map_or(ptr::null_mut(), |keyring| keyring.as_ptr());
+            librpm_sys::rpmtsSetKeyring(self.ts, keyring);
+        }
+    }
+
     /// Set the problem filter for [`run`](Transaction::run).
     pub fn set_problem_filter(&mut self, filter: ProblemFilter) {
         self.problem_filter = filter;
@@ -878,6 +914,26 @@ impl<'db> Transaction<'db> {
     ///
     /// **Warning:** `rpmtsRun` mutates the transaction flags internally (expanding `NOSCRIPTS`
     /// into individual sub-flags). This wrapper saves and restores the flags around each call.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # use std::path::Path;
+    /// # use librpm::{Db, PackageHeader, VerifyOptions};
+    /// # use librpm::transaction::TransactionFlags;
+    /// # librpm::init().unwrap();
+    /// # let mut db = Db::open().unwrap();
+    /// # let path = Path::new("package.rpm");
+    /// # let package = PackageHeader::from_file(
+    /// #     path,
+    /// #     Some(&VerifyOptions::skip_verification()),
+    /// # ).unwrap();
+    /// let mut transaction = db.transaction();
+    /// transaction.add_install(&package, path, false).unwrap();
+    /// transaction.set_flags(TransactionFlags::TEST);
+    /// transaction.run().unwrap();
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
     pub fn run(&mut self) -> Result<(), TransactionError> {
         let _mutation = mutation_lock();
         // rpmtsRun -> rpmtsSetup/rpmtsPrepare opens the database and creates
@@ -954,6 +1010,9 @@ impl Drop for Transaction<'_> {
         self.callback_state.user_callback = None;
         unsafe {
             librpm_sys::rpmtsSetFlags(self.ts, self.saved_flags);
+            librpm_sys::rpmtsSetVSFlags(self.ts, self.saved_verification_flags);
+            librpm_sys::rpmtsSetKeyring(self.ts, self.saved_keyring);
+            librpm_sys::rpmKeyringFree(self.saved_keyring);
             librpm_sys::rpmtsEmpty(self.ts);
         }
     }

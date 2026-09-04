@@ -314,10 +314,11 @@ writes from other processes (e.g. `dnf` or `rpm` CLI running simultaneously).
 
 #### Transaction flags stickiness
 
-`rpmtsRun` internally expands high-level flags like `NOSCRIPTS` into
-individual sub-flags (`NOPRE`, `NOPOST`, etc.) and writes them back to
-the transaction set. `Transaction::run()` saves and restores the flags
-around each call to prevent this mutation from leaking.
+See [Transaction flags are temporarily expanded](quirks.md#transaction-flags-are-temporarily-expanded)
+for the detailed behavior. `Transaction::run()` saves and restores the
+transaction flags around each call. It also restores verification flags and
+the keyring when the `Transaction` is dropped, because
+`set_verify_options()` changes the `rpmts` owned by the `Db`.
 
 ## Summary of Rust type markers
 
@@ -336,7 +337,12 @@ around each call to prevent this mutation from leaking.
 
 Multiple `Db` instances on separate threads are safe for read-only queries.
 The `rpm_global_lock` serializes the global-state-touching FFI calls; iteration
-and header access are fully concurrent.
+and header access are fully concurrent. A `Transaction` exclusively borrows
+its owning `Db`, so no other `Db` method can run against that transaction set
+until the transaction is dropped. Existing `Iter` values are independent and
+may still be advanced. Separate `Db` instances have separate transaction sets,
+but write operations remain process-wide serialized and should not be treated
+as independent concurrent writers.
 
 Write operations are serialized by `mutation_lock`. Only one `Transaction::run()`,
 `Db::init_db()`, `Db::rebuild()`, or `Db::verify()` call can execute at a time

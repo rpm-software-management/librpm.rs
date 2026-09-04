@@ -55,6 +55,11 @@ use crate::keyring::Keyring;
 pub struct VerificationFlags(u32);
 
 impl VerificationFlags {
+    /// Construct verification flags from their raw librpm bitmask.
+    pub const fn from_bits(bits: u32) -> Self {
+        Self(bits)
+    }
+
     /// Verify everything (no checks disabled).
     pub const DEFAULT: Self = Self(librpm_sys::rpmVSFlags_e_RPMVSF_DEFAULT);
 
