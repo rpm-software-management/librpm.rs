@@ -57,6 +57,10 @@ fn test_extension_tags() {
         pkg.get_owned(Tag::EVR),
         Some(OwnedTagData::Str("1:2.3.4-5.el9".to_string()))
     );
+    let evr = pkg.get_owned(Tag::EVR).unwrap();
+    assert_eq!(evr.as_str(), Some("1:2.3.4-5.el9"));
+    assert!(evr.is_str());
+    assert!(!evr.is_int32());
     assert_eq!(
         pkg.get_owned(Tag::NEVRA),
         Some(OwnedTagData::Str(
@@ -91,6 +95,10 @@ fn test_extension_tags() {
         }
         other => panic!("unexpected FILESIZES value: {other:?}"),
     }
+    let filesizes = pkg.get_owned(Tag::FILESIZES).unwrap();
+    assert_eq!(filesizes.as_int32(), Some(31));
+    assert_eq!(filesizes.as_int32_array().unwrap().len(), 11);
+    assert!(filesizes.is_int32());
 }
 
 #[test]
