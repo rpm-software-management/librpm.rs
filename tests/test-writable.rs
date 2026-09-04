@@ -30,7 +30,7 @@ use librpm::db::Index;
 use librpm::keyring::PubKey;
 use librpm::problem::ProblemType;
 use librpm::transaction::{CallbackEvent, ElementType, ProblemFilter, TransactionFlags};
-use librpm::{PackageHeader, VerifyOptions};
+use librpm::{PackageHeader, VerificationFlags, VerifyOptions};
 
 mod common;
 
@@ -112,6 +112,29 @@ fn test_transaction_lifecycle() {
     );
 }
 
+/// Transaction defaults are usable, and verification options can be changed
+/// without leaking into a later transaction on the same database handle.
+#[test]
+fn test_transaction_defaults_and_verification_flags() {
+    let mut db = common::init_writable();
+    let mut txn = db.transaction();
+
+    assert_eq!(txn.flags(), TransactionFlags::NONE);
+    assert_eq!(txn.verification_flags(), VerificationFlags::DEFAULT);
+
+    txn.set_verification_flags(VerificationFlags::all_disabled());
+    assert_eq!(txn.verification_flags(), VerificationFlags::all_disabled());
+    let options = VerifyOptions::new().keyring(librpm::Keyring::new());
+    txn.set_verify_options(&options);
+    assert_eq!(txn.verification_flags(), VerificationFlags::DEFAULT);
+    drop(txn);
+
+    let txn = db.transaction();
+    assert_eq!(txn.verification_flags(), VerificationFlags::DEFAULT);
+}
+
+/// An active database iterator remains valid across transaction creation and
+/// cleanup because RPM gives it independent references to the database state.
 #[test]
 fn test_iterator_survives_transaction_lifecycle() {
     let mut db = common::init_writable();
@@ -313,6 +336,8 @@ fn test_dry_run() {
 
     let mut txn = db.transaction();
     txn.add_install(&pkg, &rpm_empty_path(), false).unwrap();
+    // No user callback is registered. Transaction installs its internal
+    // payload file callback automatically.
     txn.set_flags(TransactionFlags::TEST);
     txn.set_problem_filter(
         ProblemFilter::IGNORE_OS
@@ -327,7 +352,11 @@ fn test_dry_run() {
     txn.order().expect("order should succeed");
 
     match txn.run() {
-        Ok(()) => {} // dry run succeeded
+        Ok(()) => {
+            // rpmtsRun expands TEST into internal no-script flags. The
+            // wrapper must not leak those implementation details to callers.
+            assert_eq!(txn.flags(), TransactionFlags::TEST);
+        }
         Err(e) => {
             // If the fixture DB doesn't support run, report but don't panic —
             // the important thing is that run() returns a structured error.

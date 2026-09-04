@@ -4,11 +4,47 @@ This document records non-obvious behavior in the librpm / librpmbuild C API
 that librpm.rs works around, with enough context to understand why each
 workaround exists.
 
+## RPM database path is process-global
+
+RPM uses the `_dbpath` macro to point at the location of the rpmdb relative
+to the root, and this macro is global state. `librpm::init_with()` configures
+this macro, and librpm.rs permits that initialization only once per process.
+Consequently, every `Db` opened in one process uses the same configured database
+path; `Db::open_with_root()` can vary the root directory, but it does not provide
+an independent `_dbpath`. Applications that need unrelated database paths must
+use separate processes, or place the databases at the same configured path
+relative to different roots, or use the APIs around the global `MacroContext`
+to change the value manually. Manually changing `_dbpath` through the global
+`MacroContext` would not have per-`Db` isolation, however, and can affect later
+RPM operations throughout the process.
+
+## Transaction flags are temporarily expanded
+
+`rpmtsRun()` mutates the transaction flag field during setup. Specifically,
+`NOSCRIPTS` adds the individual `NOPRE`, `NOPOST`, `NOPREUN`, `NOPOSTUN`,
+`NOPRETRANS`, `NOPOSTTRANS`, and `NOPREUNTRANS`/`NOPOSTUNTRANS` bits;
+`NOTRIGGERS` adds the individual trigger-suppression bits; and `TEST` or
+`JUSTDB` adds both groups. These are execution-time expansions, not useful
+post-transaction state, so `Transaction::run()` restores the caller's original
+transaction flags afterward.
+
+The verification flags have a separate behavior. While opening an install
+element, RPM temporarily adds `RPMVSF_NEEDPAYLOAD` to the verification flags
+and restores the previous value after reading the package. `rpmtsRun()` does
+not intentionally leave a changed verification-flag value behind. librpm.rs
+still saves and restores the verification flags and keyring when a
+`Transaction` is dropped because `Transaction::set_verify_options()` changes
+the shared `rpmts` configuration; restoring them prevents one transaction's
+options from leaking into the next transaction using the same `Db`.
+
+**Workaround**: `Transaction::run()` saves state prior to execution and
+restores afterwards.
+
 ## NULL transaction root dir crashes plugins (RPM 4.19+)
 
 **Symptom**: `Transaction::run()` segfaults (SIGSEGV) inside an RPM
 transaction plugin (e.g. `syslog_tsm_pre`) if the `rpmts` is not initialized
-using `rpmtsRootDir()` when the transaction is executed ()`rpmtsRun()`).
+using `rpmtsRootDir()` when the transaction is executed (`rpmtsRun()`).
 Often version-specific to RPM 4.19+ / CentOS Stream 10, where the syslog
 plugin is enabled by default.
 

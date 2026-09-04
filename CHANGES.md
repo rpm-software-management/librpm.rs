@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+* Transactions can configure package verification with `VerifyOptions`, including a custom keyring.
+
+### Fixed
+
+* Transaction verification flags and keyrings are restored when transactions are dropped.
+
 ### 0.4.0 -- August 30, 2026
 
 ### Changed
