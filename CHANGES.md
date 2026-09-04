@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 * Transactions can configure package verification with `VerifyOptions`, including a custom keyring.
+* `PackageHeader::get_owned()` retrieves tags (including extension tags) as owned typed values.
 
 ### Fixed
 
