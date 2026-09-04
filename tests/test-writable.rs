@@ -112,6 +112,27 @@ fn test_transaction_lifecycle() {
     );
 }
 
+#[test]
+fn test_iterator_survives_transaction_lifecycle() {
+    let mut db = common::init_writable();
+    let mut iter = db.installed_packages();
+
+    // Iter deliberately does not borrow Db: the underlying rpmdb iterator
+    // keeps the transaction set and database alive through C refcounts. A
+    // transaction may therefore be created while a query iterator exists.
+    assert!(iter.next().is_some());
+    {
+        let txn = db.transaction();
+        assert!(txn.is_empty());
+        // An existing iterator can also be advanced while the transaction
+        // value is alive; its C-level references are independent of Db.
+        assert!(iter.next().is_some());
+    }
+
+    // The iterator remains usable after the transaction has been dropped.
+    assert!(iter.next().is_some());
+}
+
 // --- Adding elements ---
 
 #[test]

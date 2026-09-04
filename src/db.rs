@@ -260,9 +260,11 @@ impl Db {
 
     /// Create a transaction for installing, upgrading, or erasing packages.
     ///
-    /// The transaction borrows the `Db` exclusively — complete any queries
-    /// before calling this method. Drop the transaction when done to
-    /// release the borrow.
+    /// The transaction borrows the `Db` exclusively, preventing new queries
+    /// from being started through the `Db` while it is active. Existing
+    /// [`Iter`] values do not borrow the `Db` and remain valid; drop or finish
+    /// them when their snapshot is no longer needed. Drop the transaction
+    /// when done to release the borrow.
     pub fn transaction(&mut self) -> Transaction<'_> {
         Transaction::new(self)
     }
