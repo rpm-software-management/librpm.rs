@@ -73,6 +73,9 @@ mod internal;
 pub mod keyring;
 
 /// Macros are RPM's configuration system
+/// RPM macro configuration. Enabling this module enables bindings derived
+/// from RPM's GPL-2.0-or-later `rpmmacro.h` header.
+#[cfg(feature = "macros")]
 pub mod macro_context;
 
 /// RPM packages
@@ -102,9 +105,12 @@ pub use self::{
     archive::ArchiveEntry, archive::PackageReader, changelog::ChangelogEntry, db::Db, db::Index,
     dep::DepFlags, dep::Dependencies, dep::Dependency, error::Error, files::FileAttrs,
     files::FileEntry, files::FileState, files::Files, keyring::Keyring, keyring::PubKey,
-    logging::LogBehavior, logging::LogLevel, macro_context::MacroContext, package::GetOptions,
-    package::PackageHeader, verify::VerificationFlags, verify::VerifyOptions, version::Version,
+    logging::LogBehavior, logging::LogLevel, package::GetOptions, package::PackageHeader,
+    verify::VerificationFlags, verify::VerifyOptions, version::Version,
 };
+
+#[cfg(feature = "macros")]
+pub use self::macro_context::MacroContext;
 
 // Re-export types used in public API
 pub use self::internal::rc::RpmErrorKind;

@@ -35,26 +35,22 @@
 // RPM worth caring about (although FWIW that should be fixed soon in bindgen
 // now that `#[repr(align(N))]` is stable.
 
-/** RPM configuration */
+// Covered by LGPL-2.0-or-later
 #include <rpm/rpmlib.h> // RIP Steve Taylor
-#include <rpm/rpmmacro.h> // Macros control RPM configuration
-
-/** RPM sub-system header files (from Table 16-1, omitting popt.h) */
-#include <rpm/rpmdb.h> // RPM database access
 #include <rpm/rpmio.h> // RPM input/output routines
-#include <rpm/rpmlog.h> // RPM logging
 
-/** RPM data object header files (from Table 16-2) */
-#include <rpm/header.h> // Package headers
-#include <rpm/rpmtag.h> // Accessing RPM tags
-#include <rpm/rpmds.h> // Dependency sets
-#include <rpm/rpmfi.h> // File information
-#include <rpm/rpmts.h> // Transaction sets
-#include <rpm/rpmte.h> // Transaction elements (packages)
+#ifdef LIBRPM_ENABLE_RPMMACRO
+#include <rpm/rpmmacro.h> // GPL-covered macro configuration API
+#endif
+
+// These headers were moved into include/rpm by RPM commit 650ba79f2
+// ("Eliminate the strange include pre-build install machinery"): rpmdb.h
+// and rpmts.h from lib/, and rpmlog.h and rpmkeyring.h from rpmio/. Their
+// relocation does not change their provenance under RPM's LGPL exception.
+#include <rpm/rpmdb.h> // RPM database access
+#include <rpm/rpmlog.h> // RPM logging
 #include <rpm/rpmkeyring.h> // Keyring and public key management
-#include <rpm/rpmver.h> // Version parsing and comparison
-#include <rpm/rpmprob.h> // Problem reporting
-#include <rpm/rpmps.h> // Problem sets
+#include <rpm/rpmts.h> // Transaction sets
 
 /** On some library versions RPMTAG_NOT_FOUND is define rather than enum field,
  *  and bindgen can't convert it uniformly. Provide a separate constant here: */

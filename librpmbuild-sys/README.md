@@ -2,7 +2,7 @@
 
 [![Crate][crate-image]][crate-link]
 [![Build Status][build-image]][build-link]
-[![MPL-2.0 Licensed][license-image]][license-link]
+[![MPL-2.0 AND GPL-2.0-or-later Licensed][license-image]][license-link]
 
 This crate uses bindgen to generate an unsafe FFI wrapper for the
 [rpmbuild C library], which provides a low-level API for building **.rpm**
@@ -16,13 +16,18 @@ https://rustrpm.org/
 
 ## License
 
+This crate is licensed under MPL-2.0 for its authored Rust code and
+GPL-2.0-or-later for bindings derived from RPM's `rpmbuild` headers. See
+[LICENSES.md](../LICENSES.md).
+
 Copyright (C) RustRPM Developers
 
 This library is free software.
 For more information on free software, see <https://www.gnu.org/philosophy/free-sw.en.html>.
 
-This Source Code Form is subject to the terms of the [Mozilla Public License, v. 2.0].
-If a copy of the MPL was not distributed with this file, You can obtain one at <https://mozilla.org/MPL/2.0/>.
+Repository-authored source is subject to the Mozilla Public License, v. 2.0.
+RPM-derived bindings are subject to the RPM license terms described in
+[LICENSES.md](../LICENSES.md).
 
 [//]: # (badges)
 
@@ -30,7 +35,7 @@ If a copy of the MPL was not distributed with this file, You can obtain one at <
 [crate-link]: https://crates.io/crates/librpmbuild-sys
 [build-image]: https://github.com/rpm-software-management/librpm.rs/actions/workflows/ci.yml/badge.svg?branch=main
 [build-link]: https://github.com/rpm-software-management/librpm.rs/actions
-[license-image]: https://img.shields.io/badge/license-MPLv2.0-blue.svg
+[license-image]: https://img.shields.io/badge/license-MPL--2.0%20AND%20GPL--2.0--or--later-blue.svg
 [license-link]: https://github.com/rpm-software-management/librpm.rs/blob/main/LICENSE
 
 [//]: # (general links)

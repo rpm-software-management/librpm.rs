@@ -43,15 +43,32 @@ num-traits = "0.2"
 num-derive = "0.5.1"
 
 [features]
-default = ["build", "sign"]
+default = []
 build = ["dep:librpmbuild-sys"]
 test-current-system = []
 sign = ["dep:librpmsign-sys"]
+macros = ["librpm-sys/rpmmacro"]
 
 [dev-dependencies]
 env_logger = "0.11"
 tempfile = "3"
 base64 = "0.23"
+
+[[example]]
+name = "package_building"
+required-features = ["build", "macros"]
+
+[[example]]
+name = "spec_parsing"
+required-features = ["build"]
+
+[[example]]
+name = "signing"
+required-features = ["sign"]
+
+[[example]]
+name = "system_macros"
+required-features = ["macros"]
 
 [lints.rust]
 # WARNING: this also silences typos in #[cfg(…)] attributes.

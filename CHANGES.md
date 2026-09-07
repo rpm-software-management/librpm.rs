@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * `OwnedTagData` provides ergonomic typed accessors matching `TagData`.
 
+### Changed
+
+* **Breaking**: `build`, `sign`, and `macros` features must now be enabled explicitly;
+  they are no longer enabled by default because they include GPL-covered RPM bindings.
+  Opting into those features therefore requires compliance with GPL-2.0-or-later
+  as described in `LICENCES.md`
+
+**NOTE**: Any users who previously adopted these bindings should know that they are still
+bound by the terms described here - this is not a change in licensing for this or future
+versions, merely correctly documenting the licensing requirements that already exist(ed).
+
 ### 0.5.0 -- September 4, 2026
 
 ## Added

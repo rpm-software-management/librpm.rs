@@ -2,7 +2,7 @@
 name = "librpm-sys"
 description = "RPM Package Manager library FFI bindings (librpm.so)"
 version.workspace = true
-license.workspace = true
+license = "MPL-2.0 AND LGPL-2.0-or-later"
 authors.workspace = true
 categories = ["external-ffi-bindings", "os"]
 keywords.workspace = true
@@ -16,3 +16,7 @@ rust-version.workspace = true
 
 [build-dependencies]
 bindgen.workspace = true
+
+[features]
+# Enables bindings derived from RPM's build/macro.h, which is GPL-2.0-or-later.
+rpmmacro = []
