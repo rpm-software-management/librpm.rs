@@ -41,6 +41,14 @@ RHEL 8 support may be added in the future, but is not a current priority.
 
 ## License
 
+The `librpm` crate's authored Rust code is licensed under MPL-2.0. The
+workspace's low-level sys crates contain bindings derived from RPM headers;
+see [LICENSES.md](LICENSES.md) for the applicable RPM license information.
+
+Enabling the `build` feature links against GPL-2.0-or-later artifacts, and hence
+requires abiding by the terms of the GPL license. If this is unacceptable, do not
+enable this feature.
+
 Copyright (C) RustRPM Developers
 
 This library is free software.

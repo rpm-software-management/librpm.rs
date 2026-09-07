@@ -21,13 +21,18 @@ come to the right place. You can find documentation here:
 
 ## License
 
+The authored Rust code in this crate is licensed under MPL-2.0. It links
+against RPM's LGPL-2.0-or-later `librpm` and `librpmio` libraries; see
+[LICENSES.md](../LICENSES.md).
+
 Copyright (C) RustRPM Developers
 
 This library is free software.
 For more information on free software, see <https://www.gnu.org/philosophy/free-sw.en.html>.
 
-This Source Code Form is subject to the terms of the [Mozilla Public License, v. 2.0].
-If a copy of the MPL was not distributed with this file, You can obtain one at <https://mozilla.org/MPL/2.0/>.
+Repository-authored source is subject to the Mozilla Public License, v. 2.0.
+RPM-derived bindings are subject to the RPM license terms described in
+[LICENSES.md](../LICENSES.md).
 
 [//]: # (badges)
 

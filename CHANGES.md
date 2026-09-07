@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * `OwnedTagData` provides ergonomic typed accessors matching `TagData`.
 
+### Changed
+
+* **Breaking**: `build` is now an explicit opt-in, non-default feature because it includes
+  GPL-covered RPM bindings.
+
 ### 0.5.0 -- September 4, 2026
 
 ## Added
