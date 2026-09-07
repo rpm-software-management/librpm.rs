@@ -19,6 +19,7 @@
 
 use crate::error::{Error, ErrorKind};
 use crate::internal::ConfigState;
+#[cfg(feature = "macros")]
 use crate::macro_context::MacroContext;
 use std::ffi::CString;
 use std::os::unix::ffi::OsStrExt;
@@ -26,6 +27,7 @@ use std::path::Path;
 use std::ptr;
 
 /// Name of the macro which defines the path to the database
+#[cfg(feature = "macros")]
 const DB_PATH_MACRO: &str = "_dbpath";
 
 /// Read RPM configuration (a.k.a. rpmrc).
@@ -83,6 +85,15 @@ pub(crate) fn read_file(config_file: Option<&Path>) -> Result<(), Error> {
 }
 
 /// Set the path to the global RPM database.
+#[cfg(feature = "macros")]
 pub(crate) fn set_db_path(path: &Path) -> Result<(), Error> {
     MacroContext::default().define(&format!("{} {}", DB_PATH_MACRO, path.display()), 0)
+}
+
+#[cfg(not(feature = "macros"))]
+pub(crate) fn set_db_path(_path: &Path) -> Result<(), Error> {
+    fail!(
+        ErrorKind::Config,
+        "setting a custom database path requires the `macros` feature"
+    );
 }

@@ -57,7 +57,9 @@ fn main() {
     println!("cargo:rustc-link-lib=rpm");
     println!("cargo:rustc-link-lib=rpmio");
 
-    let builder = Builder::default()
+    let rpm_macro_enabled = env::var_os("CARGO_FEATURE_RPMMACRO").is_some();
+
+    let mut builder = Builder::default()
         .header("include/librpm.hpp")
         // ----------------------------------------------------------
         // Functions: only uncommented entries are generated.
@@ -439,6 +441,10 @@ fn main() {
         // .allowlist_type("rpmHashAlgo_e")
         // librpm.hpp (local workaround)
         .allowlist_type("Workarounds");
+
+    if rpm_macro_enabled {
+        builder = builder.clang_arg("-DLIBRPM_ENABLE_RPMMACRO");
+    }
 
     // Write generated bindings to OUT_DIR (to be included in the crate)
     let output_path = PathBuf::from(env::var("OUT_DIR").unwrap()).join("binding.rs");

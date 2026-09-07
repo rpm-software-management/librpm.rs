@@ -20,18 +20,18 @@ jobs:
 
       - name: 📎 Run Linters
         run: |
-          cargo clippy --release -- -D warnings
+          cargo clippy --all-features --release -- -D warnings
           cargo fmt --all -- --check
-          cargo doc --no-deps
+          cargo doc --all-features --no-deps
 
       - name: 🔨 Build (Debug)
-        run: cargo build --verbose
+        run: cargo build --all-features --verbose
 
       - name: 🔨 Build (Release)
-        run: cargo build --release --verbose
+        run: cargo build --all-features --release --verbose
 
       - name: 🧪 Run Unit Tests
-        run: cargo test --release --bins --lib
+        run: cargo test --all-features --release --bins --lib
 
   integration-tests:
     strategy:
@@ -54,7 +54,7 @@ jobs:
 
       - name: 🧪 Run Integration Tests
         run: |
-          cargo test --test '*' --release
+          cargo test --features build,sign,macros --test '*' --release
 
   integration-tests-ubuntu:  # doubles as docs.rs build test
     runs-on: ubuntu-24.04
@@ -69,4 +69,4 @@ jobs:
 
       - name: 🧪 Run Integration Tests
         run: |
-          cargo test --test '*' --release
+          cargo test --features build,sign,macros --test '*' --release
