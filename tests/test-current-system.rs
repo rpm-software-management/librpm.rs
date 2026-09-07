@@ -86,7 +86,7 @@ fn test_against_installed_packages() {
     let db = common::configure();
 
     let mut expected_install_packages = fetch_system_packages();
-    let mut found_packages: Vec<Package> = db.installed_packages().collect();
+    let mut found_packages: Vec<PackageHeader> = db.installed_packages().collect();
 
     expected_install_packages.sort_by_key(|p| p.name.to_string());
     found_packages.sort_by_key(|p| p.name().to_string());

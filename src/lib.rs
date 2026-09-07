@@ -73,6 +73,8 @@ mod internal;
 pub mod keyring;
 
 /// Macros are RPM's configuration system
+/// RPM macro configuration. This module is feature-gated as an optional API
+/// surface; its RPM-derived bindings are covered by RPM's LGPL exception.
 pub mod macro_context;
 
 /// RPM packages

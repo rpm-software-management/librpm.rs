@@ -2,7 +2,7 @@
 name = "librpmbuild-sys"
 description = "rpmbuild library FFI bindings (librpmbuild.so)"
 version.workspace = true
-license.workspace = true
+license = "MPL-2.0 AND GPL-2.0-or-later"
 authors.workspace = true
 categories = ["external-ffi-bindings", "os"]
 keywords.workspace = true
