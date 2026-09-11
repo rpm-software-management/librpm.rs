@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### 0.6.0 -- September 11, 2026
+
 ### Added
 
 * `OwnedTagData` provides ergonomic typed accessors matching `TagData`.
