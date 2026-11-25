@@ -64,6 +64,12 @@ impl SignFlags {
     /// Produce an RPM v6 signature.
     #[cfg(has_rpmsignflag_rpmv6)]
     pub const RPMV6: Self = Self(librpmsign_sys::rpmSignFlags_e_RPMSIGN_FLAG_RPMV6);
+    /// Skip reading and verifying the package payload while signing.
+    ///
+    /// The caller is responsible for the payload contents. This requires a
+    /// separate payload digest and cannot be used with RPM v3 signatures.
+    #[cfg(has_rpmsignflag_nopayload)]
+    pub const NOPAYLOAD: Self = Self(librpmsign_sys::rpmSignFlags_e_RPMSIGN_FLAG_NOPAYLOAD);
 }
 
 impl std::ops::BitOr for SignFlags {
