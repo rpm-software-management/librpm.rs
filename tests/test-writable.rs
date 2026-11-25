@@ -408,6 +408,9 @@ fn test_install_into_alternate_root() {
         txn.add_install(&pkg, &rpm_empty_path(), false).unwrap();
         txn.set_flags(TransactionFlags::JUSTDB);
         txn.set_problem_filter(ProblemFilter::IGNORE_OS | ProblemFilter::IGNORE_ARCH);
+        // This fixture is unsigned, and the host RPM may require signatures.
+        // Keep digest checks enabled while making the test policy-independent.
+        txn.set_verification_flags(VerificationFlags::mask_nosignatures());
         txn.check()
             .expect("dependency check should pass for rpm-empty");
         txn.order().expect("order should succeed");
